@@ -1,0 +1,18 @@
+# Virtual environments
+.venv/
+venv/
+retail-agent/venv/
+
+# Python cache
+__pycache__/
+.pytest_cache/
+*.py[cod]
+
+# Logs
+logs/
+*.log
+
+# OS files
+Thumbs.db
+Desktop.ini
+

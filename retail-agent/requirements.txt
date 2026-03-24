@@ -1,0 +1,10 @@
+﻿pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+shap
+lime
+ollama
+tabulate
+openpyxl
