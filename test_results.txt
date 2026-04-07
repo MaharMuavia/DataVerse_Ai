@@ -1,0 +1,126 @@
+STDOUT:
+============================= test session starts =============================
+platform win32 -- Python 3.12.2, pytest-7.4.2, pluggy-1.6.0 -- C:\Users\mouav\AppData\Local\Programs\Python\Python312\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend
+plugins: anyio-4.4.0, dash-4.0.0, Faker-18.9.0, timeout-2.4.0, typeguard-4.4.4
+collecting ... collected 29 items / 1 error
+
+=================================== ERRORS ====================================
+_____________ ERROR collecting tests/test_conversation_memory.py ______________
+ImportError while importing test module 'C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\tests\test_conversation_memory.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\test_conversation_memory.py:4: in <module>
+    from app.memory.conversation_memory import ConversationMemory, SessionContext
+app\memory\__init__.py:2: in <module>
+    from .conversation_memory import ConversationMemory
+app\memory\conversation_memory.py:5: in <module>
+    from app.agents.core.intent_extractor import IntentObject, FilterCondition, TimeRange
+app\agents\__init__.py:4: in <module>
+    from .proactive_insight_agent import ProactiveInsightAgent
+app\agents\proactive_insight_agent.py:6: in <module>
+    from ..memory.conversation_memory import ConversationMemory
+E   ImportError: cannot import name 'ConversationMemory' from partially initialized module 'app.memory.conversation_memory' (most likely due to a circular import) (C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\memory\conversation_memory.py)
+============================== warnings summary ===============================
+app\core\config.py:24
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:24: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    ENVIRONMENT: str = Field(default="development", env="ENVIRONMENT")
+
+app\core\config.py:27
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:27: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    LOG_DIR: str = Field(default="./logs", env="LOG_DIR")
+
+app\core\config.py:28
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:28: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
+
+app\core\config.py:32
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:32: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    INTENT_LLM_PROVIDER: str = Field(default="auto", env="INTENT_LLM_PROVIDER")
+
+app\core\config.py:33
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:33: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    INTENT_LLM_TIMEOUT: int = Field(default=20, env="INTENT_LLM_TIMEOUT")
+
+app\core\config.py:36
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:36: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    OPENAI_API_KEY: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
+
+app\core\config.py:37
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:37: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    OPENAI_API_BASE: Optional[str] = Field(default=None, env="OPENAI_API_BASE")
+
+app\core\config.py:38
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:38: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    OPENAI_INTENT_MODEL: str = Field(default="gpt-4o-mini", env="OPENAI_INTENT_MODEL")
+
+app\core\config.py:41
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:41: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    DEEPSEEK_API_KEY: Optional[str] = Field(default=None, env="DEEPSEEK_API_KEY")
+
+app\core\config.py:42
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:42: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    DEEPSEEK_API_BASE: str = Field(default="https://api.deepseek.com/v1", env="DEEPSEEK_API_BASE")
+
+app\core\config.py:43
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:43: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    DEEPSEEK_INTENT_MODEL: str = Field(default="deepseek-chat", env="DEEPSEEK_INTENT_MODEL")
+
+app\core\config.py:46
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:46: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    DEEPANALYZE_BASE_URL: str = Field(default="http://localhost:11434", env="DEEPANALYZE_BASE_URL")
+
+app\core\config.py:50
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:50: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    DEEPANALYZE_MODEL: str = Field(default="deepanalyze-8b", env="DEEPANALYZE_MODEL")
+
+app\core\config.py:52
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:52: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    DEEPANALYZE_FALLBACK_MODEL: str = Field(default="phi3:mini", env="DEEPANALYZE_FALLBACK_MODEL")
+
+app\core\config.py:53
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:53: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    DEEPANALYZE_TIMEOUT: int = Field(default=20, env="DEEPANALYZE_TIMEOUT")
+
+app\core\config.py:55
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:55: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    DEEPANALYZE_ALLOW_FALLBACK: bool = Field(default=True, env="DEEPANALYZE_ALLOW_FALLBACK")
+
+app\core\config.py:58
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:58: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    MAX_UPLOAD_SIZE_MB: int = Field(default=50, env="MAX_UPLOAD_SIZE_MB")
+
+app\core\config.py:61
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:61: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    SECRET_KEY: str = Field(default="your-secret-key-change-in-production", env="SECRET_KEY")
+
+app\core\config.py:62
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:62: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    ALGORITHM: str = Field(default="HS256", env="ALGORITHM")
+
+app\core\config.py:63
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:63: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES")
+
+app\core\config.py:68
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:68: PydanticDeprecatedSince20: Using extra keyword arguments on `Field` is deprecated and will be removed. Use `json_schema_extra` instead. (Extra keys: 'env'). Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    DATABASE_URL: str | None = Field(default=None, env="DATABASE_URL")
+
+app\core\config.py:21
+  C:\Users\mouav\OneDrive\Desktop\FINAL3\dataverse_backend\app\core\config.py:21: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class Settings(BaseSettings):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+ERROR tests/test_conversation_memory.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+======================== 22 warnings, 1 error in 1.44s ========================
+
+
+STDERR:
+
+
+Return Code: 2

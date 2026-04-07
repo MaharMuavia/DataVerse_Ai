@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  # Redis for Celery and sessions
+  redis:
+    image: redis:7-alpine
+    container_name: dataverse-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - dataverse-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: dataverse-postgres
+    environment:
+      POSTGRES_USER: dataverse
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: dataverse
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dataverse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dataverse-network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./dataverse_backend
+      dockerfile: Dockerfile
+    container_name: dataverse-backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://dataverse:${DB_PASSWORD:-changeme}@postgres:5432/dataverse
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "${BACKEND_PORT:-8001}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./dataverse_backend:/app
+      - backend_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dataverse-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Celery Fast Worker
+  worker_fast:
+    build:
+      context: ./dataverse_backend
+      dockerfile: Dockerfile
+    container_name: dataverse-worker-fast
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      - redis
+    volumes:
+      - ./dataverse_backend:/app
+    networks:
+      - dataverse-network
+    command: celery -A tasks.celery_app worker -Q fast --concurrency=4 --loglevel=info
+
+  # Celery Slow Worker
+  worker_slow:
+    build:
+      context: ./dataverse_backend
+      dockerfile: Dockerfile
+    container_name: dataverse-worker-slow
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      - redis
+    volumes:
+      - ./dataverse_backend:/app
+    networks:
+      - dataverse-network
+    command: celery -A tasks.celery_app worker -Q slow --concurrency=2 --loglevel=info
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./dataverse_frontend
+      dockerfile: Dockerfile
+    container_name: dataverse-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:8000
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./dataverse_frontend:/app
+      - frontend_node_modules:/app/node_modules
+    networks:
+      - dataverse-network
+    command: npm run dev
+
+volumes:
+  postgres_data:
+    driver: local
+  backend_data:
+    driver: local
+  frontend_node_modules:
+    driver: local
+
+networks:
+  dataverse-network:
+    driver: bridge

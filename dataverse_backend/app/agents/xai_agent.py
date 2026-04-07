@@ -58,10 +58,9 @@ class XAIAgent:
         if shap is None:
             return {"error": "SHAP module not available", "status": "failed"}
 
-        if X_data.shape[0] > sample_size:
-            X_sample = X_data.sample(n=sample_size, random_state=42)
-        else:
-            X_sample = X_data.copy()
+        # Apply sampling cap for performance
+        MAX_SHAP_SAMPLES = 200
+        X_sample = self._get_shap_sample(X_data, MAX_SHAP_SAMPLES)
 
         self.logger.info("Computing SHAP explanations", extra={"session_id": self.session_id, "samples": len(X_sample)})
 
@@ -105,6 +104,12 @@ class XAIAgent:
         except Exception as e:
             self.logger.exception(f"SHAP explanation failed: {e}")
             return {"error": str(e), "status": "failed"}
+
+    def _get_shap_sample(self, X_data: pd.DataFrame, max_samples: int = 200) -> pd.DataFrame:
+        """Get sample of data for SHAP computation to avoid timeouts on large datasets."""
+        if len(X_data) > max_samples:
+            return X_data.sample(n=max_samples, random_state=42)
+        return X_data
 
     def _create_explainer(self, model, X_data: pd.DataFrame):
         """Create appropriate SHAP explainer for the model.

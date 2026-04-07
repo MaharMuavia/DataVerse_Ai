@@ -43,11 +43,10 @@ class UploadResponse(BaseModel):
     message: str
     is_retail: bool
     matched_keywords: Optional[List[str]] = None
-    session_id: str
-    success: bool
-    message: str
-    is_retail: bool
-    matched_keywords: Optional[List[str]] = None
+    dataset_filename: Optional[str] = None
+    dataset_rows: Optional[int] = None
+    dataset_cols: Optional[int] = None
+    created_at: Optional[str] = None
 
 
 class QueryRequest(BaseModel):
@@ -118,8 +117,17 @@ class TrainModelResponse(BaseModel):
     task_type: str
     target_column: str
     status: str
+    job_id: Optional[str] = None
     best_model: Optional[str] = None
     metrics: Optional[Dict[str, Any]] = None
     predictions_sample: Optional[List[Dict[str, Any]]] = None
     feature_importance: Optional[Dict[str, float]] = None
+    error: Optional[str] = None
+
+
+class MLJobStatusResponse(BaseModel):
+    job_id: str
+    status: str
+    progress: Optional[str] = None
+    result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None

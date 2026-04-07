@@ -12,6 +12,7 @@ from sqlalchemy import insert, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from .models import Dataset, UserQuery, AgentRun, AnalysisResult, Report
+from .session_models import Query, Session
 from ..core.logger import logger
 
 
@@ -46,6 +47,26 @@ async def log_user_query(db: AsyncSession, query_text: str, parsed_intent: Optio
     except SQLAlchemyError:
         await db.rollback()
         logger.exception("Failed to log user query")
+        raise
+
+
+async def log_query(db: AsyncSession, session_id: str, query_text: str, intent: str, confidence: Optional[Dict[str, Any]] = None) -> Query:
+    """Log a query to the new queries table."""
+    try:
+        query = Query(
+            session_id=session_id,
+            query_text=query_text,
+            intent=intent,
+            confidence=confidence
+        )
+        db.add(query)
+        await db.commit()
+        await db.refresh(query)
+        logger.info("Query logged", extra={"query_id": str(query.id), "session_id": session_id})
+        return query
+    except SQLAlchemyError:
+        await db.rollback()
+        logger.exception("Failed to log query")
         raise
 
 

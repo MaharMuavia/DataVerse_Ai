@@ -101,6 +101,52 @@ class AutoMLAgent:
             self.logger.exception(f"AutoML workflow failed: {e}")
             return {"error": str(e), "status": "failed"}
 
+    async def train_async(self, session_id: str, task_type: str, target_col: str, db=None):
+        """Run AutoML training asynchronously in background."""
+        import asyncio
+
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(None, self._train_sync, session_id, task_type, target_col)
+
+        # Persist result to database
+        if db is not None:
+            await self._persist_result(session_id, result, db)
+
+        return result
+
+    def _train_sync(self, session_id: str, task_type: str, target_col: str):
+        """Synchronous training method for background execution."""
+        # Temporarily set session_id for this training run
+        original_session = getattr(self, 'session_id', None)
+        self.session_id = session_id
+
+        try:
+            return self.run(task_type, target_col)
+        finally:
+            self.session_id = original_session
+
+    async def _persist_result(self, session_id: str, result: Dict[str, Any], db):
+        """Persist training result to database."""
+        from ..db.models import MLJob
+        from sqlalchemy import update
+
+        try:
+            # Update the ML job status
+            stmt = (
+                update(MLJob)
+                .where(MLJob.session_id == session_id, MLJob.status == "running")
+                .values(
+                    status="complete" if result.get("status") == "success" else "failed",
+                    best_model=result.get("best_model"),
+                    metrics=result.get("metrics"),
+                    error=result.get("error")
+                )
+            )
+            await db.execute(stmt)
+            await db.commit()
+        except Exception as e:
+            logger.exception(f"Failed to persist ML result: {e}")
+
     def _run_classification(self, df: pd.DataFrame, target_column: str, test_size: float) -> Dict[str, Any]:
         """Run classification AutoML using scikit-learn."""
         if not SKLEARN_AVAILABLE:

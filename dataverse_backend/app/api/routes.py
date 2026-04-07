@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import io
 import uuid
+from datetime import datetime
 import pandas as pd
-from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
+from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
@@ -17,6 +19,7 @@ from ..core.exceptions import DataLoadError, DataNotFoundError
 from ..data.data_manager import DataManager
 from ..state.session_state import SessionState
 from ..orchestrator.agent_orchestrator import AgentOrchestrator
+from ..core.logger import logger
 from ..agents.retail_detector_agent import RetailDetectorAgent
 from ..agents.eda_analytics_agent import EDAAgent
 from ..agents.automl_agent import AutoMLAgent
@@ -33,7 +36,11 @@ from .schemas import (
     RecommendationResponse,
     TrainModelRequest,
     TrainModelResponse,
+    MLJobStatusResponse,
 )
+from workflow.memory.session_store import save_session
+from tasks.celery_app import celery_app
+import os
 
 router = APIRouter()
 
@@ -62,49 +69,84 @@ def session_status(session_id: str):
 @router.post("/upload", response_model=UploadResponse)
 async def upload_dataset(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_active_user),
     db: Optional[AsyncSession] = Depends(get_session)
 ):
+    # Validate file size and type
+    MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+    contents = await file.read()
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(400, "File exceeds 50MB limit")
+    if not file.filename.lower().endswith(('.csv', '.xlsx', '.xls')):
+        raise HTTPException(400, "Only CSV and Excel files are supported")
+
     # Assign a new session id for each upload
     session_id = str(uuid.uuid4())
-    try:
-        content = file.file.read()
-        df = pd.read_csv(io.BytesIO(content))
-    except Exception as e:
-        logger.exception("Failed to read uploaded CSV file")
-        raise HTTPException(status_code=400, detail=f"Invalid CSV upload: {e}")
 
     try:
-        dm = DataManager(session_id=session_id)
-        dm.save_raw(df)
-        logger.info("Dataset uploaded and saved", extra={"session_id": session_id})
+        # Parse file based on extension
+        if file.filename.lower().endswith('.csv'):
+            df = pd.read_csv(io.BytesIO(contents))
+        elif file.filename.lower().endswith(('.xlsx', '.xls')):
+            df = pd.read_excel(io.BytesIO(contents))
+        else:
+            raise HTTPException(400, "Unsupported file format")
+    except Exception as e:
+        logger.exception("Failed to read uploaded file")
+        raise HTTPException(status_code=400, detail=f"Invalid file upload: {e}")
+
+    try:
+        # Create persistent session
+        from ..state.persistent_session_state import session_manager
+        session_state = session_manager.get_session(session_id)
+
+        if db is not None:
+            await session_state.create_session(db, file.filename or "upload.csv", df)
+            await session_state.update_access_time(db)
+
+        # Store additional metadata
+        session_state.set("dataset_is_retail", False)  # Will be updated by retail agent
+        session_state.set("retail_validation", {})
+
+        logger.info("Dataset uploaded and saved persistently", extra={"session_id": session_id})
 
         # Retail dataset validation (informative)
         retail_agent = RetailDetectorAgent(session_id=session_id)
         validation = retail_agent.run()
         is_retail = validation.get("is_retail", False)
-        # keep this validation in session state for orchestration decisions
-        state = SessionState.get(session_id)
-        state.set("dataset_is_retail", is_retail)
-        state.set("retail_validation", validation)
 
-        # Persist dataset metadata if DB is configured and session provided
+        # Update session with retail info
+        session_state.set("dataset_is_retail", is_retail)
+        session_state.set("retail_validation", validation)
+
         if db is not None:
-            try:
-                # Build a minimal column metadata structure
-                col_meta = {"columns": df.columns.tolist(), "dtypes": {c: str(dt) for c, dt in df.dtypes.items()}}
-                ds = await create_dataset(db, filename=file.filename or "upload.csv", row_count=len(df), column_metadata=col_meta)
-                # Save mapping in session state for later reference
-                state = SessionState.get(session_id)
-                state.set("dataset_id", str(ds.id))
-            except Exception as e:
-                logger.warning(f"Failed to persist dataset metadata: {e}")
-                # Continue anyway - graceful degradation
+            await session_state.persist_metadata(db)
 
         if is_retail:
             msg = "Upload successful and dataset appears to be retail-mart related."
         else:
             msg = "Upload successful but dataset appears non-retail; downstream analytics may be generic."
+
+        # Initialize shared agent memory for the session so the agentic endpoints
+        # can reuse schema and dataset references across requests.
+        try:
+            from ..memory.conversation_memory import get_memory_store
+
+            memory = get_memory_store()
+            session_storage = session_manager.get_session(session_id)
+            dataset_schema = {
+                "file_path": str(session_storage.dataset_path),
+                "columns": {col: {"dtype": str(df[col].dtype)} for col in df.columns},
+                "dtypes": {col: str(df[col].dtype) for col in df.columns},
+                "rows": len(df),
+            }
+            existing_session = memory.get_session(session_id)
+            if existing_session is None:
+                memory.create_session(session_id, dataset_schema)
+            else:
+                existing_session.dataset_schema = dataset_schema
+
+        except Exception as e:
+            logger.warning(f"Failed to initialize agent memory: {e}")
 
         return UploadResponse(
             session_id=session_id,
@@ -112,9 +154,13 @@ async def upload_dataset(
             message=msg,
             is_retail=is_retail,
             matched_keywords=validation.get("matched_keywords", []),
+            dataset_filename=file.filename,
+            dataset_rows=int(len(df)),
+            dataset_cols=int(len(df.columns)),
+            created_at=datetime.utcnow().isoformat(),
         )
     except Exception as e:
-        logger.exception("Failed during DataManager save operation")
+        logger.exception("Failed during dataset upload")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -235,31 +281,313 @@ def dataset_recommendations(session_id: str):
 
 
 @router.post("/dataset/train", response_model=TrainModelResponse)
-async def dataset_train(request: TrainModelRequest):
+async def dataset_train(
+    request: TrainModelRequest,
+    db: Optional[AsyncSession] = Depends(get_session)
+):
     try:
-        automl = AutoMLAgent(session_id=request.session_id)
-        result = automl.run(task_type=request.task_type, target_column=request.target_column, test_size=request.test_size)
+        # Create ML job record
+        job_id = str(uuid.uuid4())
 
-        if result.get("status") != "success":
-            return TrainModelResponse(
+        if db is not None:
+            from ..db.session_models import MLJob
+            ml_job = MLJob(
+                id=job_id,
                 session_id=request.session_id,
                 task_type=request.task_type,
                 target_column=request.target_column,
-                status="failed",
-                error=result.get("error"),
+                status="pending"
             )
+            db.add(ml_job)
+            await db.commit()
+
+        # Start background training
+        automl = AutoMLAgent(session_id=request.session_id)
+        asyncio.create_task(automl.train_async(request.session_id, request.task_type, request.target_column, db))
+
+        # Update job status to running
+        if db is not None:
+            from sqlalchemy import update
+            from ..db.session_models import MLJob
+            stmt = update(MLJob).where(MLJob.id == job_id).values(status="running")
+            await db.execute(stmt)
+            await db.commit()
 
         return TrainModelResponse(
             session_id=request.session_id,
             task_type=request.task_type,
             target_column=request.target_column,
-            status="success",
-            best_model=result.get("best_model"),
-            metrics=result.get("metrics"),
-            predictions_sample=result.get("predictions_sample"),
-            feature_importance=result.get("feature_importance"),
+            status="running",
+            job_id=job_id,
         )
     except Exception as e:
-        logger.exception("AutoML training failed")
+        logger.exception("AutoML job creation failed")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/ml/status/{job_id}", response_model=MLJobStatusResponse)
+async def ml_job_status(
+    job_id: str,
+    db: Optional[AsyncSession] = Depends(get_session)
+):
+    """Check status of ML training job."""
+    if db is None:
+        raise HTTPException(500, "Database not configured")
+
+    try:
+        from ..db.session_models import MLJob
+        from sqlalchemy import select
+
+        stmt = select(MLJob).where(MLJob.id == job_id)
+        result = await db.execute(stmt)
+        job = result.scalar_one_or_none()
+
+        if not job:
+            raise HTTPException(404, "ML job not found")
+
+        response_data = {
+            "job_id": job.id,
+            "status": job.status,
+            "error": job.error
+        }
+
+        if job.status == "complete":
+            response_data["result"] = {
+                "best_model": job.best_model,
+                "metrics": job.metrics,
+                "shap_values": job.shap_values
+            }
+
+        return MLJobStatusResponse(**response_data)
+
+    except Exception as e:
+        logger.exception(f"Failed to get ML job status: {e}")
+        raise HTTPException(500, str(e))
+
+
+# New agentic endpoints
+@router.get("/session/{session_id}/proactive-insights")
+async def get_proactive_insights(session_id: str):
+    """Get proactive insights for a session."""
+    try:
+        from ..agents.proactive_insight_agent import ProactiveInsightAgent
+        from ..agents.core.tool_registry import ToolRegistry
+        from ..llm.llm_client import LLMClient
+        from ..memory.conversation_memory import get_memory_store
+
+        # Initialize components
+        llm_client = LLMClient()
+        tool_registry = ToolRegistry()
+        memory = get_memory_store()
+
+        # Get dataset path from session
+        session = memory.get_session(session_id)
+        if not session:
+            raise HTTPException(404, "Session not found")
+
+        dataset_path = session.dataset_schema.get("file_path")
+        if not dataset_path:
+            raise HTTPException(404, "Dataset not found in session")
+
+        # Generate insights
+        insight_agent = ProactiveInsightAgent(llm_client, tool_registry)
+        insights = await insight_agent.generate_insights(dataset_path, session_id, memory)
+
+        return {"session_id": session_id, "insights": insights}
+
+    except Exception as e:
+        logger.exception("Failed to generate proactive insights")
+        raise HTTPException(500, str(e))
+
+
+@router.get("/session/{session_id}/active-filters")
+async def get_active_filters(session_id: str):
+    """Return the current natural-language filters tracked for a session."""
+    from ..memory.conversation_memory import get_memory_store
+
+    memory = get_memory_store()
+    session = memory.get_session(session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+
+    return {
+        "session_id": session_id,
+        "active_filters": [
+            item.model_dump() if hasattr(item, "model_dump") else item.dict()
+            for item in memory.get_active_filters(session_id)
+        ],
+        "working_dataset_ref": memory.get_working_dataset_ref(session_id),
+    }
+
+
+@router.delete("/session/{session_id}/active-filters")
+async def clear_active_filters(session_id: str):
+    """Clear session filters and reset the working dataset to the original upload."""
+    from ..memory.conversation_memory import get_memory_store
+
+    memory = get_memory_store()
+    session = memory.get_session(session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+
+    memory.update_active_filters(session_id, [])
+    memory.set_working_dataset_ref(session_id, None)
+
+    return {
+        "session_id": session_id,
+        "active_filters": [],
+        "working_dataset_ref": None,
+        "message": "Active filters cleared.",
+    }
+
+
+@router.post("/agent/query")
+async def agent_query(request: QueryRequest):
+    """New agentic query endpoint using AgentLoop."""
+    try:
+        from ..agents.core.agent_loop import AgentLoop
+        from ..agents.core.tool_registry import ToolRegistry
+        from ..llm.llm_client import LLMClient
+        from ..memory.conversation_memory import get_memory_store
+
+        # Initialize components
+        llm_client = LLMClient()
+        tool_registry = ToolRegistry()
+        memory = get_memory_store()
+
+        # Get session info
+        session = memory.get_session(request.session_id)
+        if not session:
+            raise HTTPException(404, "Session not found")
+
+        dataset_path = session.dataset_schema.get("file_path")
+        if not dataset_path:
+            raise HTTPException(404, "Dataset not found in session")
+
+        # Create and run agent loop
+        agent_loop = AgentLoop(llm_client, tool_registry, memory)
+        result = await agent_loop.run(request.query, request.session_id, dataset_path)
+
+        return {
+            "session_id": request.session_id,
+            "narrative": result.narrative,
+            "charts": result.charts,
+            "tables": result.tables,
+            "model_results": result.model_results,
+            "explanation": result.explanation,
+            "steps": result.steps,
+            "clarification": result.clarification,
+            "active_filters": result.active_filters,
+        }
+
+    except Exception as e:
+        logger.exception("Agent query failed")
+        raise HTTPException(500, str(e))
+
+
+@router.post("/generate-report")
+async def generate_report(
+    session_id: str,
+    output_format: str = Query("html", description="html, docx, markdown, or json"),
+    download: bool = Query(False, description="When true, return the exported file directly"),
+):
+    """Generate and optionally download a comprehensive analysis report."""
+    try:
+        from ..agents.report_agent import ReportAgent
+        from ..llm.llm_client import LLMClient
+        from ..memory.conversation_memory import get_memory_store
+
+        llm_client = LLMClient()
+        memory = get_memory_store()
+
+        report_agent = ReportAgent(llm_client)
+        report = await report_agent.generate_report(session_id, memory, output_format=output_format)
+
+        export_info = report.get("export", {})
+        export_path = export_info.get("path")
+        if download and export_path:
+            return FileResponse(
+                path=export_path,
+                media_type=export_info.get("media_type", "application/octet-stream"),
+                filename=export_info.get("filename"),
+            )
+
+        return {"session_id": session_id, "report": report}
+
+    except Exception as e:
+        logger.exception("Report generation failed")
+        raise HTTPException(500, str(e))
+
+
+# New workflow endpoints
+@router.post("/api/upload")
+async def workflow_upload_dataset(file: UploadFile = File(...)):
+    # Validate file
+    MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+    contents = await file.read()
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(400, "File exceeds 50MB limit")
+    if not file.filename.lower().endswith(('.csv', '.xlsx', '.xls')):
+        raise HTTPException(400, "Only CSV and Excel files are supported")
+
+    session_id = str(uuid.uuid4())
+
+    try:
+        # Parse file
+        if file.filename.lower().endswith('.csv'):
+            df = pd.read_csv(io.BytesIO(contents))
+        else:
+            df = pd.read_excel(io.BytesIO(contents))
+
+        # Save to storage
+        os.makedirs("storage/datasets", exist_ok=True)
+        dataset_path = f"storage/datasets/{session_id}_{file.filename}"
+        with open(dataset_path, "wb") as f:
+            f.write(contents)
+
+        # Extract metadata
+        column_names = df.columns.tolist()
+        column_dtypes = df.dtypes.astype(str).to_dict()
+        row_count = len(df)
+
+        # Create initial session state
+        initial_state = {
+            "session_id": session_id,
+            "dataset_id": session_id,
+            "dataset_path": dataset_path,
+            "column_names": column_names,
+            "column_dtypes": column_dtypes,
+            "conversation_history": [],
+        }
+        save_session(session_id, initial_state)
+
+        return {
+            "dataset_id": session_id,
+            "column_names": column_names,
+            "column_dtypes": column_dtypes,
+            "row_count": row_count
+        }
+
+    except Exception as e:
+        logger.exception("Workflow upload failed")
+        raise HTTPException(500, str(e))
+
+
+@router.get("/api/task/{task_id}/status")
+async def task_status(task_id: str):
+    try:
+        result = celery_app.AsyncResult(task_id)
+        return {
+            "status": result.status,
+            "result": result.result if result.ready() else None
+        }
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+@router.get("/api/session/{session_id}/state")
+async def session_state(session_id: str):
+    from workflow.memory.session_store import load_session
+    state = load_session(session_id)
+    return state
 

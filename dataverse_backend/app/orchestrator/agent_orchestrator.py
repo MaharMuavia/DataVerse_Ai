@@ -19,9 +19,10 @@ from ..agents.preprocessing_agent import PreprocessingAgent
 from ..agents.analysis_agent import AnalysisAgent
 from ..agents.deepanalyze_agent import DeepAnalyzeAgent
 from ..agents.analytics_coordinator import AnalyticsCoordinator
-from ..llm.intent_parser import IntentParser
+from ..core.intent_router import IntentRouter
+from ..core.narrator import Narrator
 from ..data.data_manager import DataManager
-from ..db.repositories import log_agent_run, save_analysis_result, save_report, log_user_query
+from ..db.repositories import log_agent_run, save_analysis_result, save_report, log_user_query, log_query
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
@@ -90,18 +91,41 @@ class AgentOrchestrator:
         if state and not state.get_value("dataset_is_retail", True):
             self.logger.warning("Query executed on non-retail dataset", extra={"session_id": session_id})
 
-        # Parse intent
-        intent = IntentParser.parse(user_query)
-        self.logger.info("Intent parsed", extra={"session_id": session_id, "intent": intent})
+        # Parse intent with new router
+        dm = DataManager(session_id=session_id)
+        df = dm.get_raw()
+        columns = df.columns.tolist()
 
-        # Persist the parsed intent into the earlier logged user query record if DB available.
-        try:
-            state = SessionState.get(session_id)
-            dataset_id = state.get_value("dataset_id")
-            if db is not None:
-                await log_user_query(db, query_text=user_query, parsed_intent=intent, dataset_id=dataset_id)
-        except Exception:
-            self.logger.exception("Failed to persist parsed intent")
+        intent_router = IntentRouter()
+        intent_result = await intent_router.route(user_query, columns)
+
+        if intent_result.intent == "clarification_needed":
+            return {
+                "intent": intent_result.intent,
+                "message": intent_result.message,
+                "action_required": "clarification_needed"
+            }
+
+        intent = {
+            "intent": intent_result.intent,
+            "confidence": intent_result.confidence,
+            "params": intent_result.params
+        }
+
+        self.logger.info("Intent routed", extra={"session_id": session_id, "intent": intent})
+
+        # Persist the query if DB available
+        if db is not None:
+            try:
+                await log_query(
+                    db,
+                    session_id=session_id,
+                    query_text=user_query,
+                    intent=intent_result.intent,
+                    confidence={"score": intent_result.confidence, "params": intent_result.params}
+                )
+            except Exception:
+                self.logger.exception("Failed to persist query")
 
         # Execute analytics workflow (EDA, visualization, AutoML, XAI)
         analytics_coordinator = AnalyticsCoordinator(session_id=session_id)

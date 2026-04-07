@@ -1,0 +1,30 @@
+@import './styles/tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-dv-bg text-dv-text;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors;
+  }
+
+  .btn-primary {
+    @apply btn bg-dv-accent text-dv-accent-foreground hover:bg-dv-accent/90;
+  }
+
+  .btn-secondary {
+    @apply btn bg-dv-surface text-dv-text hover:bg-dv-hover border border-dv-border;
+  }
+}
