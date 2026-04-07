@@ -19,7 +19,7 @@ def setup_database():
     # Add PostgreSQL to PATH
     pg_bin = r"C:\Program Files\PostgreSQL\18\bin"
     os.environ['PATH'] = pg_bin + ";" + os.environ.get('PATH', '')
-    os.environ['PGPASSWORD'] = '1234'
+    os.environ['PGPASSWORD'] = 'eduverse123'
     
     # Step 1: Test connection
     print("[1/4] Testing PostgreSQL connection...")
@@ -194,7 +194,7 @@ def verify_setup():
     print("="*70 + "\n")
     
     os.environ['PATH'] = r"C:\Program Files\PostgreSQL\18\bin;" + os.environ.get('PATH', '')
-    os.environ['PGPASSWORD'] = '1234'
+    os.environ['PGPASSWORD'] = 'eduverse123'
     
     # Test connection as dataverse_user
     try:
@@ -228,7 +228,7 @@ def print_next_steps():
     print("="*70 + "\n")
     
     print("1. Update PostgreSQL path in .env (already updated)")
-    print("   DATABASE_URL=postgresql+asyncpg://postgres:1234@localhost:5432/dataverse_db\n")
+    print("   DATABASE_URL=postgresql+asyncpg://postgres:eduverse123@localhost:5432/dataverse_db\n")
     
     print("2. Start the DataVerse server:")
     print("   python -m uvicorn dataverse_backend.app.main:app --reload\n")

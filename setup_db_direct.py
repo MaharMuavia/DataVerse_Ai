@@ -21,7 +21,7 @@ async def setup_with_asyncpg():
         'host': 'localhost',
         'port': 5432,
         'user': 'postgres',
-        'password': '1234',
+        'password': 'eduverse123',
         'command_timeout': 10
     }
     
@@ -174,7 +174,7 @@ def print_next_steps():
     print("  └─ Status: ✓ Ready\n")
     
     print(".env Configuration:")
-    print("  DATABASE_URL=postgresql+asyncpg://postgres:1234@localhost:5432/dataverse_db\n")
+    print("  DATABASE_URL=postgresql+asyncpg://postgres:eduverse123@localhost:5432/dataverse_db\n")
     
     print("Next Steps:\n")
     print("1. Start the DataVerse server:")

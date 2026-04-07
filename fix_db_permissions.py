@@ -19,7 +19,7 @@ async def fix_permissions():
             host='localhost',
             port=5432,
             user='postgres',
-            password='1234',
+            password='eduverse123',
             database='dataverse_db'
         )
         

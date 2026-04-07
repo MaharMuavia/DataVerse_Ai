@@ -1,4 +1,4 @@
-@import './styles/tokens.css';
+@import '../styles/tokens.css';
 
 @tailwind base;
 @tailwind components;
@@ -6,7 +6,7 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: var(--dv-border);
   }
 
   body {
