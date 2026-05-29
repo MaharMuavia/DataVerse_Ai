@@ -1,0 +1,148 @@
+- generic [ref=e1]:
+  - button "Choose File" [ref=e2]
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - img [ref=e7]
+          - generic [ref=e9]: DataVerse AI
+        - button "New Analysis" [ref=e10] [cursor=pointer]:
+          - img [ref=e11]
+          - text: New Analysis
+        - generic [ref=e13]:
+          - img [ref=e14]
+          - text: No dataset loaded
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - button "📂 My Datasets" [ref=e18] [cursor=pointer]:
+            - generic [ref=e19]: 📂 My Datasets
+            - img [ref=e20]
+          - generic [ref=e22]:
+            - paragraph [ref=e23]: No datasets yet
+            - button "Upload Dataset" [active] [ref=e24] [cursor=pointer]
+            - progressbar [ref=e226]
+        - button "📊 Recent Analyses" [ref=e26] [cursor=pointer]:
+          - generic [ref=e27]: 📊 Recent Analyses
+          - img [ref=e28]
+        - generic [ref=e30]:
+          - button "🤖 AI Agents" [ref=e31] [cursor=pointer]:
+            - generic [ref=e32]: 🤖 AI Agents
+            - img [ref=e33]
+          - generic [ref=e35]:
+            - button "Planner Agent Waiting for dataset context." [ref=e36] [cursor=pointer]:
+              - generic [ref=e39]: Planner Agent
+              - paragraph [ref=e40]: Waiting for dataset context.
+            - button "Analyst Agent No active analytical query." [ref=e41] [cursor=pointer]:
+              - generic [ref=e44]: Analyst Agent
+              - paragraph [ref=e45]: No active analytical query.
+            - button "ML Agent No model training requested." [ref=e46] [cursor=pointer]:
+              - generic [ref=e49]: ML Agent
+              - paragraph [ref=e50]: No model training requested.
+            - button "XAI Agent Explainability is on standby." [ref=e51] [cursor=pointer]:
+              - generic [ref=e54]: XAI Agent
+              - paragraph [ref=e55]: Explainability is on standby.
+        - generic [ref=e56]:
+          - button "📈 Saved Dashboards" [ref=e57] [cursor=pointer]:
+            - generic [ref=e58]: 📈 Saved Dashboards
+            - img [ref=e59]
+          - generic [ref=e61]:
+            - generic [ref=e62]:
+              - generic [ref=e63]:
+                - img "Sales Pulse" [ref=e64]
+                - paragraph [ref=e65]: Sales Pulse
+              - generic [ref=e66]:
+                - img "Churn Watch" [ref=e67]
+                - paragraph [ref=e68]: Churn Watch
+            - button "+ Save Current" [ref=e69] [cursor=pointer]
+        - generic [ref=e70]:
+          - button "🔔 Insights Feed" [ref=e71] [cursor=pointer]:
+            - generic [ref=e72]: 🔔 Insights Feed
+            - img [ref=e73]
+          - paragraph [ref=e77]: Upload data to unlock proactive insights.
+      - generic [ref=e78]:
+        - generic [ref=e79]:
+          - generic [ref=e80]:
+            - img "User avatar" [ref=e81]
+            - generic [ref=e82]:
+              - paragraph [ref=e83]: Mouad
+              - text: Pro
+          - button "Open settings" [ref=e84] [cursor=pointer]:
+            - img [ref=e85]
+        - button "Export Report" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+          - text: Export Report
+    - main [ref=e93]:
+      - generic [ref=e94]:
+        - generic [ref=e95]:
+          - img [ref=e96]
+          - generic [ref=e99]: No dataset loaded
+        - generic [ref=e100]:
+          - button "Auto" [ref=e101] [cursor=pointer]
+          - button "Analyst" [ref=e102] [cursor=pointer]
+          - button "ML" [ref=e103] [cursor=pointer]
+          - button "Explain" [ref=e104] [cursor=pointer]
+        - generic [ref=e105]:
+          - button "Legacy" [ref=e106] [cursor=pointer]
+          - generic [ref=e107]: 0 tokens
+          - generic [ref=e108]: $0.0000
+          - button [ref=e109] [cursor=pointer]:
+            - img [ref=e110]
+      - generic [ref=e114]:
+        - img [ref=e116]
+        - heading "What would you like to explore?" [level=2] [ref=e118]
+        - generic [ref=e119]:
+          - button "Show sales trends by region" [ref=e120] [cursor=pointer]
+          - button "Predict next month revenue" [ref=e121] [cursor=pointer]
+          - button "Find anomalies in this data" [ref=e122] [cursor=pointer]
+          - button "Explain this column's outliers" [ref=e123] [cursor=pointer]
+      - generic [ref=e125]:
+        - generic [ref=e126]:
+          - button "Upload file" [ref=e127] [cursor=pointer]:
+            - img [ref=e128]
+          - button "Voice input" [ref=e130] [cursor=pointer]:
+            - img [ref=e131]
+          - button "Connect DB" [ref=e134] [cursor=pointer]:
+            - img [ref=e135]
+          - textbox "Ask anything about your data..." [ref=e138]
+          - button "Send message" [disabled] [ref=e139]:
+            - img [ref=e140]
+        - paragraph [ref=e142]: Shift+Enter for new line · DataVerse AI can make mistakes
+    - complementary [ref=e143]:
+      - generic [ref=e144]:
+        - generic [ref=e145]:
+          - button "Data Profile" [ref=e146] [cursor=pointer]
+          - button "Model Results" [ref=e147] [cursor=pointer]
+          - button "Explain" [ref=e148] [cursor=pointer]
+        - generic [ref=e149]:
+          - generic [ref=e150]:
+            - generic [ref=e151]:
+              - paragraph [ref=e152]: Rows
+              - paragraph [ref=e153]: "0"
+            - generic [ref=e154]:
+              - paragraph [ref=e155]: Cols
+              - paragraph [ref=e156]: "0"
+            - generic [ref=e157]:
+              - paragraph [ref=e158]: Missing %
+              - paragraph [ref=e159]: 0%
+            - generic [ref=e160]:
+              - paragraph [ref=e161]: Memory
+              - paragraph [ref=e162]: "-"
+          - paragraph [ref=e164]: Columns
+          - generic [ref=e165]:
+            - paragraph [ref=e166]: "Distribution: sales"
+            - application [ref=e170]:
+              - generic [ref=e201]:
+                - generic [ref=e202]:
+                  - generic [ref=e204]: 0-20
+                  - generic [ref=e206]: 20-40
+                  - generic [ref=e208]: 40-60
+                  - generic [ref=e210]: 60-80
+                  - generic [ref=e212]: 80-100
+                - generic [ref=e213]:
+                  - generic [ref=e215]: "0"
+                  - generic [ref=e217]: "15"
+                  - generic [ref=e219]: "30"
+                  - generic [ref=e221]: "45"
+                  - generic [ref=e223]: "60"
+  - alert [ref=e224]
+  - generic [ref=e225]: "0"

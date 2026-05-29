@@ -1,0 +1,73 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e232] [cursor=pointer]:
+    - img [ref=e233]
+  - alert [ref=e236]
+  - generic [ref=e237]:
+    - complementary [ref=e238]:
+      - generic [ref=e240]:
+        - img "User" [ref=e242]
+        - generic [ref=e243]:
+          - heading "Muhammad Muavia" [level=2] [ref=e244]
+          - generic [ref=e246]: Pro Plan
+      - navigation [ref=e247]:
+        - generic [ref=e248]:
+          - button "New Chat" [ref=e249]:
+            - img [ref=e250]
+            - generic [ref=e253]: New Chat
+          - button "Active Run" [ref=e254]:
+            - img [ref=e255]
+            - generic [ref=e259]: Active Run
+          - button "Dashboards" [ref=e260]:
+            - img [ref=e261]
+            - generic [ref=e265]: Dashboards
+        - generic [ref=e266]:
+          - generic [ref=e267]:
+            - generic [ref=e268]: Recent Datasets
+            - img [ref=e269] [cursor=pointer]
+          - generic [ref=e270]:
+            - button "No dataset yet" [ref=e271]:
+              - img [ref=e272]
+              - generic [ref=e274]: No dataset yet
+            - button "Upload CSV or Excel" [ref=e275]:
+              - img [ref=e276]
+              - generic [ref=e279]: Upload CSV or Excel
+        - generic [ref=e280]:
+          - heading "Capabilities" [level=3] [ref=e281]
+          - generic [ref=e282]:
+            - button "EDA Copilot" [ref=e283]:
+              - img [ref=e284]
+              - generic [ref=e285]: EDA Copilot
+            - button "Retail Analyst" [ref=e286]:
+              - img [ref=e287]
+              - generic [ref=e291]: Retail Analyst
+            - button "AutoML Studio" [ref=e292]:
+              - img [ref=e293]
+              - generic [ref=e305]: AutoML Studio
+            - button "Deep Analyze" [ref=e306]:
+              - img [ref=e307]
+              - generic [ref=e315]: Deep Analyze
+      - button "Settings" [ref=e317]:
+        - img [ref=e318]
+        - generic [ref=e321]: Settings
+    - generic [ref=e322]:
+      - banner [ref=e323]:
+        - heading "DataVerse AI" [level=1] [ref=e326]
+        - navigation [ref=e327]:
+          - button "Active Run" [ref=e328]
+          - button "Dashboards" [ref=e329]
+      - generic [ref=e331]:
+        - generic [ref=e332]:
+          - heading "What shall we analyze today?" [level=2] [ref=e333]
+          - generic [ref=e336]:
+            - img [ref=e338]
+            - generic [ref=e341]:
+              - heading "Upload a CSV or Excel file" [level=3] [ref=e342]
+              - paragraph [ref=e343]: "Backend target: http://127.0.0.1:8000"
+        - generic [ref=e344]:
+          - generic [ref=e346]:
+            - generic "Upload CSV or Excel" [ref=e347] [cursor=pointer]:
+              - img [ref=e348]
+            - textbox "Attach a dataset, then ask a question..." [ref=e351]
+            - button [disabled] [ref=e352]:
+              - img [ref=e353]
+          - generic [ref=e355]: DataVerse AI can make mistakes. Verify important data.

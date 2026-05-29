@@ -6,10 +6,24 @@ from __future__ import annotations
 
 import logging
 import logging.handlers
+import json
 from pathlib import Path
 from typing import Optional
 
 from .config import settings
+
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        payload = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+        return json.dumps(payload, ensure_ascii=True)
 
 
 def get_logger(name: str) -> logging.Logger:
@@ -24,7 +38,7 @@ def get_logger(name: str) -> logging.Logger:
         file_handler = logging.handlers.RotatingFileHandler(
             log_dir / "dataverse_backend.log", maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"
         )
-        file_formatter = logging.Formatter(
+        file_formatter = JsonFormatter() if settings.LOG_JSON else logging.Formatter(
             "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
         )
         file_handler.setFormatter(file_formatter)
@@ -32,7 +46,7 @@ def get_logger(name: str) -> logging.Logger:
 
         # Console handler
         console_handler = logging.StreamHandler()
-        console_formatter = logging.Formatter("%(levelname)s | %(name)s | %(message)s")
+        console_formatter = JsonFormatter() if settings.LOG_JSON else logging.Formatter("%(levelname)s | %(name)s | %(message)s")
         console_handler.setFormatter(console_formatter)
 
         logger.addHandler(file_handler)

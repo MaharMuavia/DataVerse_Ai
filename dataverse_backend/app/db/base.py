@@ -23,11 +23,15 @@ def _create_engine():
         if not settings.DATABASE_URL:
             # No DB configured; leave engine as None. Callers must handle this.
             return None
+        connect_args = {}
+        if settings.DATABASE_URL.startswith("postgresql+asyncpg"):
+            connect_args["timeout"] = float(settings.DATABASE_CONNECT_TIMEOUT_SECONDS)
         _engine = create_async_engine(
             settings.DATABASE_URL,
             echo=False,
             future=True,
             pool_pre_ping=True,
+            connect_args=connect_args,
         )
         _async_session = async_sessionmaker(_engine, expire_on_commit=False, class_=AsyncSession)
     return _engine
@@ -48,15 +52,22 @@ def get_session_factory():
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """FastAPI dependency that yields an async session for request handlers.
 
-    Example usage in a route:
-        async def handler(db: AsyncSession = Depends(get_session)):
-            await repo.create_dataset(db, ...)
+    Yields None if the database is not configured or not reachable,
+    allowing endpoints to function without a database.
     """
     session_factory = get_session_factory()
     if session_factory is None:
-        # Yield nothing if DB not configured; callers should check and raise if required.
         yield None
         return
 
-    async with session_factory() as session:
-        yield session
+    try:
+        async with session_factory() as session:
+            # Test the connection is actually usable
+            from sqlalchemy import text
+            await asyncio.wait_for(
+                session.execute(text("SELECT 1")),
+                timeout=max(1.0, float(settings.DATABASE_CONNECT_TIMEOUT_SECONDS)),
+            )
+            yield session
+    except Exception:
+        yield None

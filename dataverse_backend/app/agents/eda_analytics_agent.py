@@ -17,7 +17,10 @@ from io import StringIO
 
 try:
     from ydata_profiling import ProfileReport
-except ImportError:
+except Exception:
+    # ydata-profiling can fail at import time on some dependency combinations
+    # (for example an incompatible statsmodels release). The backend should
+    # still start, so treat profiling as optional here.
     ProfileReport = None
 
 import sweetviz as sv

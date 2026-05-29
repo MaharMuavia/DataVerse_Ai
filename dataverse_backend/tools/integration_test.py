@@ -19,7 +19,8 @@ def run_integration_test() -> None:
     client = TestClient(app)
 
     # Upload CSV
-    path = Path("C:\\Users\\mouav\\OneDrive\\Desktop\\FINAL3\\retail_mart_processed_v1.csv")
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    path = repo_root / "data" / "retail_mart_processed_v1.csv"
     if not path.exists():
         raise FileNotFoundError(f"Expected dataset at {path}")
 

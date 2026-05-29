@@ -19,6 +19,20 @@ class PreprocessingAgent(BaseAgent):
         super().__init__(name="preprocessing_agent", description="Decision-based preprocessing", session_id=session_id)
         self.missing_threshold = missing_threshold
 
+    def _impute_mode_value(self, series: pd.Series) -> Any:
+        non_null = series.dropna()
+        if non_null.empty:
+            return ""
+
+        try:
+            mode = non_null.mode(dropna=True)
+            if not mode.empty:
+                return mode.iloc[0]
+        except Exception:
+            pass
+
+        return non_null.iloc[0]
+
     def _decide_missing(self, series: pd.Series) -> Dict[str, Any]:
         n = len(series)
         missing = int(series.isnull().sum())
@@ -58,14 +72,14 @@ class PreprocessingAgent(BaseAgent):
             elif col_decision["action"] == "impute_median":
                 cleaned[col] = cleaned[col].fillna(df[col].median())
             elif col_decision["action"] == "impute_mode":
-                cleaned[col] = cleaned[col].fillna(df[col].mode().iloc[0] if not df[col].mode().empty else "")
+                cleaned[col] = cleaned[col].fillna(self._impute_mode_value(df[col]))
             # 'none' requires no action
 
         # Basic type conversions for datetime-like columns
         for col in cleaned.columns:
             if cleaned[col].dtype == object:
                 try:
-                    converted = pd.to_datetime(cleaned[col], errors="coerce")
+                    converted = pd.to_datetime(cleaned[col], errors="coerce", format="mixed")
                     # If many values convert to timestamps, adopt dtype
                     if converted.notnull().sum() / max(1, len(converted)) > 0.6:
                         cleaned[col] = converted

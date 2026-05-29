@@ -1,12 +1,20 @@
 version: '3.8'
 
 services:
-  # Redis for Celery and sessions
+  # Redis for Celery and caching
   redis:
     image: redis:7-alpine
     container_name: dataverse-redis
     ports:
       - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - dataverse-network
 
@@ -15,15 +23,16 @@ services:
     image: postgres:16-alpine
     container_name: dataverse-postgres
     environment:
-      POSTGRES_USER: dataverse
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
-      POSTGRES_DB: dataverse
+      POSTGRES_USER: ${DB_USER:-dataverse}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dataverse_dev_password}
+      POSTGRES_DB: ${DB_NAME:-dataverse}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dataverse"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dataverse}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -37,89 +46,130 @@ services:
       dockerfile: Dockerfile
     container_name: dataverse-backend
     environment:
-      DATABASE_URL: postgresql+asyncpg://dataverse:${DB_PASSWORD:-changeme}@postgres:5432/dataverse
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      # Database
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-dataverse}:${DB_PASSWORD:-dataverse_dev_password}@postgres:5432/${DB_NAME:-dataverse}
+      
+      # Redis
       REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+
+      # Security
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      
+      # LLM Configuration
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      INTENT_LLM_PROVIDER: ${INTENT_LLM_PROVIDER:-auto}
+      
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_DIR: ./logs
+      
+      # File Upload
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-100}
+      
+      # Environment
+      ENVIRONMENT: ${ENVIRONMENT:-development}
     ports:
-      - "${BACKEND_PORT:-8001}:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ./dataverse_backend:/app
       - backend_data:/data
+      - ./logs:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - dataverse-network
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: bash -c "pip install -q -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
-  # Celery Fast Worker
+  # Celery Worker - Fast Queue
   worker_fast:
     build:
       context: ./dataverse_backend
       dockerfile: Dockerfile
     container_name: dataverse-worker-fast
     environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-dataverse}:${DB_PASSWORD:-dataverse_dev_password}@postgres:5432/${DB_NAME:-dataverse}
       REDIS_URL: redis://redis:6379/0
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - ./dataverse_backend:/app
     networks:
       - dataverse-network
-    command: celery -A tasks.celery_app worker -Q fast --concurrency=4 --loglevel=info
+    command: bash -c "pip install -q -r requirements.txt && celery -A app.core.celery_config:celery_app worker -Q fast,default --concurrency=4 --loglevel=info --without-gossip --without-mingle --without-heartbeat"
 
-  # Celery Slow Worker
+  # Celery Worker - Slow Queue
   worker_slow:
     build:
       context: ./dataverse_backend
       dockerfile: Dockerfile
     container_name: dataverse-worker-slow
     environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-dataverse}:${DB_PASSWORD:-dataverse_dev_password}@postgres:5432/${DB_NAME:-dataverse}
       REDIS_URL: redis://redis:6379/0
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - ./dataverse_backend:/app
     networks:
       - dataverse-network
-    command: celery -A tasks.celery_app worker -Q slow --concurrency=2 --loglevel=info
+    command: bash -c "pip install -q -r requirements.txt && celery -A app.core.celery_config:celery_app worker -Q slow --concurrency=2 --loglevel=info --without-gossip --without-mingle --without-heartbeat"
 
-  # Next.js Frontend
-  frontend:
-    build:
-      context: ./dataverse_frontend
-      dockerfile: Dockerfile
-    container_name: dataverse-frontend
+  # MinIO (S3-compatible object storage) - Optional
+  minio:
+    image: minio/minio:latest
+    container_name: dataverse-minio
     environment:
-      NEXT_PUBLIC_API_URL: http://backend:8000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
-    depends_on:
-      - backend
+      - "9000:9000"
+      - "9001:9001"
     volumes:
-      - ./dataverse_frontend:/app
-      - frontend_node_modules:/app/node_modules
+      - minio_data:/data
     networks:
       - dataverse-network
-    command: npm run dev
+    command: server /data --console-address ":9001"
+    profiles:
+      - storage
 
 volumes:
   postgres_data:
     driver: local
+  redis_data:
+    driver: local
   backend_data:
     driver: local
-  frontend_node_modules:
+  minio_data:
     driver: local
 
 networks:

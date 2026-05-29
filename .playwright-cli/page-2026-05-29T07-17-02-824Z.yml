@@ -1,0 +1,154 @@
+- generic [ref=e2]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - img [ref=e6]
+        - generic [ref=e9]: DataVerse AI
+      - generic [ref=e10]:
+        - link "Features" [ref=e11] [cursor=pointer]:
+          - /url: "#features"
+        - link "Agents" [ref=e12] [cursor=pointer]:
+          - /url: "#agents"
+        - link "Security" [ref=e13] [cursor=pointer]:
+          - /url: "#security"
+        - link "Docs" [ref=e14] [cursor=pointer]:
+          - /url: "#docs"
+      - generic [ref=e15]:
+        - button "Sign In" [ref=e16]
+        - button "Get Started" [ref=e17]
+  - generic [ref=e18]:
+    - generic [ref=e19]:
+      - heading "Chat with your data. Uncover instant insights." [level=1] [ref=e20]:
+        - text: Chat with your data.
+        - text: Uncover instant insights.
+      - paragraph [ref=e21]: An enterprise-grade analytics platform powered by 16 specialized AI agents. Upload your CSV, ask natural language questions, and get interactive charts, AutoML models, and explainable AI in seconds.
+      - generic [ref=e22]:
+        - button "Start Analyzing" [ref=e23]:
+          - text: Start Analyzing
+          - img [ref=e24]
+        - button "Continue as Guest" [ref=e26]
+    - generic [ref=e28]:
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - img [ref=e32]
+          - generic [ref=e35]: DataVerse
+        - generic [ref=e36]:
+          - generic [ref=e37]: Q3 Analysis
+          - generic [ref=e39] [cursor=pointer]:
+            - img [ref=e40]
+            - text: Customer Churn
+          - generic [ref=e44] [cursor=pointer]:
+            - img [ref=e45]
+            - text: Revenue Forecast
+      - generic [ref=e50]:
+        - generic [ref=e52]: Analyze sales trends for the last 4 quarters and break them down by region.
+        - generic [ref=e53]:
+          - img [ref=e55]
+          - generic [ref=e58]:
+            - generic [ref=e59]: Analyzing dataset...
+            - generic [ref=e63]:
+              - generic [ref=e64]:
+                - generic [ref=e65]: Quarterly Sales by Region
+                - generic [ref=e66]:
+                  - generic [ref=e67]: NA
+                  - generic [ref=e69]: EU
+                  - generic [ref=e71]: APAC
+              - generic [ref=e73]:
+                - generic:
+                  - generic:
+                    - generic: $2.4M (NA)
+              - generic [ref=e74]:
+                - generic [ref=e75]: Q1
+                - generic [ref=e76]: Q2
+                - generic [ref=e77]: Q3
+                - generic [ref=e78]: Q4
+            - paragraph [ref=e79]: I have grouped the sales data by quarter and region. We're seeing a consistent upward trend, particularly in Q4 where North America dominates the revenue share at $2.4M. Would you like me to build a forecasting model based on this trajectory?
+  - generic [ref=e80]:
+    - generic [ref=e81]:
+      - heading "The Agentic Engine" [level=2] [ref=e82]
+      - paragraph [ref=e83]: 16 distinct AI models working in harmony to validate, process, and analyze your data securely.
+    - generic [ref=e84]:
+      - generic [ref=e85]:
+        - img [ref=e87]
+        - heading "Autonomous EDA" [level=3] [ref=e88]
+        - paragraph [ref=e89]: Upload a dataset and instantly get missing value analysis, distributions, and correlation heatmaps.
+      - generic [ref=e90]:
+        - img [ref=e92]
+        - heading "One-Click AutoML" [level=3] [ref=e100]
+        - paragraph [ref=e101]: Train classification and regression models automatically in the background using Scikit-Learn integration.
+      - generic [ref=e102]:
+        - img [ref=e104]
+        - heading "SHAP & LIME Explanations" [level=3] [ref=e107]
+        - paragraph [ref=e108]: Never guess why a model made a decision. Get local and global feature importance on demand.
+      - generic [ref=e109]:
+        - img [ref=e111]
+        - heading "Retail Detector" [level=3] [ref=e115]
+        - paragraph [ref=e116]: Automatically validates and analyzes retail-mart datasets for instant e-commerce and inventory insights.
+  - generic [ref=e117]:
+    - generic [ref=e118]:
+      - heading "How it works" [level=2] [ref=e119]
+      - paragraph [ref=e120]: From raw data to actionable insights in three simple steps.
+    - generic [ref=e121]:
+      - generic [ref=e122]:
+        - img [ref=e126]
+        - generic [ref=e129]: "01"
+        - heading "Drop your Dataset" [level=3] [ref=e130]
+        - paragraph [ref=e131]: Upload CSV, Excel, or connect directly to your SQL warehouse.
+      - generic [ref=e132]:
+        - img [ref=e136]
+        - generic [ref=e138]: "02"
+        - heading "Ask Anything" [level=3] [ref=e139]
+        - paragraph [ref=e140]: Use natural language to query, create charts, or train models.
+      - generic [ref=e141]:
+        - img [ref=e145]
+        - generic [ref=e148]: "03"
+        - heading "Export Reports" [level=3] [ref=e149]
+        - paragraph [ref=e150]: Generate and share HTML, DOCX, or Markdown reports instantly.
+  - generic [ref=e151]:
+    - generic [ref=e152]:
+      - heading "Built for every team" [level=2] [ref=e153]
+      - paragraph [ref=e154]: Empower your entire organization with AI-driven insights.
+    - generic [ref=e155]:
+      - generic [ref=e156]:
+        - img [ref=e158]
+        - heading "Sales & Revenue" [level=3] [ref=e161]
+        - paragraph [ref=e162]: Forecast pipeline and analyze win/loss trends instantly.
+      - generic [ref=e163]:
+        - img [ref=e165]
+        - heading "Marketing" [level=3] [ref=e170]
+        - paragraph [ref=e171]: Uncover customer segments and optimize campaign ROI.
+      - generic [ref=e172]:
+        - img [ref=e174]
+        - heading "Product" [level=3] [ref=e178]
+        - paragraph [ref=e179]: Track feature adoption and predict user churn automatically.
+      - generic [ref=e180]:
+        - img [ref=e182]
+        - heading "Finance" [level=3] [ref=e185]
+        - paragraph [ref=e186]: Automate expense categorization and variance analysis.
+  - generic [ref=e187]:
+    - generic [ref=e188]:
+      - heading "Enterprise-Grade Security" [level=2] [ref=e189]
+      - paragraph [ref=e190]: Your data never trains our models. Deploy with confidence in a secure environment.
+    - generic [ref=e191]:
+      - generic [ref=e192]:
+        - img [ref=e194]
+        - heading "SOC 2 Type II Compliant" [level=3] [ref=e197]
+        - paragraph [ref=e198]: Audited and certified for the highest standards of data security and privacy.
+      - generic [ref=e199]:
+        - img [ref=e201]
+        - heading "End-to-End Encryption" [level=3] [ref=e204]
+        - paragraph [ref=e205]: Data is encrypted at rest and in transit using AES-256 and TLS 1.3 protocols.
+      - generic [ref=e206]:
+        - img [ref=e208]
+        - heading "Private VPC Deployment" [level=3] [ref=e211]
+        - paragraph [ref=e212]: Host DataVerse AI within your own cloud infrastructure for ultimate control.
+  - contentinfo [ref=e213]:
+    - generic [ref=e214]:
+      - generic [ref=e215]:
+        - img [ref=e216]
+        - generic [ref=e219]: DataVerse AI
+      - generic [ref=e220]:
+        - generic [ref=e221]: © 2026 All rights reserved by inventacore.org
+        - link "API Docs (Swagger)" [ref=e222] [cursor=pointer]:
+          - /url: "#api"
+      - generic [ref=e223]: All Agents Operational

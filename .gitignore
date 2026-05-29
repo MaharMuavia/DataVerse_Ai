@@ -5,11 +5,11 @@ retail-agent/venv/
 
 # Environment & secrets
 .env
-*.env
-*.env.*
 .env.local
 .env.development
 .env.production
+.env.*.local
+!.env.example
 *.pem
 *.key
 *.p12
@@ -30,6 +30,10 @@ retail-agent/venv/
 __pycache__/
 .pytest_cache/
 *.py[cod]
+
+# Runtime data (generated)
+session_storage/
+tmp_report_exports/
 
 # Logs
 logs/

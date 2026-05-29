@@ -1,0 +1,77 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e232] [cursor=pointer]:
+    - img [ref=e233]
+  - alert [ref=e236]
+  - generic [ref=e237]:
+    - complementary [ref=e238]:
+      - generic [ref=e240]:
+        - img "User" [ref=e242]
+        - generic [ref=e243]:
+          - heading "Muhammad Muavia" [level=2] [ref=e244]
+          - generic [ref=e246]: Pro Plan
+      - navigation [ref=e247]:
+        - generic [ref=e248]:
+          - button "New Chat" [ref=e249]:
+            - img [ref=e250]
+            - generic [ref=e253]: New Chat
+          - button "Active Run" [ref=e254]:
+            - img [ref=e255]
+            - generic [ref=e259]: Active Run
+          - button "Dashboards" [ref=e260]:
+            - img [ref=e261]
+            - generic [ref=e265]: Dashboards
+        - generic [ref=e266]:
+          - generic [ref=e267]:
+            - generic [ref=e268]: Recent Datasets
+            - img [ref=e269] [cursor=pointer]
+          - generic [ref=e270]:
+            - button "agentic-sales-live.csv" [ref=e356]:
+              - img [ref=e272]
+              - generic [ref=e274]: agentic-sales-live.csv
+            - button "6 rows loaded" [ref=e357]:
+              - img [ref=e276]
+              - generic [ref=e279]: 6 rows loaded
+        - generic [ref=e280]:
+          - heading "Capabilities" [level=3] [ref=e281]
+          - generic [ref=e282]:
+            - button "EDA Copilot" [ref=e283]:
+              - img [ref=e284]
+              - generic [ref=e285]: EDA Copilot
+            - button "Retail Analyst" [ref=e286]:
+              - img [ref=e287]
+              - generic [ref=e291]: Retail Analyst
+            - button "AutoML Studio" [ref=e292]:
+              - img [ref=e293]
+              - generic [ref=e305]: AutoML Studio
+            - button "Deep Analyze" [ref=e306]:
+              - img [ref=e307]
+              - generic [ref=e315]: Deep Analyze
+      - button "Settings" [ref=e317]:
+        - img [ref=e318]
+        - generic [ref=e321]: Settings
+    - generic [ref=e322]:
+      - banner [ref=e323]:
+        - heading "DataVerse AI" [level=1] [ref=e326]
+        - navigation [ref=e327]:
+          - button "Active Run" [ref=e328]
+          - button "Dashboards" [ref=e329]
+      - generic [ref=e331]:
+        - generic [ref=e332]:
+          - heading "What shall we analyze today?" [level=2] [ref=e333]
+          - generic [ref=e335]:
+            - generic [ref=e336]:
+              - img [ref=e358]
+              - generic [ref=e341]:
+                - heading "agentic-sales-live.csv" [level=3] [ref=e360]
+                - paragraph [ref=e343]: agentic-sales-live.csv uploaded successfully.
+            - generic [ref=e361]:
+              - img [ref=e362]
+              - text: Ready
+        - generic [ref=e344]:
+          - generic [ref=e346]:
+            - generic "Upload CSV or Excel" [ref=e347] [cursor=pointer]:
+              - img [ref=e348]
+            - textbox "Ask about your uploaded dataset..." [ref=e365]
+            - button [disabled] [ref=e352]:
+              - img [ref=e353]
+          - generic [ref=e355]: DataVerse AI can make mistakes. Verify important data.

@@ -5,6 +5,7 @@ import io
 import uuid
 from datetime import datetime
 import pandas as pd
+import numpy as np
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +23,10 @@ from ..orchestrator.agent_orchestrator import AgentOrchestrator
 from ..core.logger import logger
 from ..agents.retail_detector_agent import RetailDetectorAgent
 from ..agents.eda_analytics_agent import EDAAgent
+from ..services.data_profiler import profile_dataframe
 from ..agents.automl_agent import AutoMLAgent
+from ..workflow.memory.session_store import clear_session as clear_workflow_session, load_session, save_session
+from ..core.celery_config import celery_app
 from .schemas import (
     UploadResponse,
     QueryRequest,
@@ -38,8 +42,8 @@ from .schemas import (
     TrainModelResponse,
     MLJobStatusResponse,
 )
-from workflow.memory.session_store import save_session
-from tasks.celery_app import celery_app
+from .upload_parsing import parse_uploaded_dataframe
+import asyncio
 import os
 
 router = APIRouter()
@@ -56,8 +60,21 @@ def session_status(session_id: str):
     if not state:
         raise HTTPException(status_code=404, detail="Session not found")
 
+    df = state.get_value("raw_dataframe")
+    dataset = None
+    if df is not None:
+        dataset = {
+            "datasetId": session_id,
+            "filename": state.get_value("dataset_filename") or "Uploaded dataset",
+            "columnNames": list(df.columns),
+            "columnDtypes": [str(df[col].dtype) for col in df.columns],
+            "rowCount": int(len(df)),
+            "uploadedAt": datetime.utcnow().isoformat(),
+        }
+
     return SessionStatusResponse(
         session_id=session_id,
+        dataset=dataset,
         dataset_is_retail=state.get_value("dataset_is_retail"),
         retail_validation=state.get_value("retail_validation"),
         execution_trace=state.get_value("execution_trace"),
@@ -83,13 +100,7 @@ async def upload_dataset(
     session_id = str(uuid.uuid4())
 
     try:
-        # Parse file based on extension
-        if file.filename.lower().endswith('.csv'):
-            df = pd.read_csv(io.BytesIO(contents))
-        elif file.filename.lower().endswith(('.xlsx', '.xls')):
-            df = pd.read_excel(io.BytesIO(contents))
-        else:
-            raise HTTPException(400, "Unsupported file format")
+        df = parse_uploaded_dataframe(file.filename or "upload.csv", contents)
     except Exception as e:
         logger.exception("Failed to read uploaded file")
         raise HTTPException(status_code=400, detail=f"Invalid file upload: {e}")
@@ -98,6 +109,13 @@ async def upload_dataset(
         # Create persistent session
         from ..state.persistent_session_state import session_manager
         session_state = session_manager.get_session(session_id)
+        memory_state = SessionState.get(session_id)
+
+        # Keep the lightweight demo path working even when PostgreSQL is not
+        # configured. Streaming and status routes read from this in-memory state.
+        session_state.set("raw_dataframe", df)
+        memory_state.set("raw_dataframe", df)
+        memory_state.set("dataset_filename", file.filename or "upload.csv")
 
         if db is not None:
             await session_state.create_session(db, file.filename or "upload.csv", df)
@@ -106,6 +124,12 @@ async def upload_dataset(
         # Store additional metadata
         session_state.set("dataset_is_retail", False)  # Will be updated by retail agent
         session_state.set("retail_validation", {})
+        memory_state.set("dataset_is_retail", False)
+        memory_state.set("retail_validation", {})
+
+        dataset_profile = profile_dataframe(df)
+        session_state.set("dataset_profile", dataset_profile)
+        memory_state.set("dataset_profile", dataset_profile)
 
         logger.info("Dataset uploaded and saved persistently", extra={"session_id": session_id})
 
@@ -117,6 +141,8 @@ async def upload_dataset(
         # Update session with retail info
         session_state.set("dataset_is_retail", is_retail)
         session_state.set("retail_validation", validation)
+        memory_state.set("dataset_is_retail", is_retail)
+        memory_state.set("retail_validation", validation)
 
         if db is not None:
             await session_state.persist_metadata(db)
@@ -157,6 +183,11 @@ async def upload_dataset(
             dataset_filename=file.filename,
             dataset_rows=int(len(df)),
             dataset_cols=int(len(df.columns)),
+            dataset_id=session_id,
+            column_names=list(df.columns),
+            column_dtypes=[str(df[col].dtype) for col in df.columns],
+            dataset_preview=dataset_profile.get("preview"),
+            dataset_profile=dataset_profile,
             created_at=datetime.utcnow().isoformat(),
         )
     except Exception as e:
@@ -520,7 +551,7 @@ async def generate_report(
 
 
 # New workflow endpoints
-@router.post("/api/upload")
+@router.post("/workflow/upload")
 async def workflow_upload_dataset(file: UploadFile = File(...)):
     # Validate file
     MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
@@ -534,10 +565,7 @@ async def workflow_upload_dataset(file: UploadFile = File(...)):
 
     try:
         # Parse file
-        if file.filename.lower().endswith('.csv'):
-            df = pd.read_csv(io.BytesIO(contents))
-        else:
-            df = pd.read_excel(io.BytesIO(contents))
+        df = parse_uploaded_dataframe(file.filename or "upload.csv", contents)
 
         # Save to storage
         os.makedirs("storage/datasets", exist_ok=True)
@@ -562,6 +590,7 @@ async def workflow_upload_dataset(file: UploadFile = File(...)):
         save_session(session_id, initial_state)
 
         return {
+            "session_id": session_id,
             "dataset_id": session_id,
             "column_names": column_names,
             "column_dtypes": column_dtypes,
@@ -573,7 +602,7 @@ async def workflow_upload_dataset(file: UploadFile = File(...)):
         raise HTTPException(500, str(e))
 
 
-@router.get("/api/task/{task_id}/status")
+@router.get("/task/{task_id}/status")
 async def task_status(task_id: str):
     try:
         result = celery_app.AsyncResult(task_id)
@@ -585,9 +614,8 @@ async def task_status(task_id: str):
         raise HTTPException(500, str(e))
 
 
-@router.get("/api/session/{session_id}/state")
+@router.get("/session/{session_id}/state")
 async def session_state(session_id: str):
-    from workflow.memory.session_store import load_session
     state = load_session(session_id)
     return state
 
@@ -779,7 +807,7 @@ async def batch_predictions(
     """
     try:
         contents = await batch_file.read()
-        batch_df = pd.read_csv(io.BytesIO(contents))
+        batch_df = parse_uploaded_dataframe(batch_file.filename or "batch.csv", contents)
         
         # Load model and generate predictions
         # TODO: Implement model loading from model registry
@@ -825,7 +853,6 @@ async def delete_session(session_id: str):
     """Delete a session and all associated data."""
     try:
         from ..memory.conversation_memory import get_memory_store
-        from workflow.memory.session_store import delete_session as delete_stored_session
         
         memory = get_memory_store()
         
@@ -833,8 +860,8 @@ async def delete_session(session_id: str):
         if session_id in memory.sessions:
             del memory.sessions[session_id]
         
-        # Remove from storage
-        delete_stored_session(session_id)
+        # Remove from workflow/session cache
+        clear_workflow_session(session_id)
         
         return {
             "session_id": session_id,

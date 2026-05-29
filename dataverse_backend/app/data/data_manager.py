@@ -37,6 +37,11 @@ class DataManager:
         session_state = session_manager.get_session(self.session_id)
         df = session_state.get_value("raw_dataframe")
         if df is None:
+            # Fallback: check simple session state
+            from ..state.session_state import SessionState
+            simple_session = SessionState.get(self.session_id)
+            df = simple_session.get_value("raw_dataframe")
+        if df is None:
             raise DataNotFoundError("Raw dataset not found for session")
         return df.copy()
 
@@ -60,7 +65,6 @@ class DataManager:
             df = session_state.get_value("raw_dataframe")
         if df is None:
             raise DataNotFoundError("Dataset not found for session")
-        return df.copy()
         return df.copy()
 
     def generate_profile(self) -> DatasetProfile:

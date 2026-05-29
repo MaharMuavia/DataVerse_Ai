@@ -16,9 +16,14 @@ def main():
 	print('models via cli:', c._local_cli_models())
 	print('is_available:', c.is_available())
 
-	# Look for a CSV at project root (retail_mart_processed_v1.csv)
-	repo_root = Path(__file__).resolve().parents[1]
-	csv_candidates = [repo_root / 'retail_mart_processed_v1.csv', repo_root / 'data' / 'dataset.csv']
+	# Look for a CSV in the workspace data folder
+	workspace_root = Path(__file__).resolve().parents[2]
+	csv_candidates = [
+		workspace_root / 'data' / 'retail_mart_processed_v1.csv',
+		workspace_root / 'data' / 'dataset.csv',
+		# Backwards-compatible fallback if a user keeps the dataset at repo root
+		workspace_root / 'retail_mart_processed_v1.csv',
+	]
 	csv_path = None
 	for p in csv_candidates:
 		if p.exists():
@@ -39,7 +44,7 @@ def main():
 	# Generate Sweetviz report
 	try:
 		report = sv.analyze(df)
-		out_html = repo_root / 'deepanalyze_sweetviz_report.html'
+		out_html = workspace_root / 'deepanalyze_sweetviz_report.html'
 		report.show_html(str(out_html))
 		print('Sweetviz report written to', out_html)
 	except Exception as e:
@@ -51,7 +56,7 @@ def main():
 		if numeric_cols:
 			col = numeric_cols[0]
 			fig = px.histogram(df, x=col, title=f'Histogram of {col}')
-			out_plot = repo_root / 'deepanalyze_plotly_histogram.html'
+			out_plot = workspace_root / 'deepanalyze_plotly_histogram.html'
 			fig.write_html(str(out_plot))
 			print('Plotly histogram written to', out_plot)
 		else:

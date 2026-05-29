@@ -87,6 +87,43 @@ class PersistentSessionState:
             f"Cannot read parquet dataset {dataset_path}: no parquet engine is installed."
         )
 
+    def _serialize_metadata_value(self, value: Any) -> Any:
+        """Convert session metadata into JSON-safe values for persistence."""
+        if isinstance(value, pd.DataFrame):
+            return {
+                "type": "dataframe",
+                "rows": int(len(value)),
+                "columns": [str(column) for column in value.columns],
+            }
+
+        if isinstance(value, Path):
+            return str(value)
+
+        if isinstance(value, datetime):
+            return value.isoformat()
+
+        if isinstance(value, dict):
+            return {str(key): self._serialize_metadata_value(item) for key, item in value.items()}
+
+        if isinstance(value, (list, tuple, set)):
+            return [self._serialize_metadata_value(item) for item in value]
+
+        if hasattr(value, "item") and callable(value.item):
+            try:
+                return value.item()
+            except Exception:
+                pass
+
+        return str(value)
+
+    def _serialize_session_metadata(self) -> Dict[str, Any]:
+        """Prepare the cached metadata for storage in JSONB."""
+        return {
+            str(key): self._serialize_metadata_value(value)
+            for key, value in self._cache.items()
+            if key != "raw_dataframe"
+        }
+
     async def _ensure_loaded(self, db: Optional[AsyncSession] = None) -> None:
         """Load session data from DB and Parquet if not already loaded."""
         if self._loaded:
@@ -137,7 +174,7 @@ class PersistentSessionState:
             dataset_rows=len(df),
             dataset_cols=len(df.columns),
             parquet_path=str(dataset_path),
-            session_metadata=self._cache
+            session_metadata=self._serialize_session_metadata(),
         )
 
         db.add(session_record)
@@ -179,7 +216,7 @@ class PersistentSessionState:
         stmt = (
             update(SessionModel)
             .where(SessionModel.id == self.session_id)
-            .values(session_metadata=self._cache, last_accessed=datetime.utcnow())
+            .values(session_metadata=self._serialize_session_metadata(), last_accessed=datetime.utcnow())
         )
         await db.execute(stmt)
         await db.commit()
@@ -209,7 +246,7 @@ class SessionManager:
 
             for session in expired_sessions:
                 # Remove from filesystem
-                session_dir = self.storage_path / session.id
+                session_dir = self.storage_path / str(session.id)
                 if session_dir.exists():
                     import shutil
                     shutil.rmtree(session_dir)
