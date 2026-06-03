@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 from typing import Dict, Any, List, Optional
+from difflib import SequenceMatcher
 
 from ..core.logger import logger
 from ..llm.intent_parser import IntentParser
@@ -36,7 +37,7 @@ class PlanningAgent:
 
         Args:
             user_query: Original user query text
-            intent: Parsed intent from IntentParser (contains intent, metric, operations)
+            intent: Parsed intent from IntentRouter (contains intent and params)
             dataset_info: Dataset metadata (columns, dtypes, row_count)
 
         Returns:
@@ -70,18 +71,21 @@ class PlanningAgent:
             plan["tasks"].append(viz)
 
         # Determine if AutoML prediction task should run
-        if self._should_run_automl(intent, dataset_info):
+        inferred_target = self._infer_target_column(intent, dataset_info, user_query)
+        if self._should_run_automl(intent, dataset_info, inferred_target):
             plan["tasks"].append({
                 "task_type": "automl",
                 "tool": "pycaret",
                 "priority": 2,
                 "parameters": {
-                    "target_column": self._infer_target_column(intent, dataset_info),
-                    "task_type": self._determine_ml_task_type(intent, dataset_info),
+                    "target_column": inferred_target,
+                    "task_type": self._determine_ml_task_type(intent, dataset_info, inferred_target),
                     "time_budget": 300,
                     "html": False,
                 }
             })
+        elif self._query_requests_prediction(intent):
+            plan["target_suggestions"] = self._suggest_target_columns(dataset_info)
 
         # Determine if explainability should be computed
         if self._should_run_xai(intent, plan):
@@ -142,14 +146,19 @@ class PlanningAgent:
         viz_tasks = []
         intent_text = intent.get("intent", "").lower()
         dtypes = dataset_info.get("dtypes", {})
-        metric = intent.get("metric")
+        params = intent.get("params") or {}
+        metric = params.get("target_column") or intent.get("metric")
+        requested_chart_type = params.get("chart_type")
+        group_by = params.get("group_by")
 
         # Count numeric vs categorical columns
         numeric_cols = [c for c, t in dtypes.items() if "int" in t or "float" in t]
         categorical_cols = [c for c, t in dtypes.items() if "object" in t or "category" in t]
 
         # Determine visualization types based on intent and data
-        viz_types = self._select_viz_types(intent_text, len(numeric_cols), len(categorical_cols), metric)
+        viz_types = [requested_chart_type] if requested_chart_type else self._select_viz_types(
+            intent_text, len(numeric_cols), len(categorical_cols), metric
+        )
 
         priority = 1
         for viz_type in viz_types:
@@ -160,6 +169,7 @@ class PlanningAgent:
                 "parameters": {
                     "viz_type": viz_type,
                     "target_column": metric,
+                    "group_by": group_by,
                     "numeric_cols": numeric_cols[:3],  # Limit to 3 for clarity
                     "categorical_cols": categorical_cols[:3],
                 }
@@ -209,26 +219,22 @@ class PlanningAgent:
 
         return list(dict.fromkeys(viz_types))  # Remove duplicates, preserve order
 
-    def _should_run_automl(self, intent: Dict[str, Any], dataset_info: Dict[str, Any]) -> bool:
+    def _should_run_automl(self, intent: Dict[str, Any], dataset_info: Dict[str, Any], target_column: Optional[str]) -> bool:
         """Determine if AutoML prediction task should run.
 
         AutoML runs if:
         - User asks for prediction/forecast/classification/regression
         - A target column can be inferred
         """
-        intent_text = intent.get("intent", "").lower()
-        metric = intent.get("metric")
-
         # Check for prediction keywords
-        prediction_keywords = ["predict", "forecast", "model", "classify", "regress", "estimate", "target"]
-        has_prediction_intent = any(kw in intent_text for kw in prediction_keywords)
+        return self._query_requests_prediction(intent) and target_column is not None
 
-        # Check if we can infer a target variable
-        has_inferred_target = metric is not None
+    def _query_requests_prediction(self, intent: Dict[str, Any]) -> bool:
+        intent_text = intent.get("intent", "").lower()
+        prediction_keywords = ["predict", "forecast", "model", "classify", "regress", "estimate", "target", "prediction"]
+        return any(kw in intent_text for kw in prediction_keywords)
 
-        return has_prediction_intent or has_inferred_target
-
-    def _determine_ml_task_type(self, intent: Dict[str, Any], dataset_info: Dict[str, Any]) -> str:
+    def _determine_ml_task_type(self, intent: Dict[str, Any], dataset_info: Dict[str, Any], target_column: Optional[str]) -> str:
         """Determine ML task type (classification vs regression).
 
         Heuristics:
@@ -246,22 +252,79 @@ class PlanningAgent:
         if any(kw in intent_text for kw in ["regress", "regression", "predict value", "estimate value"]):
             return "regression"
 
-        # Default to regression for generic "predict"
+        if target_column:
+            dtype = str((dataset_info.get("dtypes") or {}).get(target_column, "")).lower()
+            if any(token in dtype for token in ["object", "category", "bool", "str"]):
+                return "classification"
+            unique_counts = dataset_info.get("unique_counts") or {}
+            unique_count = unique_counts.get(target_column)
+            if unique_count is not None and unique_count <= 20:
+                return "classification"
+
         return "regression"
 
-    def _infer_target_column(self, intent: Dict[str, Any], dataset_info: Dict[str, Any]) -> Optional[str]:
+    def _infer_target_column(self, intent: Dict[str, Any], dataset_info: Dict[str, Any], user_query: str = "") -> Optional[str]:
         """Infer target column for ML task.
 
         Returns:
         - The metric specified in intent if available
         - None if no target can be inferred
         """
-        metric = intent.get("metric")
-        if metric:
-            columns = dataset_info.get("columns", [])
-            if metric in columns:
-                return metric
+        params = intent.get("params") or {}
+        requested = params.get("target_column") or intent.get("metric")
+        columns = [str(column) for column in dataset_info.get("columns", [])]
+        if requested:
+            for column in columns:
+                if column.lower() == str(requested).lower():
+                    return column
+
+        query = f"{intent.get('intent', '')} {user_query}".lower()
+        aliases = ["sales", "revenue", "amount", "profit", "price", "total", "target", "label", "outcome", "churn"]
+        if any(alias in query for alias in aliases):
+            best_column = None
+            best_score = 0.0
+            for column in columns:
+                normalized = column.lower().replace("_", " ")
+                score = max(
+                    SequenceMatcher(None, normalized, alias).ratio()
+                    for alias in aliases
+                    if alias in query or alias in normalized
+                )
+                if score > best_score:
+                    best_score = score
+                    best_column = column
+            if best_column and best_score >= 0.45:
+                return best_column
+        suggestions = self._suggest_target_columns(dataset_info)
+        if suggestions and self._query_requests_prediction(intent):
+            return suggestions[0]["column"]
         return None
+
+    def _suggest_target_columns(self, dataset_info: Dict[str, Any]) -> List[Dict[str, Any]]:
+        columns = [str(column) for column in dataset_info.get("columns", [])]
+        dtypes = dataset_info.get("dtypes", {})
+        unique_counts = dataset_info.get("unique_counts", {})
+        suggestions: List[Dict[str, Any]] = []
+        for column in columns:
+            normalized = column.lower()
+            if any(token in normalized for token in ["id", "uuid", "email", "phone", "name"]):
+                continue
+            dtype = str(dtypes.get(column, "")).lower()
+            unique_count = unique_counts.get(column)
+            if any(token in dtype for token in ["int", "float", "decimal"]):
+                task_type = "classification" if unique_count is not None and unique_count <= 20 else "regression"
+            elif any(token in dtype for token in ["object", "category", "bool", "str"]):
+                if unique_count is not None and unique_count > 50:
+                    continue
+                task_type = "classification"
+            else:
+                continue
+            score = 0.7
+            if any(token in normalized for token in ["sales", "revenue", "amount", "profit", "target", "label", "outcome", "churn"]):
+                score = 0.9
+            suggestions.append({"column": column, "task_type": task_type, "score": score})
+        suggestions.sort(key=lambda item: item["score"], reverse=True)
+        return suggestions[:5]
 
     def _should_run_xai(self, intent: Dict[str, Any], plan: Dict[str, Any]) -> bool:
         """Determine if explainability analysis should run.

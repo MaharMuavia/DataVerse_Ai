@@ -12,6 +12,27 @@ def extract_limit(query: str, default: int = 10) -> int:
     return max(1, min(25, int(match.group(1))))
 
 
+def _period_from_query(query: str) -> str | None:
+    if any(word in query for word in ["daily", "day"]):
+        return "D"
+    if any(word in query for word in ["weekly", "week"]):
+        return "W"
+    if any(word in query for word in ["monthly", "month"]):
+        return "M"
+    if any(word in query for word in ["yearly", "annual", "year"]):
+        return "Y"
+    return None
+
+
+def _is_metric_time_series_query(query: str) -> bool:
+    metric_requested = any(word in query for word in ["revenue", "sales", "amount", "profit", "income"])
+    time_requested = _period_from_query(query) is not None or any(
+        phrase in query
+        for phrase in ["over time", "time series", "timeline", "revenue trend", "sales trend"]
+    )
+    return metric_requested and time_requested
+
+
 def route_intent(question: str, dataset_type: str, semantic_columns: dict[str, Any] | None = None) -> dict[str, Any]:
     """Return an intent name and params without assuming a sales dataset."""
     query = question.lower().strip()
@@ -51,8 +72,8 @@ def route_intent(question: str, dataset_type: str, semantic_columns: dict[str, A
             return {"intent": "sales_recommendations", "limit": limit}
         if any(word in query for word in ["forecast", "predict next", "future sales"]):
             return {"intent": "forecast", "limit": limit}
-        if any(word in query for word in ["monthly", "weekly", "daily", "revenue trend", "sales trend", "over time"]):
-            period = "D" if "daily" in query else "W" if "weekly" in query else "M"
+        if _is_metric_time_series_query(query):
+            period = _period_from_query(query) or "M"
             return {"intent": "revenue_trend", "period": period, "limit": limit}
         if any(word in query for word in ["category", "department", "segment"]):
             return {"intent": "category_performance", "limit": limit}

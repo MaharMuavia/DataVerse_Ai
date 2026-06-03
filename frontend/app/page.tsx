@@ -289,7 +289,7 @@ const LandingView = ({ onNavigate }: { onNavigate: (v: ViewState) => void }) => 
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
             <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#agents" className="hover:text-white transition-colors">Agents</a>
+            <a href="#features" className="hover:text-white transition-colors">Engine</a>
             <a href="#security" className="hover:text-white transition-colors">Security</a>
             <a href="#docs" className="hover:text-white transition-colors">Docs</a>
           </div>
@@ -315,7 +315,7 @@ const LandingView = ({ onNavigate }: { onNavigate: (v: ViewState) => void }) => 
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-blue-400">Uncover instant insights.</span>
           </h1>
           <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-            An enterprise-grade analytics platform powered by 16 specialized AI agents. Upload your CSV, ask natural language questions, and get interactive charts, AutoML models, and explainable AI in seconds.
+            An enterprise-grade analytics platform powered by a focused analysis core and explainable AI. Upload your CSV, ask natural language questions, and get interactive charts, AutoML models, and grounded answers in seconds.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button onClick={() => onNavigate('signup')} className="flex items-center justify-center gap-2 bg-gradient-to-r from-violet-500 to-blue-500 text-white px-8 py-4 rounded-xl text-base font-medium hover:brightness-110 transition-all active:scale-95 shadow-[0_0_20px_rgba(139,92,246,0.4)] w-full sm:w-auto">
@@ -417,11 +417,11 @@ const LandingView = ({ onNavigate }: { onNavigate: (v: ViewState) => void }) => 
         </motion.div>
       </section>
 
-      {/* Features Grid ("The Agentic Engine") */}
+      {/* Features Grid */}
       <section id="features" className="py-24 px-6 max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">The Agentic Engine</h2>
-          <p className="text-slate-400 text-lg max-w-2xl mx-auto">16 distinct AI models working in harmony to validate, process, and analyze your data securely.</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">The Analysis Engine</h2>
+          <p className="text-slate-400 text-lg max-w-2xl mx-auto">A focused analysis agent and XAI agent validate, process, and explain your data securely.</p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -429,7 +429,7 @@ const LandingView = ({ onNavigate }: { onNavigate: (v: ViewState) => void }) => 
             { icon: BarChart2, title: 'Autonomous EDA', desc: 'Upload a dataset and instantly get missing value analysis, distributions, and correlation heatmaps.' },
             { icon: Brain, title: 'One-Click AutoML', desc: 'Train classification and regression models automatically in the background using Scikit-Learn integration.' },
             { icon: Eye, title: 'SHAP & LIME Explanations', desc: 'Never guess why a model made a decision. Get local and global feature importance on demand.' },
-            { icon: ShoppingCart, title: 'Retail Detector', desc: 'Automatically validates and analyzes retail-mart datasets for instant e-commerce and inventory insights.' }
+            { icon: ShoppingCart, title: 'Universal Dataset Routing', desc: 'Classify sales, finance, customer, business leads, and generic datasets without rejecting non-retail files.' }
           ].map((feat, i) => (
             <motion.div 
               key={feat.title}
@@ -567,7 +567,7 @@ const LandingView = ({ onNavigate }: { onNavigate: (v: ViewState) => void }) => 
                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            All Agents Operational
+            Analysis Core Operational
           </div>
         </div>
       </footer>

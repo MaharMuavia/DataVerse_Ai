@@ -13,7 +13,7 @@ import asyncio
 from datetime import datetime, timezone
 
 from .api import routes, auth_routes, stream, graph_routes, ai_routes, billing_routes, dashboard_routes
-from .api import workspace_routes, dataset_routes, conversation_routes
+from .api import workspace_routes, dataset_routes, conversation_routes, analyze_routes
 from .api.websocket import ws_chat_endpoint
 from .core.config import settings
 from .core.logger import logger
@@ -49,7 +49,7 @@ if settings.SENTRY_DSN:
 async def _startup_logic() -> None:
     logger.info("Starting DataVerse AI backend", extra={"environment": settings.ENVIRONMENT})
 
-    if settings.DATABASE_URL:
+    if settings.DATABASE_URL and settings.DATABASE_STARTUP_CHECK_ENABLED:
         try:
             await asyncio.wait_for(
                 _ensure_database_startup(),
@@ -59,6 +59,8 @@ async def _startup_logic() -> None:
             logger.warning("Database startup check timed out; continuing without database readiness")
         except Exception as e:
             logger.warning(f"Database migration failed: {e}")
+    elif settings.DATABASE_URL:
+        logger.info("Database startup check disabled; request-scoped DB dependency will fail open if unavailable")
     else:
         logger.info("No DATABASE_URL configured, skipping database setup")
 
@@ -116,6 +118,7 @@ app.include_router(conversation_routes.router, prefix="/api/workspaces", tags=["
 app.include_router(dashboard_routes.router, prefix="/api/dashboard", tags=["dashboard"])
 app.include_router(billing_routes.router, prefix="/api/billing", tags=["billing"])
 app.include_router(ai_routes.router, prefix="/api/ai", tags=["ai"])
+app.include_router(analyze_routes.router, prefix="/api/analyze", tags=["analysis"])
 app.include_router(routes.router, prefix="/api", tags=["legacy"])
 app.include_router(stream.router, prefix="/api/stream", tags=["streaming"])
 app.include_router(graph_routes.router, prefix="/api/stream/graph", tags=["langgraph"])
@@ -177,37 +180,44 @@ async def health_live():
 
 @app.get("/health/ready")
 async def health_ready():
-    """Readiness endpoint validating critical dependencies."""
+    """Readiness endpoint validating dependencies without failing optional local services."""
     checks = {
-        "database": False,
-        "redis": False,
+        "database": {"status": "unconfigured", "critical": False},
+        "redis": {"status": "unconfigured", "critical": False},
     }
 
     # Database readiness
-    try:
-        engine = db_base.get_engine()
-        if engine is not None:
+    engine = db_base.get_engine()
+    if engine is not None:
+        try:
             async with engine.connect() as conn:
                 await conn.execute(text("SELECT 1"))
-            checks["database"] = True
-    except Exception as exc:
-        logger.warning("Readiness DB check failed: %s", exc)
+            checks["database"]["status"] = "ok"
+        except Exception as exc:
+            logger.warning("Readiness DB check failed: %s", exc)
+            checks["database"]["status"] = f"degraded: {exc}"
+            checks["database"]["critical"] = bool(settings.DATABASE_URL)
 
     # Redis readiness
-    try:
-        if redis_async and settings.REDIS_URL:
+    if redis_async and settings.REDIS_URL:
+        try:
             client = redis_async.from_url(settings.REDIS_URL)
             pong = await client.ping()
-            checks["redis"] = bool(pong)
+            checks["redis"]["status"] = "ok" if pong else "unavailable: local rate limiter fallback active"
             await client.close()
-    except Exception as exc:
-        logger.warning("Readiness Redis check failed: %s", exc)
+        except Exception as exc:
+            logger.warning("Readiness Redis check failed: %s", exc)
+            checks["redis"]["status"] = f"unavailable: local rate limiter fallback active ({exc})"
 
-    is_ready = all(checks.values())
+    critical_down = any(
+        check["critical"] and str(check["status"]).startswith(("degraded", "unavailable"))
+        for check in checks.values()
+    )
+    is_degraded = any(check["status"] != "ok" for check in checks.values())
     return JSONResponse(
-        status_code=200 if is_ready else 503,
+        status_code=503 if critical_down else 200,
         content={
-            "status": "ready" if is_ready else "degraded",
+            "status": "down" if critical_down else "degraded" if is_degraded else "ready",
             "checks": checks,
             "service": settings.APP_NAME,
             "version": settings.APP_VERSION,

@@ -49,6 +49,11 @@ class Settings(BaseSettings):
     OPENAI_CHAT_MODEL: str = Field(default="gpt-4o")
     OPENAI_INTENT_MODEL: str = Field(default="gpt-4o-mini")
 
+    # Gemini for report narration fallback after OpenAI
+    GEMINI_API_KEY: Optional[str] = Field(default=None)
+    GEMINI_API_BASE: str = Field(default="https://generativelanguage.googleapis.com")
+    GEMINI_MODEL: str = Field(default="gemini-1.5-flash")
+
     # DeepSeek for intent parsing (OpenAI-compatible API)
     DEEPSEEK_API_KEY: Optional[str] = Field(default=None)
     DEEPSEEK_API_BASE: str = Field(default="https://api.deepseek.com")
@@ -85,6 +90,7 @@ class Settings(BaseSettings):
     # postgresql+asyncpg://user:password@host:5432/dbname
     DATABASE_URL: str | None = Field(default=None)
     DATABASE_CONNECT_TIMEOUT_SECONDS: float = Field(default=5.0)
+    DATABASE_STARTUP_CHECK_ENABLED: bool = Field(default=False)
 
     # Redis
     REDIS_URL: str = Field(default="redis://localhost:6379/0")

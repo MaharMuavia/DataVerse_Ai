@@ -143,6 +143,35 @@ def test_agent_answers_top_products_with_table_and_chart():
     assert "Calculated" in result["method"]
 
 
+def test_sales_revenue_by_month_routes_to_revenue_trend_without_product_requirement():
+    profile = profile_dataframe(sample_sales_df())
+    plan = plan_analysis(
+        "Show revenue by month.",
+        dataset_type="sales",
+        semantic_columns=profile["semantic_columns"],
+    )
+
+    assert plan.answerable is True
+    assert plan.intent == "revenue_trend"
+    assert plan.required_roles == ["sales_amount", "date"]
+    assert plan.missing_roles == []
+
+
+def test_agent_answers_revenue_by_month_with_line_chart():
+    result = DataAnalysisAgent().answer(sample_sales_df(), "Show revenue by month.")
+
+    assert result["intent"] == "revenue_trend"
+    assert result["tables"][0]["title"] == "revenue trend"
+    assert result["tables"][0]["rows"] == [
+        {"period": "2026-01", "revenue": 400},
+        {"period": "2026-02", "revenue": 450},
+        {"period": "2026-03", "revenue": 1020},
+    ]
+    assert result["charts"][0]["type"] == "line"
+    assert result["charts"][0]["x_key"] == "period"
+    assert result["charts"][0]["y_key"] == "revenue"
+
+
 def test_agent_business_leads_overview_is_not_data_quality_only():
     result = DataAnalysisAgent().answer(
         sample_business_leads_df(),

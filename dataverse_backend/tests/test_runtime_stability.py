@@ -1,4 +1,5 @@
 import pytest
+from types import SimpleNamespace
 
 from app.api import routes
 from app.core import llm as llm_module
@@ -46,3 +47,49 @@ async def test_get_llm_initializes_with_openai_when_anthropic_unset(monkeypatch)
     assert hasattr(llm_client, "ainvoke")
 
     llm_module.reset_llm()
+
+
+@pytest.mark.asyncio
+async def test_readiness_is_degraded_but_200_when_optional_db_and_redis_are_absent(monkeypatch):
+    import json
+    from app import main
+
+    monkeypatch.setattr(main.db_base, "get_engine", lambda: None)
+    monkeypatch.setattr(main, "redis_async", None)
+    monkeypatch.setattr(main.settings, "REDIS_URL", None)
+
+    response = await main.health_ready()
+    payload = json.loads(response.body)
+
+    assert response.status_code == 200
+    assert payload["status"] == "degraded"
+    assert payload["checks"]["database"]["status"] == "unconfigured"
+    assert payload["checks"]["redis"]["status"] == "unconfigured"
+
+
+@pytest.mark.asyncio
+async def test_rate_limiter_enforces_local_fallback_when_redis_fails(monkeypatch):
+    from starlette.responses import Response
+    from app.core import middleware
+
+    middleware._LOCAL_WINDOWS.clear()
+    monkeypatch.setattr(middleware.settings, "RATE_LIMIT_ENABLED", True)
+    monkeypatch.setattr(middleware.settings, "RATE_LIMIT_REQUESTS", 1)
+    monkeypatch.setattr(middleware.settings, "RATE_LIMIT_WINDOW_SECONDS", 60)
+    monkeypatch.setattr(middleware.settings, "RATE_LIMIT_PATH_PREFIX", "/api")
+    monkeypatch.setattr(middleware, "_get_rate_limit_client", lambda: (_ for _ in ()).throw(RuntimeError("redis down")))
+
+    request = SimpleNamespace(
+        url=SimpleNamespace(path="/api/stream/query"),
+        headers={},
+        client=SimpleNamespace(host="127.0.0.1"),
+    )
+
+    async def call_next(_request):
+        return Response("ok")
+
+    first = await middleware.redis_rate_limit_middleware(request, call_next)
+    second = await middleware.redis_rate_limit_middleware(request, call_next)
+
+    assert first.status_code == 200
+    assert second.status_code == 429

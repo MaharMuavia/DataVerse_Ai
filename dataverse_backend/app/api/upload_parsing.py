@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import io
+from typing import Any
 
 import pandas as pd
 
@@ -50,6 +51,95 @@ def _read_repaired_csv(csv_text: str, dialect: csv.Dialect) -> pd.DataFrame:
     return pd.read_csv(repaired_csv)
 
 
+def _rows_from_csv(csv_text: str, dialect: csv.Dialect) -> list[list[str]]:
+    return [
+        [cell.strip() for cell in row]
+        for row in csv.reader(io.StringIO(csv_text), dialect)
+        if any(cell.strip() for cell in row)
+    ]
+
+
+def _coerce_sectioned_value(value: str) -> Any:
+    value = value.strip()
+    if value == "":
+        return None
+    numeric = pd.to_numeric(value, errors="coerce")
+    if pd.notna(numeric):
+        if float(numeric).is_integer():
+            return int(numeric)
+        return float(numeric)
+    return value
+
+
+def _parse_sectioned_report_csv(csv_text: str, dialect: csv.Dialect) -> pd.DataFrame | None:
+    """Extract the main table from report-style CSV exports.
+
+    Some apps export human-readable reports before the actual table:
+    title rows, key/value metadata, summary rows, then a multi-column table
+    header such as Transaction Details. Pandas reads those as a one-column CSV
+    because the first row has one field. This function finds the widest
+    meaningful header and keeps preceding two-column rows as metadata.
+    """
+    rows = _rows_from_csv(csv_text, dialect)
+    if not rows:
+        return None
+
+    widths = [len(row) for row in rows]
+    max_width = max(widths)
+    if max_width < 2 or widths[0] == max_width:
+        return None
+
+    header_index = None
+    for index, row in enumerate(rows):
+        if len(row) != max_width:
+            continue
+        following_same_width = sum(1 for item in rows[index + 1 :] if len(item) == max_width)
+        unique_cells = len({cell.lower() for cell in row if cell})
+        if following_same_width >= 1 and unique_cells == len(row):
+            header_index = index
+            break
+
+    if header_index is None:
+        return None
+
+    header = rows[header_index]
+    data_rows = []
+    for row in rows[header_index + 1 :]:
+        if len(row) == max_width:
+            data_rows.append(row)
+        elif data_rows:
+            break
+    if not data_rows:
+        return None
+
+    df = pd.DataFrame(data_rows, columns=header)
+    for column in df.columns:
+        converted = pd.to_numeric(df[column], errors="coerce")
+        if converted.notna().sum() == df[column].notna().sum() and converted.notna().any():
+            df[column] = converted
+
+    metadata: dict[str, str] = {}
+    summary: dict[str, str] = {}
+    active_section = "metadata"
+    for row in rows[:header_index]:
+        if len(row) == 1:
+            label = row[0].strip().lower()
+            if label == "summary":
+                active_section = "summary"
+            elif label:
+                metadata.setdefault("report_title", row[0].strip())
+            continue
+        if len(row) == 2:
+            target = summary if active_section == "summary" else metadata
+            target[row[0]] = row[1]
+
+    if metadata:
+        df.attrs["report_metadata"] = metadata
+    if summary:
+        df.attrs["report_summary"] = summary
+    return df
+
+
 def _ensure_non_empty_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty and len(df.columns) == 0:
         raise ValueError("Uploaded file does not contain any rows or columns")
@@ -63,6 +153,9 @@ def parse_uploaded_dataframe(filename: str, contents: bytes) -> pd.DataFrame:
     if filename_lower.endswith(".csv"):
         csv_text = _decode_csv(contents)
         dialect = _detect_csv_dialect(csv_text)
+        sectioned_df = _parse_sectioned_report_csv(csv_text, dialect)
+        if sectioned_df is not None:
+            return _ensure_non_empty_dataframe(sectioned_df)
         try:
             df = pd.read_csv(io.StringIO(csv_text), sep=dialect.delimiter)
         except (pd.errors.EmptyDataError, pd.errors.ParserError):

@@ -160,7 +160,7 @@ def detect_column_roles(df: pd.DataFrame) -> dict[str, str]:
             role = "business_id"
         elif normalized in ROLE_HINTS["product"]:
             role = "product"
-        elif normalized in ROLE_HINTS["customer"]:
+        elif normalized in ROLE_HINTS["customer"] or "customer" in normalized:
             role = "customer"
         elif normalized in ROLE_HINTS["order_date"] or ("order" in normalized and "date" in normalized):
             role = "order_date"
@@ -168,7 +168,7 @@ def detect_column_roles(df: pd.DataFrame) -> dict[str, str]:
             role = "transaction_date"
         elif normalized in ROLE_HINTS["quantity"] and _is_numeric_like(series):
             role = "quantity"
-        elif normalized in ROLE_HINTS["sales_amount"] and _is_numeric_like(series):
+        elif (normalized in ROLE_HINTS["sales_amount"] or "amount" in normalized or "sales" in normalized) and _is_numeric_like(series):
             role = "sales_amount"
         elif normalized in ROLE_HINTS["category"]:
             role = "category"
@@ -328,6 +328,11 @@ def profile_dataframe(df: pd.DataFrame) -> dict[str, Any]:
         "column_profiles": column_profiles,
         "preview": dataframe_preview(df),
     }
+
+    if df.attrs.get("report_metadata"):
+        profile["report_metadata"] = dict(df.attrs["report_metadata"])
+    if df.attrs.get("report_summary"):
+        profile["report_summary"] = dict(df.attrs["report_summary"])
 
     try:
         from .dataset_classifier import classify_dataset

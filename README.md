@@ -54,6 +54,25 @@ Install backend dependencies:
 .\.venv\Scripts\python -m pip install -r dataverse_backend\requirements.txt
 ```
 
+OpenAI, Gemini, and Anthropic keys are optional. When keys are available the
+report narrator tries OpenAI first, then Gemini, then Anthropic, then local
+DeepAnalyze/Ollama. If none are reachable, the API still returns a deterministic
+executive summary from computed facts.
+
+Useful `.env` values:
+
+```text
+OPENAI_API_KEY=optional
+GEMINI_API_KEY=optional
+ANTHROPIC_API_KEY=optional
+DEEPANALYZE_BASE_URL=http://localhost:11434
+DATABASE_STARTUP_CHECK_ENABLED=false
+```
+
+Leave `DATABASE_STARTUP_CHECK_ENABLED=false` for local/demo analysis when
+PostgreSQL is not running. Enable it in production when the app should ensure DB
+tables during startup.
+
 ## Run Locally
 
 ```powershell
@@ -98,8 +117,39 @@ Upload a file:
 curl.exe -F "file=@sample_products_smoke_test.xlsx" http://127.0.0.1:8000/api/upload
 ```
 
+Upload and immediately run the full AI data analyst report:
+
+```powershell
+curl.exe -F "file=@sample_products_smoke_test.xlsx" http://127.0.0.1:8000/api/analyze/upload
+```
+
+Ask a query against an uploaded analysis session:
+
+```powershell
+curl.exe -X POST http://127.0.0.1:8000/api/analyze/query `
+  -H "Content-Type: application/json" `
+  -d "{\"session_id\":\"YOUR_SESSION_ID\",\"query\":\"predict sales revenue and explain the drivers\",\"target_column\":\"revenue\"}"
+```
+
+The local/demo analysis endpoints do not require JWT. Production deployments
+should mount them behind workspace authorization before exposing user datasets.
+
 Run streaming query:
 
 ```powershell
 curl.exe -N "http://127.0.0.1:8000/api/stream/query?session_id=YOUR_SESSION_ID&query=show%20summary"
+```
+
+## Analysis Smoke Test
+
+Run the pipeline directly without external LLM keys:
+
+```powershell
+.\.venv\Scripts\python scripts\smoke_test_analysis.py
+```
+
+## Tests
+
+```powershell
+.\.venv\Scripts\python -m pytest dataverse_backend\tests -q
 ```

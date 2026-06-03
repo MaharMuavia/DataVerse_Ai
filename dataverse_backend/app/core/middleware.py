@@ -4,6 +4,7 @@ from __future__ import annotations
 import time
 import uuid
 import asyncio
+from collections import defaultdict, deque
 from typing import Callable
 
 from fastapi import Request, Response
@@ -17,11 +18,12 @@ except Exception:  # pragma: no cover
 from .config import settings
 
 _rate_limit_client = None
+_LOCAL_WINDOWS: dict[str, deque[float]] = defaultdict(deque)
 
 
 async def _get_rate_limit_client():
     global _rate_limit_client
-    if _rate_limit_client is None and redis_async is not None:
+    if _rate_limit_client is None and redis_async is not None and settings.REDIS_URL:
         _rate_limit_client = redis_async.from_url(settings.REDIS_URL)
     return _rate_limit_client
 
@@ -36,6 +38,21 @@ def _extract_client_ip(request: Request) -> str:
     if request.client and request.client.host:
         return request.client.host
     return "unknown"
+
+
+def _enforce_local_rate_limit(ip: str, window_seconds: int) -> tuple[bool, int]:
+    now = time.time()
+    key = f"local:{ip}"
+    window = _LOCAL_WINDOWS[key]
+    while window and now - window[0] > window_seconds:
+        window.popleft()
+
+    limit = int(settings.RATE_LIMIT_REQUESTS)
+    if len(window) >= limit:
+        return False, 0
+
+    window.append(now)
+    return True, max(0, limit - len(window))
 
 
 async def request_context_middleware(request: Request, call_next: Callable):
@@ -118,7 +135,25 @@ async def redis_rate_limit_middleware(request: Request, call_next: Callable):
             response.headers["X-RateLimit-Window"] = str(window)
             return response
     except Exception:
-        # Fail open to avoid taking down API when Redis has transient issues.
-        pass
+        client = None
 
-    return await call_next(request)
+    allowed, remaining = _enforce_local_rate_limit(ip, window)
+    if not allowed:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Rate limit exceeded. Please retry shortly."},
+            headers={
+                "Retry-After": str(window),
+                "X-RateLimit-Limit": str(settings.RATE_LIMIT_REQUESTS),
+                "X-RateLimit-Remaining": "0",
+                "X-RateLimit-Window": str(window),
+                "X-RateLimit-Backend": "local",
+            },
+        )
+
+    response = await call_next(request)
+    response.headers["X-RateLimit-Limit"] = str(settings.RATE_LIMIT_REQUESTS)
+    response.headers["X-RateLimit-Remaining"] = str(remaining)
+    response.headers["X-RateLimit-Window"] = str(window)
+    response.headers["X-RateLimit-Backend"] = "local" if client is None else "redis"
+    return response
