@@ -9,11 +9,11 @@ import pandas as pd
 
 SEMANTIC_HINTS: dict[str, list[str]] = {
     "date": ["date", "order_date", "created_at", "timestamp", "time", "day", "month"],
-    "product": ["product", "product_name", "item", "sku", "item_name"],
+    "product": ["product", "product_name", "item", "sku", "item_name", "food", "food_name", "dish", "meal", "menu_item"],
     "revenue": ["sales", "revenue", "amount", "total", "total_sales", "sales_amount"],
     "quantity": ["quantity", "qty", "units", "units_sold", "volume"],
     "price": ["price", "unit_price", "cost", "rate"],
-    "category": ["category", "department", "segment", "type", "class"],
+    "category": ["category", "department", "segment", "type", "class", "cuisine", "ingredient", "spice_level"],
     "region": ["region", "country", "city", "state", "location", "territory", "area"],
     "customer": ["customer", "customer_id", "buyer", "client", "user"],
     "order_id": ["order_id", "order", "invoice", "transaction", "receipt"],
@@ -63,12 +63,12 @@ ROLE_HINTS: dict[str, set[str]] = {
     "region": {"business_region", "region", "state", "city", "province", "territory", "area", "location"},
     "industry": {"business_naics_description", "industry", "sector", "naics", "naics_description"},
     "business_id": {"business_id", "company_id", "lead_id"},
-    "product": {"product", "product_name", "item", "sku", "item_name"},
+    "product": {"product", "product_name", "item", "sku", "item_name", "food", "food_name", "dish", "dish_name", "meal", "menu_item"},
     "sales_amount": {"sales", "revenue", "amount", "total", "total_sales", "sales_amount", "net_sales"},
     "quantity": {"quantity", "qty", "units", "units_sold", "volume"},
     "order_date": {"order_date", "sale_date", "sales_date", "purchase_date"},
     "customer": {"customer", "customer_name", "customer_id", "client", "buyer"},
-    "category": {"category", "department", "segment", "type", "class"},
+    "category": {"category", "department", "segment", "type", "class", "cuisine", "main_ingredient", "ingredient", "spice_level"},
     "transaction_date": {"transaction_date", "txn_date", "expense_date", "income_date", "posted_date"},
 }
 

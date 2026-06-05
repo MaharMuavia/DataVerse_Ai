@@ -155,8 +155,23 @@ async function readError(response: Response): Promise<string> {
   }
 }
 
+async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch (error) {
+    if (error instanceof DataVerseApiError) {
+      throw error;
+    }
+    const detail = error instanceof Error ? error.message : 'Network request failed';
+    throw new DataVerseApiError(
+      `Backend is not reachable at ${API_BASE_URL}. Start the DataVerse backend or check NEXT_PUBLIC_DATAVERSE_API_URL. (${detail})`,
+      0,
+    );
+  }
+}
+
 export async function createSession(title = 'New Chat'): Promise<ChatSessionSummary> {
-  const response = await fetch(`${API_BASE_URL}/api/sessions`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/sessions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title }),
@@ -169,7 +184,7 @@ export async function createSession(title = 'New Chat'): Promise<ChatSessionSumm
 }
 
 export async function listSessions(): Promise<ChatSessionSummary[]> {
-  const response = await fetch(`${API_BASE_URL}/api/sessions`);
+  const response = await apiFetch(`${API_BASE_URL}/api/sessions`);
   if (!response.ok) {
     throw new DataVerseApiError(await readError(response), response.status);
   }
@@ -177,7 +192,7 @@ export async function listSessions(): Promise<ChatSessionSummary[]> {
 }
 
 export async function getSession(sessionId: string): Promise<SessionDetail> {
-  const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}`);
+  const response = await apiFetch(`${API_BASE_URL}/api/sessions/${sessionId}`);
   if (!response.ok) {
     throw new DataVerseApiError(await readError(response), response.status);
   }
@@ -185,7 +200,7 @@ export async function getSession(sessionId: string): Promise<SessionDetail> {
 }
 
 export async function listDatasets(): Promise<RecentDataset[]> {
-  const response = await fetch(`${API_BASE_URL}/api/datasets`);
+  const response = await apiFetch(`${API_BASE_URL}/api/datasets`);
   if (!response.ok) {
     throw new DataVerseApiError(await readError(response), response.status);
   }
@@ -207,7 +222,7 @@ export async function uploadDataset(
     run_xai: String(options.runXai ?? false),
   });
 
-  const response = await fetch(`${API_BASE_URL}/api/sessions/${targetSessionId}/datasets/upload?${params}`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/sessions/${targetSessionId}/datasets/upload?${params}`, {
     method: 'POST',
     body: form,
   });
@@ -219,6 +234,8 @@ export async function uploadDataset(
   const payload = await response.json();
   const dataset = payload.dataset ?? {};
   const columns = payload.columns ?? dataset.columns ?? [];
+  const schemaProfile = dataset.schema_profile as ({ dataset_type?: string; semantic_map?: { dataset_type?: string }; preview?: Array<Record<string, unknown>> } | undefined);
+  const semanticMap = dataset.semantic_map as ({ dataset_type?: string } | undefined);
   return {
     session_id: payload.session_id,
     success: true,
@@ -230,16 +247,16 @@ export async function uploadDataset(
     dataset_cols: payload.column_count,
     column_names: columns.map((column: { name?: string } | string) => typeof column === 'string' ? column : column.name || ''),
     column_dtypes: columns.map((column: { dtype?: string } | string) => typeof column === 'string' ? '' : column.dtype || ''),
-    dataset_profile: dataset.schema_profile ?? {},
-    dataset_preview: dataset.schema_profile?.preview,
-    dataset_type: dataset.schema_profile?.dataset_type,
+    dataset_profile: schemaProfile ?? {},
+    dataset_preview: schemaProfile?.preview,
+    dataset_type: semanticMap?.dataset_type ?? schemaProfile?.semantic_map?.dataset_type ?? schemaProfile?.dataset_type,
     created_at: dataset.created_at,
     analysis: payload.analysis ?? null,
   };
 }
 
 export async function askDataset(datasetId: string, prompt: string): Promise<AskResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/datasets/${datasetId}/ask`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/datasets/${datasetId}/ask`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt }),
@@ -253,7 +270,7 @@ export async function askDataset(datasetId: string, prompt: string): Promise<Ask
 }
 
 export async function getProfile(datasetId: string): Promise<ProfileResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/datasets/${datasetId}/profile`);
+  const response = await apiFetch(`${API_BASE_URL}/api/datasets/${datasetId}/profile`);
 
   if (!response.ok) {
     throw new DataVerseApiError(await readError(response), response.status);
@@ -263,7 +280,7 @@ export async function getProfile(datasetId: string): Promise<ProfileResponse> {
 }
 
 export async function deleteDataset(datasetId: string): Promise<{ dataset_id: string; deleted: boolean }> {
-  const response = await fetch(`${API_BASE_URL}/api/datasets/${datasetId}`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/datasets/${datasetId}`, {
     method: 'DELETE',
   });
 
@@ -279,7 +296,7 @@ export async function analyzeSession(
   datasetId: string,
   userPrompt = 'Analyze this dataset',
 ): Promise<AnalysisResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}/analyze`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/sessions/${sessionId}/analyze`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ dataset_id: datasetId, user_prompt: userPrompt, run_xai: true, generate_report: true }),
@@ -295,7 +312,7 @@ export async function streamQuery(
   query: string,
   onEvent?: (event: ChatEvent) => void,
 ): Promise<ChatEvent[]> {
-  const response = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}/messages`, {
+  const response = await apiFetch(`${API_BASE_URL}/api/sessions/${sessionId}/messages`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ content: query }),

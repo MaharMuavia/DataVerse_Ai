@@ -13,6 +13,7 @@ from ..core.config import settings
 from .analysis_pipeline import AnalysisPipeline
 from .data_quality import json_safe
 from .report_generator import ReportGenerator
+from .semantic_mapper import SemanticMapper
 from .session_store import (
     load_dataframe_for_dataset,
     persist_dataframe_for_dataset,
@@ -125,11 +126,17 @@ class SessionService:
             await self.supabase.upload_bytes(settings.SUPABASE_DATASET_BUCKET, storage_path, content)
             persisted_path = storage_path
         else:
-            persisted_path = self.local.copy_into(local_path, f"datasets/{storage_path}")
+            persisted_path = self.local.write_bytes(f"datasets/{storage_path}", content)
         profile = AnalysisPipeline().profile_dataset(df)
+        semantic_map = SemanticMapper().map_dataframe(df, filename=safe_name)
+        profile["semantic_map"] = semantic_map
+        semantic_type = semantic_map.get("dataset_type")
+        if semantic_type and profile.get("dataset_type") in {None, "generic", "generic_tabular"}:
+            profile["dataset_type"] = semantic_type
         profile["preview"] = json_safe(df.head(25).to_dict(orient="records"))
         columns = [{"name": str(col), "dtype": str(df[col].dtype)} for col in df.columns]
-        semantic_map = profile.get("semantic_map") if isinstance(profile.get("semantic_map"), dict) else {}
+        persist_semantic_map_for_dataset(session_id, dataset_id, semantic_map)
+        persist_semantic_map_for_session(session_id, semantic_map)
         now = utc_now_iso()
         dataset = {
             "id": dataset_id,

@@ -1,4 +1,4 @@
-"""DataVerse AI — FastAPI Application Entry Point (Clean MVP)."""
+"""DataVerse AI - FastAPI Application Entry Point (Clean MVP)."""
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -33,7 +33,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ── Middleware ──────────────────────────────────────────────
+# Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -49,7 +49,7 @@ def liveness_check() -> dict[str, str]:
     return {"status": "ok"}
 
 
-# ── Global Exception Handler ─────────────────────────────────
+# Global Exception Handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Global catch-all exception handler with environment-aware error shapes."""
@@ -96,7 +96,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         )
 
 
-# ── Include Routers ──────────────────────────────────────────
+# Include Routers
 # /api/health, /api/upload, /api/session/{session_id} (GET/DELETE)
 app.include_router(core_router, prefix="/api", tags=["core"])
 

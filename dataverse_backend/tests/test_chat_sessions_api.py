@@ -81,6 +81,30 @@ def test_session_upload_profiles_only_by_default(tmp_path, monkeypatch):
     assert runs.json() == []
 
 
+def test_food_dataset_upload_persists_semantic_type(tmp_path, monkeypatch):
+    monkeypatch.setattr(session_service.supabase, "url", "")
+    monkeypatch.setattr(session_service.supabase, "service_role_key", None)
+    monkeypatch.setattr(session_service, "local", LocalPersistence(tmp_path / "chat_store"))
+
+    client = TestClient(app)
+    session_id = client.post("/api/sessions", json={"title": "New Chat"}).json()["session_id"]
+    food_csv = (
+        "food_name,food_description,main_ingredient,cuisine,spice_level,calories,category\n"
+        "Pizza,cheesy flatbread,Cheese,Italian,Low,570,Fast Food\n"
+        "Burger,grilled sandwich,Beef,American,Medium,650,Fast Food\n"
+    ).encode("utf-8")
+
+    uploaded = client.post(
+        f"/api/sessions/{session_id}/datasets/upload",
+        files={"file": ("food_dataset_extended.csv", food_csv, "text/csv")},
+    )
+
+    assert uploaded.status_code == 200
+    dataset = uploaded.json()["dataset"]
+    assert dataset["semantic_map"]["dataset_type"] == "food_dataset"
+    assert dataset["schema_profile"]["dataset_type"] == "food_dataset"
+
+
 def test_multiple_datasets_in_same_session_do_not_overwrite(tmp_path, monkeypatch):
     monkeypatch.setattr(session_service.supabase, "url", "")
     monkeypatch.setattr(session_service.supabase, "service_role_key", None)

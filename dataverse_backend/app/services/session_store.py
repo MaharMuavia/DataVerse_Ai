@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import importlib
+import sys
 import uuid
 from pathlib import Path
 from typing import Any
@@ -35,11 +37,14 @@ def persist_dataframe_for_session(session_id: str, df: pd.DataFrame, filename: s
     # Save dataframe as pickle for deterministic round-trips
     dataset_path = session_dir / "dataset.pkl"
     df.to_pickle(dataset_path)
+    csv_path = session_dir / "dataset.csv"
+    df.to_csv(csv_path, index=False)
 
     metadata = {
         "session_id": session_id,
         "filename": filename or "uploaded_dataset.csv",
         "dataset_path": str(dataset_path),
+        "csv_path": str(csv_path),
         "row_count": int(len(df)),
         "column_count": int(len(df.columns)),
         "columns": [str(col) for col in df.columns],
@@ -62,12 +67,15 @@ def persist_dataframe_for_dataset(session_id: str, dataset_id: str, df: pd.DataF
 
     dataset_path = dataset_dir / "dataset.pkl"
     df.to_pickle(dataset_path)
+    csv_path = dataset_dir / "dataset.csv"
+    df.to_csv(csv_path, index=False)
 
     metadata = {
         "session_id": session_id,
         "dataset_id": dataset_id,
         "filename": filename or "uploaded_dataset.csv",
         "dataset_path": str(dataset_path),
+        "csv_path": str(csv_path),
         "row_count": int(len(df)),
         "column_count": int(len(df.columns)),
         "columns": [str(col) for col in df.columns],
@@ -160,11 +168,23 @@ def load_dataframe_for_session(session_id: str) -> tuple[pd.DataFrame | None, di
     pkl_path = session_dir / "dataset.pkl"
     if pkl_path.exists():
         try:
-            df = pd.read_pickle(pkl_path)
+            df = _read_pickle_compat(pkl_path)
             _in_memory_dfs[session_id] = df.copy()
             return df, metadata
         except Exception:
             pass
+
+    csv_candidates = [session_dir / "dataset.csv"]
+    if metadata.get("csv_path"):
+        csv_candidates.insert(0, Path(str(metadata["csv_path"])))
+    for csv_path in csv_candidates:
+        if csv_path.exists():
+            try:
+                df = pd.read_csv(csv_path)
+                _in_memory_dfs[session_id] = df.copy()
+                return df, metadata
+            except Exception:
+                pass
 
     # Fallback to searching csv/excel in the session directory if pickle fails
     for file in session_dir.glob("*"):
@@ -206,13 +226,52 @@ def load_dataframe_for_dataset(session_id: str, dataset_id: str) -> tuple[pd.Dat
     pkl_path = dataset_dir / "dataset.pkl"
     if pkl_path.exists():
         try:
-            df = pd.read_pickle(pkl_path)
+            df = _read_pickle_compat(pkl_path)
             _in_memory_dataset_dfs[dataset_id] = df.copy()
             return df, metadata
         except Exception:
             pass
 
+    csv_candidates = [dataset_dir / "dataset.csv"]
+    if metadata.get("csv_path"):
+        csv_candidates.insert(0, Path(str(metadata["csv_path"])))
+    for csv_path in csv_candidates:
+        if csv_path.exists():
+            try:
+                df = pd.read_csv(csv_path)
+                _in_memory_dataset_dfs[dataset_id] = df.copy()
+                return df, metadata
+            except Exception:
+                pass
+
     return None, metadata
+
+
+def _read_pickle_compat(path: Path) -> pd.DataFrame:
+    """Read pandas pickles across numpy 1.x/2.x module path changes."""
+    try:
+        return pd.read_pickle(path)
+    except ModuleNotFoundError as exc:
+        if not str(exc).startswith("No module named 'numpy._core"):
+            raise
+        _install_numpy_pickle_aliases()
+        return pd.read_pickle(path)
+
+
+def _install_numpy_pickle_aliases() -> None:
+    try:
+        numpy_core = importlib.import_module("numpy.core")
+        sys.modules.setdefault("numpy._core", numpy_core)
+        for module_name in ("numeric", "multiarray", "umath", "fromnumeric", "shape_base"):
+            try:
+                sys.modules.setdefault(
+                    f"numpy._core.{module_name}",
+                    importlib.import_module(f"numpy.core.{module_name}"),
+                )
+            except ModuleNotFoundError:
+                continue
+    except ModuleNotFoundError:
+        return
 
 
 def delete_session(session_id: str) -> bool:

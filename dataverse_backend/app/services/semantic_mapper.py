@@ -52,6 +52,7 @@ DATASET_TYPES = {
     "pos_transactions",
     "transaction_ledger",
     "inventory",
+    "food_dataset",
     "customer_sales",
     "generic_tabular",
 }
@@ -219,9 +220,9 @@ class SemanticMapper:
             return "transaction_date"
         if any(token in name for token in ["transaction_type", "txn_type", "payment_type"]) or name in {"type", "category"} and _has_transaction_values(series):
             return "transaction_type"
-        if any(token in name for token in ["product", "item", "sku", "article"]):
+        if any(token in name for token in ["product", "item", "sku", "article", "food", "dish", "meal", "menu_item"]):
             return "product"
-        if any(token in name for token in ["category", "department", "segment"]):
+        if any(token in name for token in ["category", "department", "segment", "cuisine", "ingredient", "spice_level"]):
             return "product_category"
         if any(token in name for token in ["customer", "client", "buyer"]):
             return "customer"
@@ -281,6 +282,9 @@ class SemanticMapper:
             return "retail_sales", 0.82
         if "product" in role_values and any("stock" in normalize_name(column) or "inventory" in normalize_name(column) for column in df.columns):
             return "inventory", 0.82
+        food_schema = " ".join(normalize_name(column) for column in df.columns)
+        if any(token in food_schema for token in ["food", "dish", "meal", "menu", "ingredient", "cuisine", "spice", "calorie"]):
+            return "food_dataset", 0.82
         if "customer" in role_values and ("sales_revenue" in role_values or "net_sales" in role_values):
             return "customer_sales", 0.78
         return "generic_tabular", 0.35

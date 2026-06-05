@@ -144,3 +144,24 @@ def test_generic_dataset_does_not_hallucinate_sales_metrics():
     assert query_plan["intent"] == "revenue_trend"
     assert query_answer["tables"][0]["rows"] == []
     assert any("No revenue metric" in item or "Revenue metric unavailable" in item for item in metrics["data_limitations"])
+
+
+def test_food_dataset_is_not_labeled_generic():
+    df = pd.DataFrame(
+        {
+            "food_name": ["Pizza", "Burger", "Biryani"],
+            "food_description": ["cheesy flatbread", "grilled sandwich", "rice dish"],
+            "main_ingredient": ["Cheese", "Beef", "Rice"],
+            "cuisine": ["Italian", "American", "Pakistani"],
+            "spice_level": ["Low", "Medium", "High"],
+            "calories": [570, 650, 720],
+            "category": ["Fast Food", "Fast Food", "Rice"],
+        }
+    )
+
+    semantic_map = SemanticMapper().map_dataframe(df, filename="food_dataset_extended.csv")
+    profile = AnalysisPipeline().profile_dataset(df)
+
+    assert semantic_map["dataset_type"] == "food_dataset"
+    assert profile["dataset_type"] == "food_dataset"
+    assert profile["column_roles"]["food_name"] == "product"

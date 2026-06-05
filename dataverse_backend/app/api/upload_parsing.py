@@ -26,7 +26,7 @@ def _detect_csv_dialect(csv_text: str) -> csv.Dialect:
 
 
 def _read_repaired_csv(csv_text: str, dialect: csv.Dialect) -> pd.DataFrame:
-    rows = list(csv.reader(io.StringIO(csv_text), dialect))
+    rows = list(csv.reader(io.StringIO(csv_text, newline=""), dialect))
     rows = [row for row in rows if any(cell.strip() for cell in row)]
     if not rows:
         raise ValueError("Uploaded CSV does not contain any rows")
@@ -54,7 +54,7 @@ def _read_repaired_csv(csv_text: str, dialect: csv.Dialect) -> pd.DataFrame:
 def _rows_from_csv(csv_text: str, dialect: csv.Dialect) -> list[list[str]]:
     return [
         [cell.strip() for cell in row]
-        for row in csv.reader(io.StringIO(csv_text), dialect)
+        for row in csv.reader(io.StringIO(csv_text, newline=""), dialect)
         if any(cell.strip() for cell in row)
     ]
 
@@ -153,7 +153,10 @@ def parse_uploaded_dataframe(filename: str, contents: bytes) -> pd.DataFrame:
     if filename_lower.endswith(".csv"):
         csv_text = _decode_csv(contents)
         dialect = _detect_csv_dialect(csv_text)
-        sectioned_df = _parse_sectioned_report_csv(csv_text, dialect)
+        try:
+            sectioned_df = _parse_sectioned_report_csv(csv_text, dialect)
+        except csv.Error:
+            sectioned_df = None
         if sectioned_df is not None:
             return _ensure_non_empty_dataframe(sectioned_df)
         try:

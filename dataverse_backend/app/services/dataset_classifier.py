@@ -6,7 +6,16 @@ from typing import Any
 import pandas as pd
 
 
-DATASET_TYPES = {"sales", "business_leads", "customer", "finance", "ai_khata_transaction_report", "business_transaction_dataset", "generic"}
+DATASET_TYPES = {
+    "sales",
+    "business_leads",
+    "customer",
+    "finance",
+    "food_dataset",
+    "ai_khata_transaction_report",
+    "business_transaction_dataset",
+    "generic",
+}
 
 
 def _roles_from_profile(df: pd.DataFrame, profile: dict[str, Any] | None = None) -> dict[str, str]:
@@ -39,6 +48,7 @@ def classify_dataset(
                 "business_leads": 0.0,
                 "customer": 0.0,
                 "finance": 0.0,
+                "food_dataset": 0.0,
                 "ai_khata_transaction_report": 0.96 if ai_khata_type == "ai_khata_transaction_report" else 0.0,
                 "business_transaction_dataset": 0.96 if ai_khata_type == "business_transaction_dataset" else 0.0,
                 "generic": 0.0,
@@ -52,6 +62,7 @@ def classify_dataset(
         "business_leads": 0.0,
         "customer": 0.0,
         "finance": 0.0,
+        "food_dataset": 0.0,
         "generic": 0.05,
     }
     signals: list[str] = []
@@ -102,6 +113,16 @@ def classify_dataset(
         add("finance", 0.28, "finance_terms")
     if "sales_amount" in role_set and "transaction_date" in role_set and "product" not in role_set:
         add("finance", 0.08, "amount_with_transaction_date")
+
+    food_names = " ".join(str(column).lower() for column in df.columns)
+    food_terms = {"food", "dish", "meal", "menu", "recipe", "ingredient", "cuisine", "spice", "calorie"}
+    matched_food_terms = [term for term in food_terms if term in food_names]
+    if matched_food_terms:
+        add("food_dataset", 0.18 + min(0.3, 0.06 * len(matched_food_terms)), "food_schema_terms")
+    if "product" in role_set and {"category", "generic_text"} & role_set and any(term in filename_norm for term in ["food", "menu", "recipe"]):
+        add("food_dataset", 0.18, "filename_food_dataset")
+    if any(term in filename_norm for term in ["food", "menu", "recipe", "dish"]):
+        add("food_dataset", 0.12, "filename_food_terms")
 
     if len(df.columns) <= 1:
         scores["generic"] += 0.5

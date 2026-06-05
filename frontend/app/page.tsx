@@ -56,6 +56,8 @@ const datasetFromRecent = (item: RecentDataset): DatasetSummary => {
   const columns = Array.isArray(item.columns)
     ? item.columns as Array<{ name?: string; dtype?: string } | string>
     : [];
+  const schemaProfile = item.schema_profile as ({ dataset_type?: string; semantic_map?: { dataset_type?: string } } | undefined);
+  const semanticMap = item.semantic_map as ({ dataset_type?: string } | undefined);
   return {
     session_id: item.session_id,
     success: true,
@@ -68,7 +70,7 @@ const datasetFromRecent = (item: RecentDataset): DatasetSummary => {
     column_names: columns.map((column) => typeof column === 'string' ? column : column.name || ''),
     column_dtypes: columns.map((column) => typeof column === 'string' ? '' : column.dtype || ''),
     dataset_profile: item.schema_profile as DatasetSummary['dataset_profile'],
-    dataset_type: (item.schema_profile as { dataset_type?: string } | undefined)?.dataset_type,
+    dataset_type: semanticMap?.dataset_type ?? schemaProfile?.semantic_map?.dataset_type ?? schemaProfile?.dataset_type,
     created_at: item.created_at,
   };
 };
