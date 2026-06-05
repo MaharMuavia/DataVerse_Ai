@@ -44,18 +44,24 @@ def test_session_upload_analysis_report_local_fallback(tmp_path, monkeypatch):
     )
     assert analysis.status_code == 200
     body = analysis.json()
-    assert [agent["name"] for agent in body["agents"]] == ["AnalysisAgent", "XAIReportAgent"]
+    assert [agent["name"] for agent in body["agents"]] == ["DatasetAgent", "AnalystAgent"]
     assert body["title"] != "New Chat"
     assert body["report"]["pdf_url"]
     assert body["report"]["html_url"]
+    html_report = client.get(f"/api/reports/{body['report']['report_id']}/download?format=html")
+    pdf_report = client.get(f"/api/reports/{body['report']['report_id']}/download?format=pdf")
+    assert html_report.status_code == 200
+    assert "<svg" in html_report.text
+    assert pdf_report.status_code == 200
+    assert len(pdf_report.content) > 1000
 
     runs = client.get(f"/api/sessions/{session_id}/agent-runs")
     assert runs.status_code == 200
-    assert [run["agent_name"] for run in runs.json()] == ["AnalysisAgent", "XAIReportAgent"]
+    assert [run["agent_name"] for run in runs.json()] == ["DatasetAgent", "AnalystAgent"]
     assert all(run["output"].get("steps") for run in runs.json())
 
 
-def test_session_upload_auto_analyzes_by_default(tmp_path, monkeypatch):
+def test_session_upload_profiles_only_by_default(tmp_path, monkeypatch):
     monkeypatch.setattr(session_service.supabase, "url", "")
     monkeypatch.setattr(session_service.supabase, "service_role_key", None)
     monkeypatch.setattr(session_service, "local", LocalPersistence(tmp_path / "chat_store"))
@@ -69,12 +75,10 @@ def test_session_upload_auto_analyzes_by_default(tmp_path, monkeypatch):
 
     assert uploaded.status_code == 200
     body = uploaded.json()
-    assert body["analysis"]["dataset_id"] == body["dataset_id"]
-    assert [agent["name"] for agent in body["analysis"]["agents"]] == ["AnalysisAgent", "XAIReportAgent"]
-    assert all(agent["steps"] for agent in body["analysis"]["agents"])
+    assert body["analysis"] is None
 
     runs = client.get(f"/api/sessions/{session_id}/agent-runs")
-    assert [run["agent_name"] for run in runs.json()] == ["AnalysisAgent", "XAIReportAgent"]
+    assert runs.json() == []
 
 
 def test_multiple_datasets_in_same_session_do_not_overwrite(tmp_path, monkeypatch):

@@ -11,6 +11,7 @@ export type ChartPayload = {
   data: Array<Record<string, unknown>>;
   x_key: string;
   y_key?: string;
+  series_key?: string;
 };
 
 export type TablePayload = {
@@ -202,8 +203,8 @@ export async function uploadDataset(
 
   const params = new URLSearchParams({
     auto_analyze: String(options.autoAnalyze ?? false),
-    generate_report: String(options.generateReport ?? true),
-    run_xai: String(options.runXai ?? true),
+    generate_report: String(options.generateReport ?? false),
+    run_xai: String(options.runXai ?? false),
   });
 
   const response = await fetch(`${API_BASE_URL}/api/sessions/${targetSessionId}/datasets/upload?${params}`, {
@@ -314,6 +315,16 @@ export async function streamQuery(
         ...steps,
       ];
     }),
+    ...(result.charts ?? []).map((chart) => ({
+      step: 'chart',
+      message: `Chart ready: ${chart.title}`,
+      chart,
+    })),
+    ...(result.tables ?? []).map((table) => ({
+      step: 'table',
+      message: `Table ready: ${table.title}`,
+      table,
+    })),
     { step: 'narration', message: result.answer, recommendations: result.recommendations },
   ];
   events.forEach((event) => onEvent?.(event));

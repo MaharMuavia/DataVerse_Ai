@@ -198,13 +198,28 @@ class SessionService:
             raise ValueError("Dataset file is not available locally for analysis")
 
         await self.add_message(session_id, "user", user_prompt, payload={"dataset_id": dataset_id})
-        analysis_steps = self._analysis_steps()
-        analysis_run = await self._start_agent(
+        dataset_steps = self._dataset_steps()
+        dataset_run = await self._start_agent(
             session_id,
             dataset_id,
-            "AnalysisAgent",
+            "DatasetAgent",
+            {"dataset_id": dataset_id},
+            steps=dataset_steps,
+        )
+        await self._complete_agent(dataset_run["id"], {
+            "summary": f"Loaded {dataset.get('filename')} with {dataset.get('row_count')} rows and {dataset.get('column_count')} columns.",
+            "dataset_profile": dataset.get("schema_profile"),
+            "steps": dataset_steps,
+        })
+
+        analysis_steps = self._analysis_steps()
+        report_steps = self._report_steps(run_xai=run_xai, generate_report=generate_report)
+        analyst_run = await self._start_agent(
+            session_id,
+            dataset_id,
+            "AnalystAgent",
             {"prompt": user_prompt},
-            steps=analysis_steps,
+            steps=analysis_steps + report_steps,
         )
         facts = await AnalysisPipeline().run_full_analysis_async(
             df,
@@ -212,33 +227,19 @@ class SessionService:
             run_xai=run_xai,
             session_id=session_id,
             filename=metadata.get("filename") or dataset.get("filename"),
-            use_llm=True,
-            provider="openai",
+            use_llm=False,
+            provider="deterministic",
         )
-        await self._complete_agent(analysis_run["id"], {
+        await self._complete_agent(analyst_run["id"], {
             "summary": facts.get("executive_summary"),
             "dataset_profile": facts.get("dataset_profile"),
             "business_metrics": facts.get("business_metrics"),
+            "product_analysis": facts.get("product_analysis"),
             "charts": facts.get("charts"),
             "warnings": facts.get("warnings"),
-            "steps": analysis_steps,
+            "steps": analysis_steps + report_steps,
         })
-
-        xai_steps = self._xai_report_steps(facts.get("prediction"), run_xai=run_xai, generate_report=generate_report)
-        xai_run = await self._start_agent(
-            session_id,
-            dataset_id,
-            "XAIReportAgent",
-            {"analysis_run_id": analysis_run["id"]},
-            steps=xai_steps,
-        )
         xai_output = facts.get("xai") if run_xai else {"status": "skipped", "plain_english_explanation": "XAI was skipped for this request."}
-        await self._complete_agent(xai_run["id"], {
-            "summary": xai_output.get("plain_english_explanation") if isinstance(xai_output, dict) else "XAI completed",
-            "xai": xai_output,
-            "recommendations": facts.get("recommendations"),
-            "steps": xai_steps,
-        })
 
         title = await TitleGenerator().generate(
             filename=dataset.get("filename"),
@@ -259,10 +260,11 @@ class SessionService:
         answer = facts.get("executive_summary") or "Analysis complete."
         assistant_payload = {
             "agents": self._agent_summary(
-                analysis_run,
-                xai_run,
+                dataset_run,
+                analyst_run,
+                dataset_steps=dataset_steps,
                 analysis_steps=analysis_steps,
-                xai_steps=xai_steps,
+                report_steps=report_steps,
                 facts=facts,
                 xai_output=xai_output if isinstance(xai_output, dict) else {},
             ),
@@ -365,31 +367,39 @@ class SessionService:
 
     def _agent_summary(
         self,
-        analysis_run: dict[str, Any],
-        xai_run: dict[str, Any],
+        dataset_run: dict[str, Any],
+        analyst_run: dict[str, Any],
         *,
+        dataset_steps: list[dict[str, Any]],
         analysis_steps: list[dict[str, Any]],
-        xai_steps: list[dict[str, Any]],
+        report_steps: list[dict[str, Any]],
         facts: dict[str, Any],
         xai_output: dict[str, Any],
     ) -> list[dict[str, Any]]:
         return [
             {
-                "name": "AnalysisAgent",
+                "name": "DatasetAgent",
                 "status": "completed",
-                "summary": facts.get("executive_summary") or "Profiled dataset, mapped semantics, computed EDA, trends, metrics, and chart-ready facts.",
-                "steps": analysis_steps,
+                "summary": "Loaded the attached dataset, profile, and semantic context for this session.",
+                "steps": dataset_steps,
             },
             {
-                "name": "XAIReportAgent",
+                "name": "AnalystAgent",
                 "status": "completed",
-                "summary": xai_output.get("plain_english_explanation") or "Interpreted analysis results, explainability output, limitations, and recommendations.",
-                "steps": xai_steps,
+                "summary": facts.get("executive_summary") or xai_output.get("plain_english_explanation") or "Computed analysis, charts, tables, explainability, recommendations, and report output.",
+                "steps": analysis_steps + report_steps,
             },
         ]
 
     def _completed_step(self, name: str) -> dict[str, Any]:
         return {"name": name, "status": "completed", "timestamp": utc_now_iso()}
+
+    def _dataset_steps(self) -> list[dict[str, Any]]:
+        return [
+            self._completed_step("Loading persisted dataset"),
+            self._completed_step("Validating active dataset"),
+            self._completed_step("Reading profile and semantic map"),
+        ]
 
     def _analysis_steps(self) -> list[dict[str, Any]]:
         return [
@@ -401,22 +411,17 @@ class SessionService:
             self._completed_step("Prediction readiness"),
         ]
 
-    def _xai_report_steps(
+    def _report_steps(
         self,
-        prediction: dict[str, Any] | None,
         *,
         run_xai: bool,
         generate_report: bool,
     ) -> list[dict[str, Any]]:
-        prediction_status = (prediction or {}).get("status")
-        explanation_step = "Explaining why prediction and XAI were skipped"
-        if run_xai and prediction_status == "complete":
-            explanation_step = "Running SHAP or fallback explanation"
+        explanation_step = "Running XAI where model output is available" if run_xai else "Skipping XAI for this request"
         return [
-            self._completed_step("Checking model availability"),
             self._completed_step(explanation_step),
             self._completed_step("Generating recommendations"),
-            self._completed_step("Generating report with Gemini" if generate_report else "Skipping report generation"),
+            self._completed_step("Generating professional report" if generate_report else "Skipping report generation"),
         ]
 
     async def _insert(self, table: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -450,7 +455,15 @@ class SessionService:
 
 def normalize_charts(charts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
-    for chart in charts[:6]:
+    priority = {"bar": 0, "line": 1, "donut": 2, "pie": 2, "histogram": 5}
+    ordered = sorted(
+        charts,
+        key=lambda chart: (
+            priority.get(str(chart.get("type", "")).lower(), 4),
+            0 if any(token in str(chart.get("title", "")).lower() for token in ["product", "revenue", "category", "growth", "profit"]) else 1,
+        ),
+    )
+    for chart in ordered[:10]:
         data = chart.get("data") or []
         x_key = chart.get("x_key") or chart.get("x") or "label"
         y_key = chart.get("y_key") or chart.get("y")
@@ -461,6 +474,7 @@ def normalize_charts(charts: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "data": data,
                 "x_key": x_key,
                 "y_key": y_key,
+                "series_key": chart.get("series_key"),
             })
     return normalized
 
@@ -478,7 +492,11 @@ def build_tables(facts: dict[str, Any]) -> list[dict[str, Any]]:
     for key in ("total_revenue", "total_quantity", "total_profit", "gross_margin"):
         if metrics.get(key) is not None:
             rows.append({"metric": key.replace("_", " ").title(), "value": metrics[key]})
-    return [{"title": "Analysis Summary", "columns": ["metric", "value"], "rows": rows}]
+    tables = [{"title": "Analysis Summary", "columns": ["metric", "value"], "rows": rows}]
+    for table in (facts.get("product_analysis") or {}).get("tables", []):
+        if isinstance(table, dict) and table.get("rows"):
+            tables.append(table)
+    return tables[:8]
 
 
 session_service = SessionService()

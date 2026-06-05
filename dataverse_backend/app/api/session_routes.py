@@ -50,9 +50,9 @@ async def delete_session(session_id: str) -> dict[str, Any]:
 async def upload_dataset_to_session(
     session_id: str,
     file: UploadFile = File(...),
-    auto_analyze: bool = Query(default=True),
-    generate_report: bool = Query(default=True),
-    run_xai: bool = Query(default=True),
+    auto_analyze: bool = Query(default=False),
+    generate_report: bool = Query(default=False),
+    run_xai: bool = Query(default=False),
 ) -> dict[str, Any]:
     contents = await file.read()
     filename = file.filename or "dataset.csv"

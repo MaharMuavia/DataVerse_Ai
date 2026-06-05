@@ -13,3 +13,4 @@ joblib
 httpx
 requests
 pytest
+reportlab

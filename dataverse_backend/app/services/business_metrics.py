@@ -98,6 +98,128 @@ def calculate_business_metrics(df: pd.DataFrame, semantic_map: dict[str, Any]) -
     }
 
 
+def compute_product_trends(
+    df: pd.DataFrame,
+    semantic_map: dict[str, Any],
+    business_metrics: dict[str, Any],
+) -> dict[str, Any]:
+    """Compute grounded product/category trend payloads for sales-style prompts."""
+    metrics = semantic_map.get("metrics") or {}
+    roles = semantic_map.get("column_roles") or {}
+    warnings: list[str] = []
+
+    revenue_series = _metric_series(df, metrics.get("revenue"), roles, warnings, metric_name="revenue")
+    quantity_series = _metric_series(df, metrics.get("quantity"), roles, warnings, metric_name="quantity")
+    profit_series = _metric_series(df, metrics.get("profit"), roles, warnings, metric_name="profit")
+
+    product_col = _metric_col(metrics.get("product")) or _fallback_column(
+        df,
+        roles,
+        role_names=("product",),
+        name_tokens=("product", "item", "sku", "name", "subcategory", "sub_category"),
+    )
+    category_col = _metric_col(metrics.get("category")) or _fallback_column(
+        df,
+        roles,
+        role_names=("product_category",),
+        name_tokens=("category", "subcategory", "department", "segment"),
+    )
+    date_col = _metric_col(metrics.get("date")) or _fallback_column(
+        df,
+        roles,
+        role_names=("order_date", "invoice_date", "transaction_date"),
+        name_tokens=("date", "month", "order_datetime", "datetime"),
+    )
+    region_col = _metric_col(metrics.get("region")) or _fallback_column(
+        df,
+        roles,
+        role_names=("region", "city", "store", "country"),
+        name_tokens=("region", "city", "store", "branch", "country"),
+    )
+
+    charts: list[dict[str, Any]] = []
+    tables: list[dict[str, Any]] = []
+    insights: list[str] = []
+    recommendations: list[str] = []
+    next_questions: list[str] = []
+
+    top_revenue = _rank_dimension(df, product_col, revenue_series, "product", "revenue", 10)
+    top_quantity = _rank_dimension(df, product_col, quantity_series, "product", "quantity", 10)
+    top_profit = _rank_dimension(df, product_col, profit_series, "product", "profit", 10)
+    category_performance = _rank_dimension(df, category_col, revenue_series, "category", "revenue", 10)
+    region_performance = _rank_dimension(df, region_col, revenue_series, "region", "revenue", 10)
+
+    if top_revenue:
+        charts.append({"type": "bar", "title": "Top 10 Products by Revenue", "x": "product", "y": "revenue", "data": top_revenue})
+        tables.append({"title": "Top Products by Revenue", "columns": ["product", "revenue"], "rows": top_revenue})
+        leader = top_revenue[0]
+        insights.append(f"{leader['product']} is the top revenue product with {leader['revenue']}.")
+        recommendations.append(f"Protect availability and merchandising for {leader['product']}, the current revenue leader.")
+
+    if top_quantity:
+        charts.append({"type": "bar", "title": "Top 10 Products by Quantity", "x": "product", "y": "quantity", "data": top_quantity})
+        tables.append({"title": "Top Products by Quantity", "columns": ["product", "quantity"], "rows": top_quantity})
+
+    trend_rows, growth_rows = _product_monthly_trends(df, date_col, product_col, revenue_series, top_revenue)
+    if trend_rows:
+        charts.append({
+            "type": "line",
+            "title": "Monthly Revenue Trend for Top Products",
+            "x": "period",
+            "y": "revenue",
+            "series_key": "product",
+            "data": trend_rows,
+        })
+    if growth_rows:
+        charts.append({"type": "bar", "title": "Fastest Growing Products", "x": "product", "y": "absolute_growth", "data": growth_rows[:10]})
+        tables.append({"title": "Product Growth", "columns": ["product", "first_period_revenue", "last_period_revenue", "absolute_growth", "pct_growth"], "rows": growth_rows[:10]})
+
+    share_source = category_performance or top_revenue
+    if share_source:
+        x_key = "category" if category_performance else "product"
+        charts.append({"type": "donut", "title": "Revenue Share", "x": x_key, "y": "revenue", "data": share_source[:8]})
+    if category_performance:
+        charts.append({"type": "bar", "title": "Category Performance", "x": "category", "y": "revenue", "data": category_performance})
+        tables.append({"title": "Category Performance", "columns": ["category", "revenue"], "rows": category_performance})
+    if region_performance:
+        charts.append({"type": "bar", "title": "Region/Store Performance", "x": "region", "y": "revenue", "data": region_performance})
+        tables.append({"title": "Region/Store Performance", "columns": ["region", "revenue"], "rows": region_performance})
+    if top_profit:
+        charts.append({"type": "bar", "title": "Profit by Product", "x": "product", "y": "profit", "data": top_profit})
+        tables.append({"title": "Profit by Product", "columns": ["product", "profit"], "rows": top_profit})
+
+    if not top_revenue and business_metrics.get("total_revenue") is None:
+        warnings.append("Product trend analysis needs a revenue column or quantity/unit price pair.")
+    if product_col and not date_col:
+        warnings.append("Date column missing; product trend over time was skipped.")
+
+    if top_revenue:
+        next_questions.extend([
+            "Which top products are losing momentum?",
+            "Which categories should receive more inventory or campaign budget?",
+            "Compare product profitability against revenue share.",
+        ])
+
+    return {
+        "product_column": product_col,
+        "date_column": date_col,
+        "revenue_available": revenue_series is not None,
+        "top_products_by_revenue": top_revenue,
+        "top_products_by_quantity": top_quantity,
+        "product_revenue_trend": trend_rows,
+        "fastest_growing_products": growth_rows,
+        "category_performance": category_performance,
+        "region_performance": region_performance,
+        "profit_by_product": top_profit,
+        "charts": charts,
+        "tables": tables,
+        "insights": insights,
+        "recommendations": recommendations,
+        "next_questions": next_questions,
+        "warnings": list(dict.fromkeys(warnings)),
+    }
+
+
 def answer_business_query(query_plan: dict[str, Any], business_metrics: dict[str, Any]) -> dict[str, Any]:
     intent = query_plan.get("intent", "dataset_overview")
     metric = query_plan.get("metric", "revenue")
@@ -231,6 +353,93 @@ def _group_by_dimension(df: pd.DataFrame, column: str, values: pd.Series, value_
     grouped = work.groupby("_dimension")["_value"].sum().sort_values(ascending=False).head(20)
     key = "product" if value_name == "revenue" and "product" in column.lower() else "category" if "category" in column.lower() else "customer" if "customer" in column.lower() else column
     return [{key: str(name), value_name: _money(value)} for name, value in grouped.items() if float(value) != 0]
+
+
+def _rank_dimension(
+    df: pd.DataFrame,
+    column: str | None,
+    values: pd.Series | None,
+    label_name: str,
+    value_name: str,
+    limit: int,
+) -> list[dict[str, Any]]:
+    if not column or column not in df.columns or values is None:
+        return []
+    work = pd.DataFrame({"_label": df[column].fillna("Unknown").astype(str), "_value": values})
+    grouped = work.groupby("_label")["_value"].sum().sort_values(ascending=False).head(limit)
+    return [{label_name: str(name), value_name: _money(value)} for name, value in grouped.items() if float(value) != 0]
+
+
+def _product_monthly_trends(
+    df: pd.DataFrame,
+    date_col: str | None,
+    product_col: str | None,
+    revenue_series: pd.Series | None,
+    top_revenue: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    if not date_col or not product_col or date_col not in df.columns or product_col not in df.columns or revenue_series is None:
+        return [], []
+    top_products = [str(row["product"]) for row in top_revenue[:5]]
+    if not top_products:
+        return [], []
+    work = pd.DataFrame(
+        {
+            "_date": pd.to_datetime(df[date_col], errors="coerce"),
+            "product": df[product_col].fillna("Unknown").astype(str),
+            "revenue": revenue_series,
+        }
+    ).dropna(subset=["_date"])
+    work = work[work["product"].isin(top_products)]
+    if work.empty:
+        return [], []
+    work["period"] = work["_date"].dt.to_period("M").astype(str)
+    grouped = work.groupby(["period", "product"], as_index=False)["revenue"].sum().sort_values(["period", "product"])
+    trend_rows = [
+        {"period": str(row["period"]), "product": str(row["product"]), "revenue": _money(row["revenue"])}
+        for row in grouped.to_dict(orient="records")
+        if float(row["revenue"]) != 0
+    ]
+
+    growth_rows: list[dict[str, Any]] = []
+    periods = sorted(grouped["period"].unique().tolist())
+    if len(periods) >= 2:
+        pivot = grouped.pivot_table(index="product", columns="period", values="revenue", aggfunc="sum", fill_value=0)
+        first_period = periods[0]
+        last_period = periods[-1]
+        for product, row in pivot.iterrows():
+            first = float(row.get(first_period, 0))
+            last = float(row.get(last_period, 0))
+            absolute = last - first
+            pct = None if first == 0 else absolute / abs(first) * 100
+            growth_rows.append(
+                {
+                    "product": str(product),
+                    "first_period_revenue": _money(first),
+                    "last_period_revenue": _money(last),
+                    "absolute_growth": _money(absolute),
+                    "pct_growth": None if pct is None else round(float(pct), 2),
+                }
+            )
+        growth_rows.sort(key=lambda item: float(item["absolute_growth"] or 0), reverse=True)
+    return trend_rows, growth_rows
+
+
+def _fallback_column(
+    df: pd.DataFrame,
+    roles: dict[str, str],
+    *,
+    role_names: tuple[str, ...],
+    name_tokens: tuple[str, ...],
+) -> str | None:
+    for role_name in role_names:
+        found = _first_role(roles, role_name)
+        if found:
+            return found
+    for column in df.columns:
+        normalized = str(column).lower().replace(" ", "_")
+        if any(token in normalized for token in name_tokens):
+            return str(column)
+    return None
 
 
 def _expense_summary(df: pd.DataFrame, metrics: dict[str, Any], roles: dict[str, str]) -> list[dict[str, Any]]:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import pandas as pd
 
 from app.services.business_metrics import answer_business_query, calculate_business_metrics
+from app.services.analysis_pipeline import AnalysisPipeline
 from app.services.query_planner import QueryPlanner
 from app.services.semantic_mapper import SemanticMapper
 
@@ -60,6 +61,30 @@ def test_standard_mart_sales_uses_sales_column_for_revenue():
     assert metrics["total_revenue"] == 1000
     assert metrics["revenue_by_month"] == [{"period": "2026-01", "revenue": 700}, {"period": "2026-02", "revenue": 300}]
     assert {"product": "Rice", "revenue": 500} in metrics["top_products"]
+
+
+def test_trending_product_report_uses_computed_product_charts():
+    df = pd.DataFrame(
+        {
+            "Date": ["2026-01-01", "2026-01-15", "2026-02-01", "2026-02-12", "2026-03-01"],
+            "Product": ["Rice", "Oil", "Rice", "Oil", "Rice"],
+            "Category": ["Grocery", "Grocery", "Grocery", "Grocery", "Grocery"],
+            "Quantity": [2, 1, 3, 4, 5],
+            "Sales": [200, 500, 300, 800, 500],
+            "Profit": [30, 75, 45, 120, 80],
+        }
+    )
+
+    report = AnalysisPipeline().run_full_analysis(df, query="make a report of trending products in the form charts", run_predictions=False, run_xai=False)
+
+    titles = [chart["title"] for chart in report["charts"]]
+    assert "Top 10 Products by Revenue" in titles
+    assert "Top 10 Products by Quantity" in titles
+    assert "Monthly Revenue Trend for Top Products" in titles
+    assert "Revenue Share" in titles
+    assert report["product_analysis"]["top_products_by_revenue"][0] == {"product": "Oil", "revenue": 1300}
+    assert report["business_summary"] == {}
+    assert "sales Rs 0" not in report["executive_summary"]
 
 
 def test_invoice_dataset_derives_revenue_from_quantity_times_price():

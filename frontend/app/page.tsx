@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Menu, History, Database, FolderOpen, Settings, Bot, Table, Layers, 
@@ -99,7 +99,7 @@ const isNumericType = (dtype?: string) => {
 };
 
 const formatCell = (value: unknown) => {
-  if (value === null || value === undefined || value === '') return 'ÔÇö';
+  if (value === null || value === undefined || value === '') return '-';
   if (typeof value === 'number') return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
   return String(value);
 };
@@ -151,12 +151,14 @@ const FloatingInput = ({
   onSubmit,
   onFileUpload,
   disabled = false,
+  uploadDisabled = false,
   placeholder = 'Message DataVerse AI...',
   className = "absolute bottom-24 md:bottom-8 left-0 w-full px-4 md:px-8 z-30 pointer-events-none",
 }: {
   onSubmit: (t: string) => void;
   onFileUpload?: (file: File) => void;
   disabled?: boolean;
+  uploadDisabled?: boolean;
   placeholder?: string;
   className?: string;
 }) => {
@@ -172,12 +174,12 @@ const FloatingInput = ({
       <div className="max-w-[800px] mx-auto relative pointer-events-auto group">
         <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-blue-500/10 blur-2xl rounded-full translate-y-2 group-focus-within:from-violet-500/20 group-focus-within:to-blue-500/20 transition-all duration-500"></div>
         <div className="relative bg-[#2d3449]/90 backdrop-blur-2xl border border-[#494454]/60 rounded-[2rem] p-2 xl:p-2.5 shadow-2xl flex items-end gap-2 focus-within:border-violet-400/60 focus-within:bg-[#2d3449] transition-all">
-          <label className={`p-3 text-[#cbc3d7] hover:text-white transition-colors hover:bg-white/5 rounded-full shrink-0 ${onFileUpload ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`} title="Upload CSV or Excel">
+          <label className={`p-3 text-[#cbc3d7] hover:text-white transition-colors hover:bg-white/5 rounded-full shrink-0 ${onFileUpload && !uploadDisabled ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`} title="Upload CSV or Excel">
             <input
               type="file"
               accept=".csv,.xlsx,.xls"
               className="hidden"
-              disabled={!onFileUpload || disabled}
+              disabled={!onFileUpload || uploadDisabled}
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (file && onFileUpload) {
@@ -253,17 +255,101 @@ const ResultTable = ({ table }: { table: TablePayload }) => (
 
 const SimpleChart = ({ chart }: { chart: ChartPayload }) => {
   const yKey = chart.y_key;
-  const values = yKey ? chart.data.map((row) => Number(row[yKey]) || 0) : [];
+  const data = Array.isArray(chart.data) ? chart.data.filter(Boolean) : [];
+  const values = yKey ? data.map((row) => Number(row[yKey]) || 0) : [];
   const max = Math.max(...values.map((value) => Math.abs(value)), 1);
+  const colors = ['#8b5cf6', '#3b82f6', '#0ea5e9', '#10b981', '#f59e0b', '#f43f5e', '#14b8a6', '#a855f7'];
+  const labelOf = (row: Record<string, unknown>) => formatCell(row[chart.x_key]);
+
+  if (!data.length || !chart.x_key || !yKey) {
+    return (
+      <GlassCard className="p-4 border-amber-500/20">
+        <div className="flex items-center gap-3">
+          <AlertTriangle size={16} className="text-amber-300" />
+          <span className="text-sm text-[#cbc3d7]">{chart.title || 'Chart'} has no displayable data.</span>
+        </div>
+      </GlassCard>
+    );
+  }
+
+  if ((chart.type === 'pie' || chart.type === 'donut') && yKey) {
+    const total = values.reduce((sum, value) => sum + Math.max(0, value), 0) || 1;
+    const radius = 58;
+    const circumference = 2 * Math.PI * radius;
+    const rawSegments = data.slice(0, 8).map((row, index) => {
+      const value = Math.max(0, Number(row[yKey]) || 0);
+      const dash = (value / total) * circumference;
+      return { row, index, dash };
+    });
+    const segments = rawSegments.reduce<{ offset: number; items: Array<{ index: number; dash: number; offset: number }> }>(
+      (acc, segment) => ({
+        offset: acc.offset - segment.dash,
+        items: [...acc.items, { index: segment.index, dash: segment.dash, offset: acc.offset }],
+      }),
+      { offset: 25, items: [] },
+    ).items;
+    return (
+      <GlassCard className="p-4 border-violet-500/20">
+        <div className="flex items-center gap-3 mb-4">
+          <BarChart2 size={16} className="text-violet-300" />
+          <span className="text-sm font-medium text-white">{chart.title}</span>
+        </div>
+        <div className="grid md:grid-cols-[180px_1fr] gap-4 items-center">
+          <svg viewBox="0 0 160 160" className="w-44 h-44 mx-auto">
+            <circle cx="80" cy="80" r={radius} fill="none" stroke="#222a3d" strokeWidth="24" />
+            {segments.map(({ index, dash, offset }) => (
+                <circle
+                  key={index}
+                  cx="80"
+                  cy="80"
+                  r={radius}
+                  fill="none"
+                  stroke={colors[index % colors.length]}
+                  strokeWidth="24"
+                  strokeDasharray={`${dash} ${circumference - dash}`}
+                  strokeDashoffset={offset}
+                  transform="rotate(-90 80 80)"
+                  className="transition-all"
+                />
+            ))}
+            {chart.type === 'donut' && <circle cx="80" cy="80" r="36" fill="#171f33" />}
+          </svg>
+          <div className="space-y-2">
+            {data.slice(0, 8).map((row, index) => {
+              const value = Number(row[yKey]) || 0;
+              return (
+                <div key={index} className="flex items-center gap-2 text-xs">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: colors[index % colors.length] }} />
+                  <span className="text-[#cbc3d7] truncate" title={labelOf(row)}>{labelOf(row)}</span>
+                  <span className="ml-auto font-mono text-white">{((Math.max(0, value) / total) * 100).toFixed(1)}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </GlassCard>
+    );
+  }
 
   if (chart.type === 'line' && yKey) {
     const width = 520;
     const height = 180;
-    const points = values.map((value, index) => {
-      const x = values.length === 1 ? width / 2 : (index / (values.length - 1)) * width;
-      const y = height - ((value / max) * (height - 20) + 10);
-      return `${x},${Math.max(8, Math.min(height - 8, y))}`;
-    }).join(' ');
+    const min = Math.min(...values, 0);
+    const span = Math.max(max - min, 1);
+    const groups = new Map<string, Record<string, unknown>[]>();
+    data.forEach((row) => {
+      const key = chart.series_key ? formatCell(row[chart.series_key]) : 'Trend';
+      groups.set(key, [...(groups.get(key) ?? []), row]);
+    });
+    const lines = [...groups.entries()].slice(0, 6).map(([series, rows], seriesIndex) => {
+      const points = rows.map((row, index) => {
+        const value = Number(row[yKey]) || 0;
+        const x = rows.length === 1 ? width / 2 : (index / (rows.length - 1)) * width;
+        const y = height - (((value - min) / span) * (height - 24) + 12);
+        return `${x},${Math.max(8, Math.min(height - 8, y))}`;
+      }).join(' ');
+      return { series, points, color: colors[seriesIndex % colors.length] };
+    });
 
     return (
       <GlassCard className="p-4 border-blue-500/20">
@@ -272,14 +358,22 @@ const SimpleChart = ({ chart }: { chart: ChartPayload }) => {
           <span className="text-sm font-medium text-white">{chart.title}</span>
         </div>
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-48 overflow-visible">
-          <polyline fill="none" stroke="#60a5fa" strokeWidth="3" points={points} />
-          {values.map((value, index) => {
-            const [x, y] = points.split(' ')[index].split(',').map(Number);
-            return <circle key={index} cx={x} cy={y} r="4" fill="#a78bfa" />;
-          })}
+          {lines.map((line) => (
+            <polyline key={line.series} fill="none" stroke={line.color} strokeWidth="3" points={line.points} />
+          ))}
         </svg>
+        {chart.series_key ? (
+          <div className="flex flex-wrap gap-3 mb-3 text-[10px] text-[#cbc3d7]">
+            {lines.map((line) => (
+              <span key={line.series} className="inline-flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: line.color }} />
+                {line.series}
+              </span>
+            ))}
+          </div>
+        ) : null}
         <div className="flex justify-between gap-3 text-[10px] text-[#cbc3d7]">
-          {chart.data.slice(0, 6).map((row, index) => <span key={index} className="truncate">{formatCell(row[chart.x_key])}</span>)}
+          {data.slice(0, 6).map((row, index) => <span key={index} className="truncate" title={labelOf(row)}>{labelOf(row)}</span>)}
         </div>
       </GlassCard>
     );
@@ -293,14 +387,14 @@ const SimpleChart = ({ chart }: { chart: ChartPayload }) => {
           <span className="text-sm font-medium text-white">{chart.title}</span>
         </div>
         <div className="space-y-3">
-          {chart.data.slice(0, 10).map((row, index) => {
+          {data.slice(0, 10).map((row, index) => {
             const raw = Number(row[yKey]) || 0;
             const width = `${Math.max(4, Math.min(100, Math.abs(raw) / max * 100))}%`;
             return (
               <div key={index} className="grid grid-cols-[minmax(96px,180px)_1fr_72px] items-center gap-3">
-                <span className="text-xs text-[#cbc3d7] truncate">{formatCell(row[chart.x_key])}</span>
+                <span className="text-xs text-[#cbc3d7] truncate" title={labelOf(row)}>{labelOf(row)}</span>
                 <div className="h-2.5 rounded-full bg-[#222a3d] overflow-hidden">
-                  <div className={`h-full rounded-full ${raw < 0 ? 'bg-rose-400' : 'bg-blue-400'}`} style={{ width }} />
+                  <div className="h-full rounded-full" style={{ width, background: raw < 0 ? '#f43f5e' : `linear-gradient(90deg, ${colors[index % colors.length]}, #60a5fa)` }} />
                 </div>
                 <span className="text-xs font-mono text-white text-right">{formatCell(raw)}</span>
               </div>
@@ -332,7 +426,7 @@ const LandingView = ({ onNavigate }: { onNavigate: (v: ViewState) => void }) => 
   ];
 
   return (
-    <div className="h-screen bg-slate-950 text-white font-sans selection:bg-violet-500/30 overflow-x-hidden overflow-y-auto scroll-smooth">
+    <div className="h-screen bg-slate-950 text-white font-sans selection:bg-violet-500/30 overflow-x-hidden overflow-y-auto scroll-smooth custom-scrollbar">
       {/* Navbar */}
       <nav className="fixed top-0 w-full z-50 border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -897,12 +991,15 @@ const HomeView = ({
   uploadStatus,
   onUpload,
   onSubmit,
+  onRunFullAnalysis,
 }: {
   dataset: DatasetSummary | null;
   uploadStatus: string | null;
   onUpload: (file: File) => void;
   onSubmit: (query: string) => void;
+  onRunFullAnalysis: () => void;
 }) => {
+  const isUploading = uploadStatus?.toLowerCase().includes('upload') || uploadStatus?.toLowerCase().includes('parsing') || uploadStatus?.toLowerCase().includes('profiling');
   return (
     <div className="flex-1 w-full h-full flex flex-col relative overflow-hidden items-center justify-center">
       {/* Background elements */}
@@ -937,9 +1034,18 @@ const HomeView = ({
               </div>
             </div>
             {dataset && (
-              <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded text-xs text-emerald-300 flex items-center gap-2 font-medium self-start md:self-auto">
-                <CheckCircle2 size={14} /> Ready
-              </span>
+              <div className="flex flex-col sm:flex-row gap-2 self-start md:self-auto">
+                <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded text-xs text-emerald-300 flex items-center gap-2 font-medium">
+                  <CheckCircle2 size={14} /> Ready
+                </span>
+                <button
+                  type="button"
+                  onClick={onRunFullAnalysis}
+                  className="px-3 py-1 bg-violet-500/10 border border-violet-500/30 rounded text-xs text-violet-200 hover:bg-violet-500/20 transition-colors"
+                >
+                  Generate full analysis/report
+                </button>
+              </div>
             )}
           </div>
         </GlassCard>
@@ -948,7 +1054,7 @@ const HomeView = ({
       <FloatingInput
         onSubmit={onSubmit}
         onFileUpload={onUpload}
-        disabled={uploadStatus?.toLowerCase().includes('uploading') ?? false}
+        uploadDisabled={Boolean(isUploading)}
         placeholder={dataset ? 'Ask about your uploaded dataset...' : 'Attach a dataset, then ask a question...'}
       />
     </div>
@@ -962,12 +1068,14 @@ const ChatView = ({
   isQuerying,
   onUpload,
   onSubmit,
+  onRunFullAnalysis,
 }: {
   dataset: DatasetSummary | null;
   messages: ChatMessage[];
   isQuerying: boolean;
   onUpload: (file: File) => void;
   onSubmit: (query: string) => void;
+  onRunFullAnalysis: () => void;
 }) => {
   const [showPanel, setShowPanel] = useState(true);
   const latestAssistant = [...messages].reverse().find((message) => message.role === 'assistant');
@@ -975,7 +1083,7 @@ const ChatView = ({
 
   return (
     <div className="flex-1 w-full h-full flex flex-col relative overflow-hidden">
-      <div className="flex-1 overflow-y-auto w-full px-4 md:px-8 scroll-smooth">
+      <div className="flex-1 overflow-y-auto w-full px-4 md:px-8 scroll-smooth custom-scrollbar">
         <div className="max-w-[800px] mx-auto pt-24 flex flex-col pb-48 space-y-8">
           {!dataset && (
             <GlassCard className="p-5 border-amber-500/20">
@@ -996,10 +1104,20 @@ const ChatView = ({
                   <Table size={18} className="text-violet-400 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-white truncate">{dataset.dataset_filename}</p>
-                    <p className="text-xs text-[#cbc3d7]">{formatNumber(dataset.dataset_rows)} rows, {formatNumber(dataset.dataset_cols)} columns ├óÔé¼┬ó {datasetTypeLabel(dataset)}</p>
+                    <p className="text-xs text-[#cbc3d7]">{formatNumber(dataset.dataset_rows)} rows, {formatNumber(dataset.dataset_cols)} columns - {datasetTypeLabel(dataset)}</p>
                   </div>
                 </div>
-                <span className="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded">Connected</span>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <span className="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded">Connected</span>
+                  <button
+                    type="button"
+                    onClick={onRunFullAnalysis}
+                    disabled={isQuerying}
+                    className="text-xs text-violet-200 bg-violet-500/10 border border-violet-500/30 px-2.5 py-1 rounded hover:bg-violet-500/20 disabled:opacity-50 transition-colors"
+                  >
+                    Generate report
+                  </button>
+                </div>
               </div>
             </GlassCard>
           )}
@@ -1178,7 +1296,7 @@ const DataHubView = ({
   const suggestedQuestions = datasetSuggestions(dataset);
 
   return (
-    <div className="flex-1 w-full mx-auto px-4 md:px-8 pb-32 pt-24 overflow-y-auto overflow-x-hidden">
+    <div className="flex-1 w-full mx-auto px-4 md:px-8 pb-32 pt-24 overflow-y-auto overflow-x-hidden custom-scrollbar">
       <div className="max-w-[1000px] mx-auto space-y-8">
         
         {/* Header Block */}
@@ -1461,6 +1579,14 @@ export default function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isQuerying, setIsQuerying] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const activeRequestRef = useRef(0);
+
+  const nextRequestToken = () => {
+    activeRequestRef.current += 1;
+    return activeRequestRef.current;
+  };
+
+  const isStaleRequest = (token: number) => token !== activeRequestRef.current;
 
   const refreshSidebar = async () => {
     try {
@@ -1490,22 +1616,28 @@ export default function App() {
   }, []);
 
   const handleNewChat = async () => {
+    const token = nextRequestToken();
     setDataset(null);
     setMessages([]);
     setUploadStatus(null);
     setIsQuerying(false);
+    setCurrentSessionId(null);
     setCurrentView('home');
     try {
       const session = await createSession();
+      if (isStaleRequest(token)) return;
       setCurrentSessionId(session.id);
       await refreshSidebar();
     } catch {
+      if (isStaleRequest(token)) return;
       setCurrentSessionId(null);
     }
   };
 
   const loadSession = async (sessionId: string) => {
+    const token = nextRequestToken();
     const detail = await getSession(sessionId);
+    if (isStaleRequest(token)) return;
     setCurrentSessionId(detail.id);
     const active = detail.datasets.find((item) => item.id === detail.active_dataset_id) ?? detail.datasets[0];
     setDataset(active ? datasetFromRecent(active) : null);
@@ -1529,14 +1661,18 @@ export default function App() {
   };
 
   const handleUpload = async (file: File) => {
-    setUploadStatus(`Uploading ${file.name}...`);
+    const token = nextRequestToken();
+    setUploadStatus(`Uploading file: ${file.name}...`);
     try {
       const sessionId = currentSessionId || (await createSession()).id;
+      if (isStaleRequest(token)) return;
       setCurrentSessionId(sessionId);
-      const uploaded = await uploadDataset(file, sessionId, { autoAnalyze: true, generateReport: true, runXai: true });
+      setUploadStatus(`Parsing dataset and profiling columns: ${file.name}...`);
+      const uploaded = await uploadDataset(file, sessionId, { autoAnalyze: false, generateReport: false, runXai: false });
+      if (isStaleRequest(token)) return;
       const nextDataset = { ...uploaded, originalFileSize: file.size };
       setDataset(nextDataset);
-      setUploadStatus(uploaded.analysis ? `${file.name} uploaded and analyzed.` : `${file.name} uploaded successfully.`);
+      setUploadStatus(`Ready for analysis: ${file.name}`);
       const systemMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'system',
@@ -1567,6 +1703,7 @@ export default function App() {
       ]);
       await refreshSidebar();
     } catch (error) {
+      if (isStaleRequest(token)) return;
       const message = error instanceof Error ? error.message : 'Upload failed';
       setUploadStatus(message);
       setMessages((current) => [
@@ -1581,6 +1718,7 @@ export default function App() {
   };
 
   const runAnalysis = async (sessionId: string, datasetId: string, query: string) => {
+    const token = nextRequestToken();
     const assistantId = crypto.randomUUID();
     setCurrentView('chat');
     setIsQuerying(true);
@@ -1590,15 +1728,16 @@ export default function App() {
       {
         id: assistantId,
         role: 'assistant',
-        content: 'AnalysisAgent is profiling the dataset...',
+        content: 'AnalystAgent is profiling the dataset...',
         events: [
-          { step: 'AnalysisAgent', message: 'AnalysisAgent: running - profiling dataset, semantic mapping, EDA, trends, and business metrics' },
+          { step: 'AnalystAgent', message: 'AnalystAgent: running - profiling dataset, semantic mapping, EDA, trends, and business metrics' },
         ],
         isLoading: true,
       },
     ]);
     try {
       const result = await analyzeSession(sessionId, datasetId, query);
+      if (isStaleRequest(token)) return;
       setMessages((current) => current.map((message) => (
         message.id === assistantId
           ? {
@@ -1621,6 +1760,7 @@ export default function App() {
       )));
       await refreshSidebar();
     } catch (error) {
+      if (isStaleRequest(token)) return;
       const message = error instanceof Error ? error.message : 'Analysis failed';
       setMessages((current) => current.map((item) => (
         item.id === assistantId
@@ -1628,7 +1768,7 @@ export default function App() {
           : item
       )));
     } finally {
-      setIsQuerying(false);
+      if (!isStaleRequest(token)) setIsQuerying(false);
     }
   };
 
@@ -1646,6 +1786,8 @@ export default function App() {
       return;
     }
 
+    const token = nextRequestToken();
+    const sessionId = currentSessionId;
     const assistantId = crypto.randomUUID();
     setCurrentView('chat');
     setIsQuerying(true);
@@ -1662,7 +1804,8 @@ export default function App() {
     ]);
 
     try {
-      const events = await streamQuery(currentSessionId, query, (event) => {
+      const events = await streamQuery(sessionId, query, (event) => {
+        if (isStaleRequest(token)) return;
         setMessages((current) => current.map((message) => {
           if (message.id !== assistantId) {
             return message;
@@ -1687,6 +1830,7 @@ export default function App() {
           };
         }));
       });
+      if (isStaleRequest(token)) return;
 
       const narrative = [...events].reverse().find((event) => event.step === 'narration')?.message;
       setMessages((current) => current.map((message) => (
@@ -1694,7 +1838,8 @@ export default function App() {
           ? { ...message, content: narrative || message.content || 'Analysis complete.', isLoading: false }
           : message
       )));
-      const detail = await getSession(currentSessionId);
+      const detail = await getSession(sessionId);
+      if (isStaleRequest(token)) return;
       const lastAssistant = [...detail.messages].reverse().find((item) => item.role === 'assistant');
       if (lastAssistant?.payload?.report) {
         setMessages((current) => current.map((message) => (
@@ -1711,6 +1856,7 @@ export default function App() {
       }
       await refreshSidebar();
     } catch (error) {
+      if (isStaleRequest(token)) return;
       const message = error instanceof Error ? error.message : 'Analysis failed';
       setMessages((current) => current.map((item) => (
         item.id === assistantId
@@ -1718,8 +1864,13 @@ export default function App() {
           : item
       )));
     } finally {
-      setIsQuerying(false);
+      if (!isStaleRequest(token)) setIsQuerying(false);
     }
+  };
+
+  const handleRunFullAnalysis = () => {
+    if (!dataset || !currentSessionId) return;
+    runAnalysis(currentSessionId, dataset.dataset_id, 'Generate a full analysis report with charts, business metrics, recommendations, and limitations.');
   };
 
   // Handle fake auth
@@ -1754,7 +1905,7 @@ export default function App() {
           </div>
         </div>
         
-        <nav className="flex-1 overflow-y-auto space-y-6 px-3 pb-4">
+        <nav className="flex-1 overflow-y-auto space-y-6 px-3 pb-4 sidebar-scrollbar">
           
           <div className="space-y-1">
             <button onClick={handleNewChat} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 ${currentView === 'home' && !dataset ? 'bg-violet-500/15 text-violet-300 font-medium' : 'text-[#cbc3d7] hover:bg-white/5 hover:text-white'}`}>
@@ -1885,8 +2036,8 @@ export default function App() {
             transition={{ duration: 0.2 }}
             className="w-full h-full flex flex-col"
           >
-            {currentView === 'home' && <HomeView dataset={dataset} uploadStatus={uploadStatus} onUpload={handleUpload} onSubmit={handleSubmit} />}
-            {currentView === 'chat' && <ChatView dataset={dataset} messages={messages} isQuerying={isQuerying} onUpload={handleUpload} onSubmit={handleSubmit} />}
+            {currentView === 'home' && <HomeView dataset={dataset} uploadStatus={uploadStatus} onUpload={handleUpload} onSubmit={handleSubmit} onRunFullAnalysis={handleRunFullAnalysis} />}
+            {currentView === 'chat' && <ChatView dataset={dataset} messages={messages} isQuerying={isQuerying} onUpload={handleUpload} onSubmit={handleSubmit} onRunFullAnalysis={handleRunFullAnalysis} />}
             {currentView === 'data' && <DataHubView dataset={dataset} messages={messages} onUpload={handleUpload} onSubmit={handleSubmit} />}
           </motion.div>
         </AnimatePresence>

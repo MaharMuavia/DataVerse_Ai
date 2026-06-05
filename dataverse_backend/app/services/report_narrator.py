@@ -90,7 +90,9 @@ class ReportNarrator:
         business_summary = facts.get("business_summary") or profile.get("business_summary") or {}
         semantic_map = facts.get("semantic_map") or {}
         business_metrics = facts.get("business_metrics") or {}
+        product_analysis = facts.get("product_analysis") or {}
         query_answer = facts.get("query_answer") or {}
+        is_ai_khata = semantic_map.get("dataset_type") in {"ai_khata_transaction_report", "business_transaction_dataset"}
 
         key_insights = [
             f"Dataset contains {profile.get('row_count', 0)} rows and {profile.get('column_count', 0)} columns.",
@@ -99,6 +101,10 @@ class ReportNarrator:
         ]
         if business_metrics.get("total_revenue") is not None:
             key_insights.append(f"Total revenue is {business_metrics.get('total_revenue')}.")
+        if business_metrics.get("total_quantity") is not None:
+            key_insights.append(f"Total quantity is {business_metrics.get('total_quantity')}.")
+        if business_metrics.get("total_profit") is not None:
+            key_insights.append(f"Total profit is {business_metrics.get('total_profit')} with gross margin {business_metrics.get('gross_margin')}.")
         if business_metrics.get("top_products"):
             top_product = business_metrics["top_products"][0]
             key_insights.append(f"Top product: {top_product.get('product') or top_product}.")
@@ -118,7 +124,9 @@ class ReportNarrator:
         for key in ("Total Sales", "Total Expenses", "Udhaar Outstanding", "Net Profit", "Profit Status"):
             if key in report_summary:
                 key_insights.append(f"{key}: {report_summary[key]}.")
-        if business_summary:
+        if product_analysis.get("insights"):
+            key_insights.extend(product_analysis["insights"])
+        if business_summary and is_ai_khata:
             key_insights.append(
                 "Business summary: "
                 f"sales Rs {business_summary.get('total_sales', 0)}, "
@@ -133,8 +141,9 @@ class ReportNarrator:
             "Validate inferred target columns and model drivers with domain expertise.",
             "Render the chart-ready JSON specs to inspect distributions, trends, correlations, and model behavior.",
         ]
-        if business_summary:
+        if business_summary and is_ai_khata:
             recommendations.append("For AI Khata reports, calculate revenue only from SALES rows; keep EXPENSE and UDHAAR separate.")
+        recommendations.extend(product_analysis.get("recommendations") or [])
         if prediction.get("status") == "complete":
             recommendations.append("Compare model test metrics with a business baseline before deployment.")
         else:
@@ -157,7 +166,13 @@ class ReportNarrator:
                 f"Expenses: {business_summary.get('total_expenses', 0)}. "
                 f"Udhaar: {business_summary.get('udhaar_outstanding', 0)}. "
                 f"Net profit: {business_summary.get('net_profit', 0)}."
-                if business_summary else "No parsed business summary available."
+                if business_summary and is_ai_khata
+                else (
+                    f"Revenue: {business_metrics.get('total_revenue')}. "
+                    f"Quantity: {business_metrics.get('total_quantity')}. "
+                    f"Profit: {business_metrics.get('total_profit')}. "
+                    f"Gross margin: {business_metrics.get('gross_margin')}."
+                )
             ),
             "Data Quality": f"Missing cells: {quality.get('missing_cells', 0)}. Duplicate rows: {quality.get('duplicate_rows', 0)}.",
             "Key Insights": " ".join(key_insights),
