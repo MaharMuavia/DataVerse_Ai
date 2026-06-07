@@ -25,8 +25,20 @@ class ReportNarrator:
     async def narrate_async(self, facts: dict[str, Any], *, use_llm: bool = True, provider: str | None = None) -> dict[str, Any]:
         fallback = self._deterministic(facts)
         if not use_llm or provider == "deterministic":
+            fallback["warnings"] = list(dict.fromkeys([
+                *fallback.get("warnings", []),
+                "LLM narration is disabled; deterministic narration was used.",
+            ])) if not use_llm else fallback.get("warnings", [])
             return fallback
         llm_provider = LLMProvider(provider=provider) if provider else self.llm_provider
+        is_configured = getattr(llm_provider, "is_configured", None)
+        if callable(is_configured) and not is_configured():
+            requested = provider or settings.LLM_PROVIDER or "auto"
+            fallback["warnings"] = list(dict.fromkeys([
+                *fallback.get("warnings", []),
+                f"LLM narration requested with provider '{requested}', but no configured provider key was found; deterministic narration was used.",
+            ]))
+            return fallback
         try:
             text = await asyncio.wait_for(
                 llm_provider.generate(self._prompt(facts)),
@@ -35,8 +47,18 @@ class ReportNarrator:
             if text:
                 fallback["executive_summary"] = self._preserve_required_facts(text.strip(), facts, fallback)
                 fallback["narration_provider"] = getattr(llm_provider, "last_provider", "llm")
+            else:
+                fallback["warnings"] = list(dict.fromkeys([
+                    *fallback.get("warnings", []),
+                    "LLM narration returned no text; deterministic narration was used.",
+                    *getattr(llm_provider, "last_errors", []),
+                ]))
         except Exception:
-            pass
+            fallback["warnings"] = list(dict.fromkeys([
+                *fallback.get("warnings", []),
+                "LLM narration failed or timed out; deterministic narration was used.",
+                *getattr(llm_provider, "last_errors", []),
+            ]))
         return fallback
 
     def _preserve_required_facts(self, text: str, facts: dict[str, Any], fallback: dict[str, Any]) -> str:

@@ -306,7 +306,7 @@ export async function uploadDataset(
   form.append('file', file);
 
   const params = new URLSearchParams({
-    auto_analyze: String(options.autoAnalyze ?? true),
+    auto_analyze: String(options.autoAnalyze ?? false),
     generate_report: String(options.generateReport ?? false),
     run_xai: String(options.runXai ?? false),
   });

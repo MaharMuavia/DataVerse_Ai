@@ -1746,40 +1746,32 @@ export default function App() {
       if (isStaleRequest(token)) return;
       setCurrentSessionId(sessionId);
       setUploadStatus(`Parsing dataset and profiling columns: ${file.name}...`);
-      const uploaded = await uploadDataset(file, sessionId, { autoAnalyze: true, generateReport: false, runXai: false });
+      const uploaded = await uploadDataset(file, sessionId, { autoAnalyze: false, generateReport: false, runXai: false });
       if (isStaleRequest(token)) return;
       const nextDataset = { ...uploaded, originalFileSize: file.size };
       setDataset(nextDataset);
-      setUploadStatus(uploaded.analysis ? `Analysis complete: ${file.name}` : `Uploaded to backend: ${file.name}`);
+      setUploadStatus(`Uploaded to backend: ${file.name}. Starting analysis...`);
       const systemMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'system',
         content: `${uploaded.dataset_filename || file.name} is ready: ${formatNumber(uploaded.dataset_rows)} rows, ${formatNumber(uploaded.dataset_cols)} columns, ${datasetTypeLabel(nextDataset)} dataset type.`,
       };
-      const analysisMessage: ChatMessage | null = uploaded.analysis
-        ? {
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: uploaded.analysis.answer || 'Analysis complete.',
-            events: uploaded.analysis.agents.flatMap((agent) => [
-              { step: agent.name, message: `${agent.name}: ${agent.status}${agent.summary ? ` - ${agent.summary}` : ''}` },
-              ...(agent.steps ?? []).map((step) => ({
-                step: agent.name,
-                message: `${agent.name} / ${step.name}: ${step.status}`,
-              })),
-            ]),
-            tables: uploaded.analysis.tables,
-            charts: uploaded.analysis.charts,
-            recommendations: uploaded.analysis.recommendations,
-            report: uploaded.analysis.report,
-          }
-        : null;
-      setMessages((current) => [
-        ...current,
-        systemMessage,
-        ...(analysisMessage ? [analysisMessage] : []),
-      ]);
+      setMessages((current) => [...current, systemMessage]);
       await refreshSidebar();
+      void runAnalysis(
+        sessionId,
+        uploaded.dataset_id,
+        'Generate a full analysis report with charts, business metrics, prediction readiness, XAI, recommendations, and limitations.',
+        {
+          addUserMessage: false,
+          loadingText: 'DatasetAgent finished upload. AnalystAgent is running automatic analysis...',
+          initialEvents: [
+            { step: 'DatasetAgent', message: 'DatasetAgent: upload, parsing, profiling, semantic mapping, and quality checks completed' },
+            { step: 'AnalystAgent', message: 'AnalystAgent: running EDA, business metrics, product trends, prediction readiness, XAI, and report generation' },
+          ],
+          onCompleteStatus: `Analysis complete: ${file.name}`,
+        },
+      );
     } catch (error) {
       if (isStaleRequest(token)) return;
       if (isBackendConnectionError(error)) setBackendStatus('disconnected');
@@ -1796,19 +1788,29 @@ export default function App() {
     }
   };
 
-  const runAnalysis = async (sessionId: string, datasetId: string, query: string) => {
+  const runAnalysis = async (
+    sessionId: string,
+    datasetId: string,
+    query: string,
+    options: {
+      addUserMessage?: boolean;
+      loadingText?: string;
+      initialEvents?: ChatEvent[];
+      onCompleteStatus?: string;
+    } = {},
+  ) => {
     const token = nextRequestToken();
     const assistantId = crypto.randomUUID();
     setCurrentView('chat');
     setIsQuerying(true);
     setMessages((current) => [
       ...current,
-      { id: crypto.randomUUID(), role: 'user', content: query },
+      ...(options.addUserMessage === false ? [] : [{ id: crypto.randomUUID(), role: 'user' as const, content: query }]),
       {
         id: assistantId,
         role: 'assistant',
-        content: 'AnalystAgent is profiling the dataset...',
-        events: [
+        content: options.loadingText || 'AnalystAgent is profiling the dataset...',
+        events: options.initialEvents ?? [
           { step: 'AnalystAgent', message: 'AnalystAgent: running - profiling dataset, semantic mapping, EDA, trends, and business metrics' },
         ],
         isLoading: true,
@@ -1841,6 +1843,9 @@ export default function App() {
             }
           : message
       )));
+      if (options.onCompleteStatus) {
+        setUploadStatus(options.onCompleteStatus);
+      }
       await refreshSidebar();
     } catch (error) {
       if (isStaleRequest(token)) return;

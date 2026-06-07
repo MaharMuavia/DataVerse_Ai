@@ -11,6 +11,7 @@ from typing import Any
 
 from jinja2 import Template
 
+from ..core.config import settings
 from .llm_provider import LLMProvider
 
 
@@ -116,7 +117,8 @@ class ReportGenerator:
     """Build rich deterministic reports, with optional LLM-polished sections."""
 
     def __init__(self, llm_provider: LLMProvider | None = None) -> None:
-        self.llm_provider = llm_provider or LLMProvider(provider="deterministic")
+        provider = settings.LLM_PROVIDER if settings.USE_LLM_NARRATION else "deterministic"
+        self.llm_provider = llm_provider or LLMProvider(provider=provider)
 
     async def generate(self, *, title: str, facts: dict[str, Any], xai_output: dict[str, Any] | None = None) -> dict[str, bytes | str]:
         xai = xai_output or {}
@@ -330,7 +332,7 @@ def _bar_svg(chart: dict[str, Any]) -> str:
     x_key = chart.get("x_key") or chart.get("x")
     y_key = chart.get("y_key") or chart.get("y")
     values = [abs(_num(row.get(y_key))) for row in data if isinstance(row, dict)]
-    max_value = max(values or [1])
+    max_value = _chart_scale(values)
     rows = []
     for idx, row in enumerate(data):
         value = _num(row.get(y_key))
@@ -456,7 +458,7 @@ def _reportlab_chart_drawing(chart: dict[str, Any]) -> Any | None:
         return drawing
     rows = [row for row in data if isinstance(row, dict)][:8]
     values = [abs(_num(row.get(y_key))) for row in rows]
-    max_value = max(values or [1])
+    max_value = _chart_scale(values)
     drawing = Drawing(460, max(90, 24 + len(rows) * 20))
     for index, row in enumerate(rows):
         y = drawing.height - 26 - index * 20
@@ -549,9 +551,14 @@ def _fmt(value: Any) -> str:
 
 def _num(value: Any) -> float:
     try:
-        return float(value)
+        number = float(value)
     except (TypeError, ValueError):
         return 0.0
+    return number if math.isfinite(number) else 0.0
+
+
+def _chart_scale(values: list[float]) -> float:
+    return max([value for value in values if value > 0] or [1.0])
 
 
 def _truncate(value: str, length: int) -> str:

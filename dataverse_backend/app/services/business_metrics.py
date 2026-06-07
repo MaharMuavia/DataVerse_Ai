@@ -150,14 +150,14 @@ def compute_product_trends(
     region_performance = _rank_dimension(df, region_col, revenue_series, "region", "revenue", 10)
 
     if top_revenue:
-        charts.append({"type": "bar", "title": "Top 10 Products by Revenue", "x": "product", "y": "revenue", "data": top_revenue})
+        charts.append({"type": "bar", "title": "Top 10 Products by Revenue", "x_key": "product", "y_key": "revenue", "data": top_revenue})
         tables.append({"title": "Top Products by Revenue", "columns": ["product", "revenue"], "rows": top_revenue})
         leader = top_revenue[0]
         insights.append(f"{leader['product']} is the top revenue product with {leader['revenue']}.")
         recommendations.append(f"Protect availability and merchandising for {leader['product']}, the current revenue leader.")
 
     if top_quantity:
-        charts.append({"type": "bar", "title": "Top 10 Products by Quantity", "x": "product", "y": "quantity", "data": top_quantity})
+        charts.append({"type": "bar", "title": "Top 10 Products by Quantity", "x_key": "product", "y_key": "quantity", "data": top_quantity})
         tables.append({"title": "Top Products by Quantity", "columns": ["product", "quantity"], "rows": top_quantity})
 
     trend_rows, growth_rows = _product_monthly_trends(df, date_col, product_col, revenue_series, top_revenue)
@@ -165,27 +165,27 @@ def compute_product_trends(
         charts.append({
             "type": "line",
             "title": "Monthly Revenue Trend for Top Products",
-            "x": "period",
-            "y": "revenue",
+            "x_key": "period",
+            "y_key": "revenue",
             "series_key": "product",
             "data": trend_rows,
         })
     if growth_rows:
-        charts.append({"type": "bar", "title": "Fastest Growing Products", "x": "product", "y": "absolute_growth", "data": growth_rows[:10]})
+        charts.append({"type": "bar", "title": "Fastest Growing Products", "x_key": "product", "y_key": "absolute_growth", "data": growth_rows[:10]})
         tables.append({"title": "Product Growth", "columns": ["product", "first_period_revenue", "last_period_revenue", "absolute_growth", "pct_growth"], "rows": growth_rows[:10]})
 
     share_source = category_performance or top_revenue
     if share_source:
         x_key = "category" if category_performance else "product"
-        charts.append({"type": "donut", "title": "Revenue Share", "x": x_key, "y": "revenue", "data": share_source[:8]})
+        charts.append({"type": "donut", "title": "Revenue Share", "x_key": x_key, "y_key": "revenue", "data": share_source[:8]})
     if category_performance:
-        charts.append({"type": "bar", "title": "Category Performance", "x": "category", "y": "revenue", "data": category_performance})
+        charts.append({"type": "bar", "title": "Category Performance", "x_key": "category", "y_key": "revenue", "data": category_performance})
         tables.append({"title": "Category Performance", "columns": ["category", "revenue"], "rows": category_performance})
     if region_performance:
-        charts.append({"type": "bar", "title": "Region/Store Performance", "x": "region", "y": "revenue", "data": region_performance})
+        charts.append({"type": "bar", "title": "Region/Store Performance", "x_key": "region", "y_key": "revenue", "data": region_performance})
         tables.append({"title": "Region/Store Performance", "columns": ["region", "revenue"], "rows": region_performance})
     if top_profit:
-        charts.append({"type": "bar", "title": "Profit by Product", "x": "product", "y": "profit", "data": top_profit})
+        charts.append({"type": "bar", "title": "Profit by Product", "x_key": "product", "y_key": "profit", "data": top_profit})
         tables.append({"title": "Profit by Product", "columns": ["product", "profit"], "rows": top_profit})
 
     if not top_revenue and business_metrics.get("total_revenue") is None:

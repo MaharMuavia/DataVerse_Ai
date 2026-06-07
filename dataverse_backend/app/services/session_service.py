@@ -247,8 +247,8 @@ class SessionService:
             run_xai=run_xai,
             session_id=session_id,
             filename=metadata.get("filename") or dataset.get("filename"),
-            use_llm=False,
-            provider="deterministic",
+            use_llm=settings.USE_LLM_NARRATION,
+            provider=settings.LLM_PROVIDER,
         )
         await self._complete_agent(analyst_run["id"], {
             "summary": facts.get("executive_summary"),

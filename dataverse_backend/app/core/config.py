@@ -88,6 +88,7 @@ class Settings(BaseSettings):
     DEEPANALYZE_ALLOW_FALLBACK: bool = Field(default=True, env="DEEPANALYZE_ALLOW_FALLBACK")
 
     MAX_UPLOAD_SIZE_MB: int = Field(default=50, env="MAX_UPLOAD_SIZE_MB")
+    USE_LLM_NARRATION: bool = Field(default=True, env="USE_LLM_NARRATION")
     LLM_PROVIDER: str = Field(default="auto", env="LLM_PROVIDER")
     REPORT_NARRATOR_TIMEOUT_SECONDS: int = Field(default=20, env="REPORT_NARRATOR_TIMEOUT_SECONDS")
     AUTO_TRAIN_TARGET_CONFIDENCE: float = Field(default=0.65, env="AUTO_TRAIN_TARGET_CONFIDENCE")

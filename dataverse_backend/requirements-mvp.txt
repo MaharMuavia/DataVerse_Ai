@@ -13,3 +13,7 @@ joblib
 httpx
 requests
 pytest
+reportlab
+openai
+google-generativeai
+shap

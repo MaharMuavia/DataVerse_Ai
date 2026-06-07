@@ -156,8 +156,8 @@ class AnalysisPipeline:
                 {
                     "type": "line",
                     "title": "Sales revenue by month",
-                    "x": "period",
-                    "y": "sales_revenue",
+                    "x_key": "period",
+                    "y_key": "sales_revenue",
                     "data": sales_revenue_by_month,
                     "filter": "Category == SALES",
                 }
