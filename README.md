@@ -1,4 +1,28 @@
-# DataVerse AI Data Scientist Backend (MVP)
+<h1 align="center">🌌 DataVerse AI</h1>
+
+<p align="center"><b>An AI Data Scientist backend — parse, analyze, predict & explain your data.</b></p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"/>
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
+  <img src="https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white" alt="Pandas"/>
+  <img src="https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white" alt="scikit-learn"/>
+  <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React"/>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/status-MVP-orange?style=flat-square" alt="Status"/>
+  <img src="https://img.shields.io/badge/Deterministic_Analytics-100%25-success?style=flat-square" alt="Deterministic"/>
+  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License"/>
+</p>
+
+<p align="center">
+  <a href="https://www.linkedin.com/in/maharmuavia/"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square&logo=linkedin&logoColor=white" alt="LinkedIn"/></a>
+  <a href="https://muhammadmuavia.me/"><img src="https://img.shields.io/badge/Portfolio-FF5722?style=flat-square&logo=google-chrome&logoColor=white" alt="Portfolio"/></a>
+  <a href="https://inventacore.org"><img src="https://img.shields.io/badge/InventaCore-1A1A2E?style=flat-square&logo=rocket&logoColor=white" alt="InventaCore"/></a>
+</p>
+
+---
 
 DataVerse AI is a clean, production-ready MVP for an AI Data Scientist backend using FastAPI. It parses datasets (CSV/XLSX), validates columns, normalizes headers, computes business metrics deterministically using Pandas/scikit-learn, and produces a professional data report.
 
