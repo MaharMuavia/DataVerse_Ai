@@ -7,7 +7,7 @@ on:
     branches: ["*"]
 
 jobs:
-  backend-syntax:
+  backend:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -21,7 +21,11 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install MVP dependencies
+        run: python -m pip install -r requirements-mvp.txt
+
       - name: Compile Python files
         run: python -m compileall app graph agents config tools tests
 
-
+      - name: Run tests
+        run: python -m pytest -q
