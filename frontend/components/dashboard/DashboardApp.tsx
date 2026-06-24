@@ -42,6 +42,7 @@ import { KpiCard } from './KpiCard';
 import { Composer } from './Composer';
 import { VerificationPanel } from './VerificationPanel';
 import { QualityDoctorPanel } from './QualityDoctorPanel';
+import { ConversationThread } from './ConversationThread';
 import { formatCell, formatNumber } from '@/lib/dashboard-format';
 import type { Kpi, AuditEntry, QualityDiagnosis } from '@/lib/dataverse-api';
 import { buildVerifiedReportHtml } from '@/lib/verified-report';
@@ -640,13 +641,22 @@ const AnalyzeWorkspaceView = ({
 
             </div>
 
+            {/* Conversation history (prior turns) — the latest turn renders richly below */}
+            {messages.filter((m) => m.id !== latestAssistant?.id).length > 0 && (
+              <ConversationThread messages={messages.filter((m) => m.id !== latestAssistant?.id)} />
+            )}
+
             {/* Row 2: KPIs */}
             {kpis.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-xs font-semibold text-[#64748B] uppercase tracking-wider">Key Business KPIs</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {kpis.slice(0, 4).map((kpi, idx) => (
-                    <KpiCard key={idx} kpi={kpi} />
+                    <KpiCard
+                      key={idx}
+                      kpi={kpi}
+                      onDrillDown={(k) => onSubmit(`Explain how "${k.label}" (${formatCell(k.value)}) was calculated and what is driving it.`)}
+                    />
                   ))}
                 </div>
               </div>
