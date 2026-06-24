@@ -14,6 +14,7 @@ import {
   API_BASE_URL,
   BACKEND_START_COMMAND,
   analyzeSession,
+  cleanDataset,
   checkBackendHealth,
   createSession,
   getSession,
@@ -40,8 +41,9 @@ import { GlassCard } from './GlassCard';
 import { KpiCard } from './KpiCard';
 import { Composer } from './Composer';
 import { VerificationPanel } from './VerificationPanel';
+import { QualityDoctorPanel } from './QualityDoctorPanel';
 import { formatCell, formatNumber } from '@/lib/dashboard-format';
-import type { Kpi, AuditEntry } from '@/lib/dataverse-api';
+import type { Kpi, AuditEntry, QualityDiagnosis } from '@/lib/dataverse-api';
 import { buildVerifiedReportHtml } from '@/lib/verified-report';
 import ReactMarkdown from 'react-markdown';
 
@@ -58,6 +60,7 @@ type ChatMessage = {
   narrationProvider?: string;
   kpis?: Kpi[];
   auditTrail?: AuditEntry[];
+  qualityDoctor?: QualityDiagnosis;
   charts?: ChartPayload[];
   tables?: TablePayload[];
   recommendations?: string[];
@@ -427,6 +430,8 @@ const AnalyzeWorkspaceView = ({
   onSelectRecentDataset,
   onRenarrate,
   onCopyAsMarkdown,
+  onApplyFixes,
+  isCleaning,
 }: {
   dataset: DatasetSummary | null;
   uploadStatus: string | null;
@@ -440,6 +445,8 @@ const AnalyzeWorkspaceView = ({
   onSelectRecentDataset: (sessionId: string) => void;
   onRenarrate: (messageId: string, reportId: string) => Promise<void> | void;
   onCopyAsMarkdown: (message: ChatMessage) => void;
+  onApplyFixes: (fixIds: string[]) => void;
+  isCleaning: boolean;
 }) => {
   const assistantMessages = messages.filter((m) => m.role === 'assistant');
   const latestAssistant = assistantMessages.at(-1);
@@ -779,6 +786,15 @@ const AnalyzeWorkspaceView = ({
               </div>
             )}
 
+            {/* Data Quality Doctor: detect issues + one-click deterministic fixes */}
+            {latestAssistant?.qualityDoctor && (
+              <QualityDoctorPanel
+                diagnosis={latestAssistant.qualityDoctor}
+                onApply={onApplyFixes}
+                isApplying={isCleaning}
+              />
+            )}
+
             {/* Verification panel: every number with a downloadable receipt */}
             {latestAssistant?.auditTrail && latestAssistant.auditTrail.length > 0 && (
               <VerificationPanel audit={latestAssistant.auditTrail} />
@@ -949,6 +965,7 @@ export function DashboardApp() {
   const [dataset, setDataset] = useState<DatasetSummary | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isQuerying, setIsQuerying] = useState(false);
+  const [isCleaning, setIsCleaning] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [backendStatus, setBackendStatus] = useState<BackendConnectionStatus>('checking');
   const activeRequestRef = useRef(0);
@@ -1050,6 +1067,7 @@ export function DashboardApp() {
         : undefined,
       kpis: item.payload?.kpis as ChatMessage['kpis'],
       auditTrail: item.payload?.audit_trail as ChatMessage['auditTrail'],
+      qualityDoctor: item.payload?.quality_doctor as ChatMessage['qualityDoctor'],
       charts: item.payload?.charts as ChartPayload[] | undefined,
       tables: item.payload?.tables as TablePayload[] | undefined,
       recommendations: item.payload?.recommendations as string[] | undefined,
@@ -1212,6 +1230,7 @@ export function DashboardApp() {
               ]),
               kpis: result.kpis,
               auditTrail: result.audit_trail,
+              qualityDoctor: result.quality_doctor,
               tables: result.tables,
               charts: result.charts,
               recommendations: result.recommendations,
@@ -1335,6 +1354,7 @@ export function DashboardApp() {
                 report: lastAssistant.payload?.report as ChatMessage['report'],
                 kpis: lastAssistant.payload?.kpis as ChatMessage['kpis'],
                 auditTrail: lastAssistant.payload?.audit_trail as ChatMessage['auditTrail'],
+                qualityDoctor: lastAssistant.payload?.quality_doctor as ChatMessage['qualityDoctor'],
                 charts: lastAssistant.payload?.charts as ChartPayload[] | undefined,
                 tables: lastAssistant.payload?.tables as TablePayload[] | undefined,
                 recommendations: lastAssistant.payload?.recommendations as string[] | undefined,
@@ -1356,6 +1376,55 @@ export function DashboardApp() {
     } finally {
       progressHandle?.close();
       if (!isStaleRequest(token)) setIsQuerying(false);
+    }
+  };
+
+  const handleApplyFixes = async (fixIds: string[]) => {
+    if (!dataset || !currentSessionId || !fixIds.length || isCleaning) return;
+    setIsCleaning(true);
+    const token = nextRequestToken();
+    const sessionId = currentSessionId;
+    const datasetId = dataset.dataset_id;
+    const assistantId = crypto.randomUUID();
+    setCurrentView('analyze');
+    setMessages((current) => [
+      ...current,
+      { id: crypto.randomUUID(), role: 'user', content: `Apply ${fixIds.length} data quality fix${fixIds.length === 1 ? '' : 'es'}` },
+      { id: assistantId, role: 'assistant', content: 'Cleaning the dataset and re-analyzing…', events: [], liveSteps: [], isLoading: true },
+    ]);
+    try {
+      const result = await cleanDataset(sessionId, datasetId, fixIds);
+      if (isStaleRequest(token)) return;
+      const summary = result.cleaning_summary;
+      const content = summary
+        ? `**Dataset cleaned.** Applied ${summary.applied.length} fix(es):\n\n- ${summary.applied.join('\n- ')}\n\nRows ${summary.before.rows} → ${summary.after.rows} · columns ${summary.before.columns} → ${summary.after.columns} · missing cells ${summary.before.missing_cells} → ${summary.after.missing_cells}.\n\n${result.answer || ''}`
+        : (result.answer || 'Dataset cleaned.');
+      setMessages((current) => current.map((message) => (
+        message.id === assistantId
+          ? {
+              ...message,
+              content,
+              kpis: result.kpis,
+              auditTrail: result.audit_trail,
+              qualityDoctor: result.quality_doctor,
+              tables: result.tables,
+              charts: result.charts,
+              recommendations: result.recommendations,
+              xai: result.xai as ChatMessage['xai'],
+              narrationProvider: result.narration_provider,
+              isLoading: false,
+            }
+          : message
+      )));
+      await refreshSidebar();
+    } catch (error) {
+      if (isStaleRequest(token)) return;
+      const message = error instanceof Error ? error.message : 'Cleaning failed';
+      setMessages((current) => current.map((item) => (
+        item.id === assistantId ? { ...item, content: `Cleaning failed: ${message}`, isLoading: false } : item
+      )));
+    } finally {
+      if (!isStaleRequest(token)) setIsCleaning(false);
     }
   };
 
@@ -1560,6 +1629,8 @@ export function DashboardApp() {
                 onSelectRecentDataset={loadSession}
                 onRenarrate={handleRenarrate}
                 onCopyAsMarkdown={handleCopyAsMarkdown}
+                onApplyFixes={handleApplyFixes}
+                isCleaning={isCleaning}
               />
             )}
             {currentView === 'report' && (

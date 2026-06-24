@@ -111,6 +111,36 @@ export type AuditEntry = KpiProvenance & {
   category: 'kpi' | 'eda' | 'correlation' | 'trend' | 'model' | string;
 };
 
+export type QualityIssue = {
+  id: string;
+  category: 'duplicates' | 'missing_values' | 'constant_column' | 'type_mismatch' | string;
+  column: string | null;
+  severity: 'high' | 'medium' | 'low' | string;
+  issue: string;
+  fix: string;
+  fix_type: string;
+  impact?: { before?: string; after?: string };
+};
+
+export type QualityStats = {
+  rows: number;
+  columns: number;
+  missing_cells: number;
+  duplicate_rows: number;
+  total_issues?: number;
+};
+
+export type QualityDiagnosis = {
+  issues: QualityIssue[];
+  summary: QualityStats;
+};
+
+export type CleaningSummary = {
+  applied: string[];
+  before: QualityStats;
+  after: QualityStats;
+};
+
 export type AnalysisResponse = {
   session_id: string;
   dataset_id: string;
@@ -119,6 +149,9 @@ export type AnalysisResponse = {
   answer: string;
   kpis?: Kpi[];
   audit_trail?: AuditEntry[];
+  quality_doctor?: QualityDiagnosis;
+  cleaning_summary?: CleaningSummary;
+  cleaned_dataset_id?: string;
   tables?: TablePayload[];
   charts?: ChartPayload[];
   warnings?: string[];
@@ -517,6 +550,23 @@ export async function analyzeSession(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ dataset_id: datasetId, user_prompt: userPrompt, run_xai: true, generate_report: true }),
+  });
+  if (!response.ok) {
+    throw new DataVerseApiError(await readError(response), response.status);
+  }
+  return response.json() as Promise<AnalysisResponse>;
+}
+
+export async function cleanDataset(
+  sessionId: string,
+  datasetId: string,
+  fixIds: string[],
+): Promise<AnalysisResponse> {
+  await ensureBackendAvailable();
+  const response = await apiFetch(buildApiUrl(`/sessions/${sessionId}/datasets/${datasetId}/clean`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fix_ids: fixIds }),
   });
   if (!response.ok) {
     throw new DataVerseApiError(await readError(response), response.status);
