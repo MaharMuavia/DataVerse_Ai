@@ -116,6 +116,10 @@ class DatasetCleanRequest(BaseModel):
     fix_ids: list[str] = []
 
 
+class DatasetVerifyRequest(BaseModel):
+    certificate: dict = {}
+
+
 class DatasetProfileResponse(BaseModel):
     session_id: str
     profile: Dict[str, Any]

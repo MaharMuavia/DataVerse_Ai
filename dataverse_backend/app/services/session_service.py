@@ -14,6 +14,7 @@ from ..core.config import settings
 from .analysis_pipeline import AnalysisPipeline
 from .data_quality import json_safe, normalize_chart_specs
 from .quality_doctor import diagnose as diagnose_quality, apply_fixes as apply_quality_fixes
+from .certificate import verify_certificate
 from .progress_bus import progress_bus
 from .report_generator import ReportGenerator
 from .report_narrator import ReportNarrator
@@ -343,6 +344,7 @@ class SessionService:
             ),
             "kpis": facts.get("kpis") or [],
             "audit_trail": facts.get("audit_trail") or [],
+            "certificate": facts.get("certificate") or {},
             "quality_doctor": quality_diagnosis,
             "charts": response_charts,
             "tables": response_tables,
@@ -361,6 +363,7 @@ class SessionService:
             "answer": answer,
             "kpis": assistant_payload["kpis"],
             "audit_trail": assistant_payload["audit_trail"],
+            "certificate": assistant_payload["certificate"],
             "quality_doctor": quality_diagnosis,
             "tables": response_tables,
             "charts": response_charts,
@@ -409,6 +412,20 @@ class SessionService:
         analysis["cleaning_summary"] = json_safe(summary)
         analysis["cleaned_dataset_id"] = new_dataset["id"]
         return analysis
+
+    async def verify_dataset(self, session_id: str, dataset_id: str, certificate: dict[str, Any]) -> dict[str, Any]:
+        """Re-run the deterministic computation and prove it reproduces the certificate."""
+        dataset = await self.get_dataset(dataset_id)
+        if not dataset:
+            raise KeyError("Dataset not found")
+        df, _metadata = load_dataframe_for_dataset(session_id, dataset_id)
+        if df is None:
+            raise ValueError("Dataset file is not available locally for verification")
+        facts = await AnalysisPipeline().run_full_analysis_async(
+            df, query="verification recompute", run_predictions=False, run_xai=False,
+            use_llm=False, filename=dataset.get("filename"),
+        )
+        return verify_certificate(df, facts.get("audit_trail") or [], certificate)
 
     async def generate_report(self, session_id: str, dataset_id: str, title: str, facts: dict[str, Any], xai_output: dict[str, Any]) -> dict[str, Any]:
         report_id = str(uuid.uuid4())
