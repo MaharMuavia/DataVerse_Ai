@@ -107,6 +107,10 @@ export type Kpi = {
   provenance?: KpiProvenance;
 };
 
+export type AuditEntry = KpiProvenance & {
+  category: 'kpi' | 'eda' | 'correlation' | 'trend' | 'model' | string;
+};
+
 export type AnalysisResponse = {
   session_id: string;
   dataset_id: string;
@@ -114,6 +118,7 @@ export type AnalysisResponse = {
   agents: AgentSummary[];
   answer: string;
   kpis?: Kpi[];
+  audit_trail?: AuditEntry[];
   tables?: TablePayload[];
   charts?: ChartPayload[];
   warnings?: string[];

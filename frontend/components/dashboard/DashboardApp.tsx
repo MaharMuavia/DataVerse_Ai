@@ -39,8 +39,9 @@ import { DropZone } from '@/components/DropZone';
 import { GlassCard } from './GlassCard';
 import { KpiCard } from './KpiCard';
 import { Composer } from './Composer';
+import { VerificationPanel } from './VerificationPanel';
 import { formatCell, formatNumber } from '@/lib/dashboard-format';
-import type { Kpi } from '@/lib/dataverse-api';
+import type { Kpi, AuditEntry } from '@/lib/dataverse-api';
 import ReactMarkdown from 'react-markdown';
 
 // --- Shared Constants & Types ---
@@ -55,6 +56,7 @@ type ChatMessage = {
   liveSteps?: ThinkingStep[];
   narrationProvider?: string;
   kpis?: Kpi[];
+  auditTrail?: AuditEntry[];
   charts?: ChartPayload[];
   tables?: TablePayload[];
   recommendations?: string[];
@@ -754,6 +756,11 @@ const AnalyzeWorkspaceView = ({
               </div>
             )}
 
+            {/* Verification panel: every number with a downloadable receipt */}
+            {latestAssistant?.auditTrail && latestAssistant.auditTrail.length > 0 && (
+              <VerificationPanel audit={latestAssistant.auditTrail} />
+            )}
+
             {/* Query Section */}
             <Composer onSubmit={onSubmit} isQuerying={isQuerying} suggestedQuestions={suggestedQuestions} />
 
@@ -1019,6 +1026,7 @@ export function DashboardApp() {
         }))
         : undefined,
       kpis: item.payload?.kpis as ChatMessage['kpis'],
+      auditTrail: item.payload?.audit_trail as ChatMessage['auditTrail'],
       charts: item.payload?.charts as ChartPayload[] | undefined,
       tables: item.payload?.tables as TablePayload[] | undefined,
       recommendations: item.payload?.recommendations as string[] | undefined,
@@ -1180,6 +1188,7 @@ export function DashboardApp() {
                 })),
               ]),
               kpis: result.kpis,
+              auditTrail: result.audit_trail,
               tables: result.tables,
               charts: result.charts,
               recommendations: result.recommendations,
@@ -1302,6 +1311,7 @@ export function DashboardApp() {
                 ...message,
                 report: lastAssistant.payload?.report as ChatMessage['report'],
                 kpis: lastAssistant.payload?.kpis as ChatMessage['kpis'],
+                auditTrail: lastAssistant.payload?.audit_trail as ChatMessage['auditTrail'],
                 charts: lastAssistant.payload?.charts as ChartPayload[] | undefined,
                 tables: lastAssistant.payload?.tables as TablePayload[] | undefined,
                 recommendations: lastAssistant.payload?.recommendations as string[] | undefined,
