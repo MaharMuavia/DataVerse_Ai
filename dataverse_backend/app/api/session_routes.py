@@ -1,12 +1,15 @@
 """ChatGPT-style chat session, dataset, analysis, and message routes."""
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from fastapi import APIRouter, File, Header, HTTPException, Query, UploadFile
+from fastapi.responses import StreamingResponse
 
-from ..api.schemas import ChatMessageCreate, ChatSessionCreate, ChatSessionUpdate, SessionAnalyzeRequest
+from ..api.schemas import ChatMessageCreate, ChatSessionCreate, ChatSessionUpdate, DatasetCleanRequest, SessionAnalyzeRequest
 from ..core.config import settings
+from ..services.progress_bus import progress_bus
 from ..services.session_service import session_service
 
 
@@ -116,10 +119,56 @@ async def analyze_session(session_id: str, request: SessionAnalyzeRequest) -> di
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@router.post("/sessions/{session_id}/datasets/{dataset_id}/clean")
+async def clean_dataset(session_id: str, dataset_id: str, request: DatasetCleanRequest) -> dict[str, Any]:
+    """Apply Data Quality Doctor fixes and return the re-analysis of the cleaned data."""
+    try:
+        return await session_service.clean_dataset(session_id, dataset_id, request.fix_ids)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.post("/sessions/{session_id}/messages")
 async def create_message(session_id: str, request: ChatMessageCreate) -> dict[str, Any]:
     try:
         return await session_service.chat_message(session_id, request.content, dataset_id=request.dataset_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/sessions/{session_id}/progress/stream")
+async def stream_progress(session_id: str) -> StreamingResponse:
+    """Server-Sent Events stream of live pipeline-stage events for a session.
+
+    Emits one `data: {json}` line per event. Sends a `_ping` event every ~60s
+    when idle so proxies don't drop the connection, and closes on a `_done`
+    sentinel.
+    """
+
+    async def event_source():
+        async for event in progress_bus.stream(session_id):
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(
+        event_source(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+
+
+@router.post("/sessions/{session_id}/reports/{report_id}/renarrate")
+async def renarrate_report(session_id: str, report_id: str) -> dict[str, Any]:
+    """Re-run only the LLM narration pass on an existing report's facts."""
+    try:
+        return await session_service.renarrate_report(session_id, report_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
