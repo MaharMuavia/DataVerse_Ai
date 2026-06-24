@@ -454,14 +454,29 @@ def _query_result(intent: str, answer: str, columns: list[str], rows: list[dict[
     }
 
 
+_KPI_METRIC_KEYS = {
+    "Total Sales": "total_revenue",
+    "Total Quantity": "total_quantity",
+    "Total Profit": "total_profit",
+    "Gross Margin": "gross_margin",
+    "Transactions": "transaction_count",
+}
+
+
 def build_kpi_cards(business_metrics: dict[str, Any]) -> list[dict[str, Any]]:
-    return [
+    cards = [
         {"label": "Total Sales", "value": business_metrics.get("total_revenue")},
         {"label": "Total Quantity", "value": business_metrics.get("total_quantity")},
         {"label": "Total Profit", "value": business_metrics.get("total_profit")},
         {"label": "Gross Margin", "value": None if business_metrics.get("gross_margin") is None else f"{business_metrics.get('gross_margin')}%"},
         {"label": "Transactions", "value": business_metrics.get("transaction_count")},
     ]
+    provenance = business_metrics.get("provenance") or {}
+    for card in cards:
+        key = _KPI_METRIC_KEYS.get(card["label"])
+        if key and key in provenance:
+            card["provenance"] = provenance[key]
+    return cards
 
 
 def _metric_series(df: pd.DataFrame, spec: dict[str, Any] | None, roles: dict[str, str], warnings: list[str], metric_name: str) -> pd.Series | None:

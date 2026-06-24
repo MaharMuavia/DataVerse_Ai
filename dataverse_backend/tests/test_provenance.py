@@ -71,3 +71,45 @@ def test_calculate_business_metrics_emits_matching_provenance():
     assert prov["total_revenue"]["operation"] == "SUM"
     assert prov["total_revenue"]["row_count"] == 3
     assert prov["transaction_count"]["value"] == bm["transaction_count"]
+
+
+def test_kpi_cards_carry_provenance():
+    from app.services.business_metrics import build_kpi_cards, calculate_business_metrics
+    from app.services.semantic_mapper import SemanticMapper
+
+    df = pd.DataFrame(
+        {"product": ["A", "B"], "revenue": [100, 300], "cost": [40, 110]}
+    )
+    sm = SemanticMapper().map_dataframe(df, filename="sales.csv")
+    bm = calculate_business_metrics(df, sm)
+    cards = build_kpi_cards(bm)
+
+    sales = next(c for c in cards if c["label"] == "Total Sales")
+    assert "provenance" in sales
+    assert sales["provenance"]["value"] == bm["total_revenue"]
+    # cards without a receipt simply omit the field (graceful)
+    assert all("label" in c and "value" in c for c in cards)
+
+
+def test_pipeline_facts_kpis_include_provenance():
+    from app.services.analysis_pipeline import AnalysisPipeline
+
+    df = pd.DataFrame(
+        {
+            "date": ["2024-01-01", "2024-01-02", "2024-01-03"],
+            "product": ["A", "B", "C"],
+            "revenue": [100, 300, 200],
+            "cost": [50, 150, 100],
+        }
+    )
+    facts = AnalysisPipeline().run_full_analysis(
+        df, query="dataset overview", run_predictions=False, run_xai=False, use_llm=False
+    )
+    kpis = facts.get("kpis") or []
+    assert kpis, "expected KPI cards"
+    sales = next((c for c in kpis if c.get("label") == "Total Sales"), None)
+    assert sales is not None
+    assert sales.get("provenance") is not None
+    assert sales["provenance"]["value"] == facts["business_metrics"]["total_revenue"]
+    # provenance survived the json_safe pass (sample rows are plain dicts)
+    assert isinstance(sales["provenance"]["sample_rows"], list)
