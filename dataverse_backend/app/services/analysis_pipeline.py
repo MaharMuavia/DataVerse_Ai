@@ -25,6 +25,7 @@ from .report_narrator import ReportNarrator
 from .semantic_mapper import SemanticMapper
 from .session_store import create_session_id, persist_dataframe_for_session
 from .xai import explain_model
+from .audit import build_audit_trail
 
 try:
     import shap
@@ -268,6 +269,10 @@ class AnalysisPipeline:
             "outliers": outliers,
             "target_suggestions": target_suggestions,
             "prediction": prediction,
+            "audit_trail": build_audit_trail(
+                business_metrics=business_metrics, eda=eda, correlations=correlations,
+                trends=trends, prediction=prediction, df=work,
+            ),
             "automl": automl_alias,
             "xai": xai,
             "charts": charts,

@@ -121,6 +121,49 @@ def build_derived_provenance(
     )
 
 
+def build_stat_provenance(
+    *,
+    metric_key: str,
+    label: str,
+    operation: str,
+    column: str | None,
+    df: pd.DataFrame | None,
+    value: Any,
+    formula_plain: str,
+    sample_n: int = 5,
+) -> Provenance:
+    series = df[column] if (df is not None and column and column in df.columns) else None
+    row_count = int(series.notna().sum()) if series is not None else 0
+    cols = [column] if column else []
+    return Provenance(
+        metric_key=metric_key,
+        label=label,
+        operation=operation,
+        formula_plain=formula_plain,
+        source_columns=cols,
+        value=_coerce(value),
+        row_count=row_count,
+        sample_rows=_sample_rows(df, series, cols, sample_n),
+    )
+
+
+def sample_columns(
+    df: pd.DataFrame | None,
+    columns: list[str],
+    sample_n: int = 5,
+) -> list[dict[str, Any]]:
+    if df is None or df.empty:
+        return []
+    cols = [c for c in columns if c in df.columns]
+    if not cols:
+        return []
+    subset = df[cols].head(sample_n)
+    return [
+        {key: _coerce(val) for key, val in record.items()}
+        for record in subset.to_dict(orient="records")
+    ]
+
+
 def provenance_to_dict(provenance: Provenance) -> dict[str, Any]:
     return {
         "metric_key": provenance.metric_key,
