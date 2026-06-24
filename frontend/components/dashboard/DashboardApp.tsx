@@ -42,6 +42,7 @@ import { Composer } from './Composer';
 import { VerificationPanel } from './VerificationPanel';
 import { formatCell, formatNumber } from '@/lib/dashboard-format';
 import type { Kpi, AuditEntry } from '@/lib/dataverse-api';
+import { buildVerifiedReportHtml } from '@/lib/verified-report';
 import ReactMarkdown from 'react-markdown';
 
 // --- Shared Constants & Types ---
@@ -734,6 +735,28 @@ const AnalyzeWorkspaceView = ({
                     >
                       Copy as markdown
                     </button>
+                    {(latestAssistant.kpis?.length || latestAssistant.auditTrail?.length) ? (
+                      <button
+                        onClick={() => {
+                          const html = buildVerifiedReportHtml({
+                            title: dataset?.dataset_filename ? `Verified report — ${dataset.dataset_filename}` : undefined,
+                            answer: latestAssistant.content,
+                            kpis: latestAssistant.kpis,
+                            audit: latestAssistant.auditTrail,
+                          });
+                          const blob = new Blob([html], { type: 'text/html' });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = `verified-report-${Date.now()}.html`;
+                          link.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="text-[11px] text-violet-600 hover:text-violet-700 border border-violet-200 hover:bg-violet-50 px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 font-semibold"
+                      >
+                        Export verified report
+                      </button>
+                    ) : null}
                     {latestAssistant.report?.report_id && (
                       <button
                         onClick={() => onRenarrate(latestAssistant.id, latestAssistant.report!.report_id)}
