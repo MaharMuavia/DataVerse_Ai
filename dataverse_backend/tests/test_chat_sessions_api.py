@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from dataverse_backend.app.main import app
-from dataverse_backend.app.services.session_service import session_service
-from dataverse_backend.app.services.supabase_client import LocalPersistence
+from app.main import app
+from app.services.session_service import session_service
+from app.services.supabase_client import LocalPersistence
 
 
 def _csv_bytes() -> bytes:
