@@ -6,6 +6,7 @@ from typing import Any
 import pandas as pd
 
 from .semantic_mapper import CREDIT_VALUES, EXPENSE_VALUES, REFUND_VALUES, SALE_VALUES
+from .provenance import build_series_provenance, build_derived_provenance, provenance_to_dict
 
 
 def calculate_business_metrics(df: pd.DataFrame, semantic_map: dict[str, Any]) -> dict[str, Any]:
@@ -77,6 +78,65 @@ def calculate_business_metrics(df: pd.DataFrame, semantic_map: dict[str, Any]) -
     if total_revenue is None:
         limitations.append("No revenue metric could be calculated from the semantic map.")
 
+    revenue_col = _metric_col(metrics.get("revenue"))
+    quantity_col = _metric_col(metrics.get("quantity"))
+    cost_col = _metric_col(metrics.get("cost"))
+    expense_col = _metric_col(metrics.get("expense"))
+    profit_col = _metric_col(metrics.get("profit"))
+
+    provenance: dict[str, Any] = {}
+    if revenue_series is not None:
+        provenance["total_revenue"] = provenance_to_dict(build_series_provenance(
+            metric_key="total_revenue", label="Total Sales", operation="SUM",
+            series=revenue_series, df=df,
+            source_columns=[c for c in [revenue_col] if c], value=_money(total_revenue)))
+    if quantity_series is not None:
+        provenance["total_quantity"] = provenance_to_dict(build_series_provenance(
+            metric_key="total_quantity", label="Total Quantity", operation="SUM",
+            series=quantity_series, df=df,
+            source_columns=[c for c in [quantity_col] if c], value=_money(total_quantity)))
+    if cost_series is not None:
+        provenance["total_cost"] = provenance_to_dict(build_series_provenance(
+            metric_key="total_cost", label="Total Cost", operation="SUM",
+            series=cost_series, df=df,
+            source_columns=[c for c in [cost_col] if c], value=_money(total_cost)))
+    if expense_series is not None:
+        provenance["total_expenses"] = provenance_to_dict(build_series_provenance(
+            metric_key="total_expenses", label="Total Expenses", operation="SUM",
+            series=expense_series, df=df,
+            source_columns=[c for c in [expense_col] if c], value=_money(total_expense)))
+    if total_profit is not None:
+        if profit_series is not None:
+            provenance["total_profit"] = provenance_to_dict(build_series_provenance(
+                metric_key="total_profit", label="Total Profit", operation="SUM",
+                series=profit_series, df=df,
+                source_columns=[c for c in [profit_col] if c], value=_money(total_profit)))
+        else:
+            base = total_cost if total_cost is not None else total_expense
+            provenance["total_profit"] = provenance_to_dict(build_derived_provenance(
+                metric_key="total_profit", label="Total Profit", operation="SUBTRACT",
+                formula_plain=f"Total revenue - total cost = {_money(total_revenue)} - {_money(base)} = {_money(total_profit)}",
+                value=_money(total_profit),
+                source_columns=[c for c in [revenue_col, cost_col, expense_col] if c],
+                components=[("total_revenue", _money(total_revenue)), ("total_cost_or_expense", _money(base))]))
+    if gross_margin is not None:
+        provenance["gross_margin"] = provenance_to_dict(build_derived_provenance(
+            metric_key="gross_margin", label="Gross Margin", operation="DIVIDE",
+            formula_plain=f"Total profit / total revenue * 100 = {round(float(gross_margin), 2)}%",
+            value=round(float(gross_margin), 2),
+            source_columns=[c for c in [revenue_col, cost_col, expense_col] if c],
+            components=[("total_profit", _money(total_profit)), ("total_revenue", _money(total_revenue))]))
+    if average_order_value is not None:
+        provenance["average_order_value"] = provenance_to_dict(build_derived_provenance(
+            metric_key="average_order_value", label="Average Order Value", operation="DIVIDE",
+            formula_plain=f"Total revenue / sales transactions = {_money(total_revenue)} / {int(sales_transaction_count)} = {_money(average_order_value)}",
+            value=_money(average_order_value),
+            source_columns=[c for c in [revenue_col] if c],
+            components=[("total_revenue", _money(total_revenue)), ("sales_transaction_count", int(sales_transaction_count))]))
+    provenance["transaction_count"] = provenance_to_dict(build_series_provenance(
+        metric_key="transaction_count", label="Transactions", operation="COUNT",
+        series=None, df=df, source_columns=[], value=transaction_count))
+
     return {
         "dataset_type": semantic_map.get("dataset_type", "generic_tabular"),
         "total_revenue": _money(total_revenue),
@@ -102,6 +162,7 @@ def calculate_business_metrics(df: pd.DataFrame, semantic_map: dict[str, Any]) -
         "profit_summary": profit_summary,
         "data_limitations": list(dict.fromkeys(warnings + limitations)),
         "trend_warning": trend_warning,
+        "provenance": provenance,
     }
 
 

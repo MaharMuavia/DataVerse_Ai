@@ -46,3 +46,28 @@ def test_derived_provenance_lists_components():
         {"component": "total_profit", "value": 150},
         {"component": "total_revenue", "value": 600},
     ]
+
+
+def test_calculate_business_metrics_emits_matching_provenance():
+    from app.services.business_metrics import calculate_business_metrics
+    from app.services.semantic_mapper import SemanticMapper
+
+    df = pd.DataFrame(
+        {
+            "date": ["2024-01-01", "2024-01-02", "2024-01-03"],
+            "product": ["A", "B", "C"],
+            "revenue": [100, 300, 200],
+            "cost": [50, 150, 100],
+        }
+    )
+    sm = SemanticMapper().map_dataframe(df, filename="sales.csv")
+    bm = calculate_business_metrics(df, sm)
+
+    prov = bm.get("provenance")
+    assert isinstance(prov, dict)
+    assert "total_revenue" in prov
+    # the receipt value equals the reported metric value (the trust guarantee)
+    assert prov["total_revenue"]["value"] == bm["total_revenue"]
+    assert prov["total_revenue"]["operation"] == "SUM"
+    assert prov["total_revenue"]["row_count"] == 3
+    assert prov["transaction_count"]["value"] == bm["transaction_count"]
