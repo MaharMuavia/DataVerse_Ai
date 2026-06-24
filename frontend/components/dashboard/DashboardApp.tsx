@@ -16,6 +16,7 @@ import {
   analyzeSession,
   cleanDataset,
   verifyDataset,
+  whatifDataset,
   checkBackendHealth,
   createSession,
   getSession,
@@ -45,8 +46,9 @@ import { VerificationPanel } from './VerificationPanel';
 import { QualityDoctorPanel } from './QualityDoctorPanel';
 import { ConversationThread } from './ConversationThread';
 import { CertificateCard } from './CertificateCard';
+import { WhatIfPanel } from './WhatIfPanel';
 import { formatCell, formatNumber } from '@/lib/dashboard-format';
-import type { Kpi, AuditEntry, QualityDiagnosis, VerificationCertificate, VerifyResult } from '@/lib/dataverse-api';
+import type { Kpi, AuditEntry, QualityDiagnosis, VerificationCertificate, VerifyResult, WhatIfResult } from '@/lib/dataverse-api';
 import { buildVerifiedReportHtml } from '@/lib/verified-report';
 import ReactMarkdown from 'react-markdown';
 
@@ -437,6 +439,7 @@ const AnalyzeWorkspaceView = ({
   onApplyFixes,
   isCleaning,
   onVerify,
+  onWhatIf,
 }: {
   dataset: DatasetSummary | null;
   uploadStatus: string | null;
@@ -453,11 +456,13 @@ const AnalyzeWorkspaceView = ({
   onApplyFixes: (fixIds: string[]) => void;
   isCleaning: boolean;
   onVerify: (cert: VerificationCertificate) => Promise<VerifyResult>;
+  onWhatIf: (column: string, pct: number) => Promise<WhatIfResult>;
 }) => {
   const assistantMessages = messages.filter((m) => m.role === 'assistant');
   const latestAssistant = assistantMessages.at(-1);
   const kpis = latestAssistant?.kpis ?? [];
   const charts = latestAssistant?.charts ?? [];
+  const whatIfColumns = (dataset?.column_names ?? []).filter((name, i) => isNumericType(dataset?.column_dtypes?.[i]));
 
   const isUploading = uploadStatus?.toLowerCase().includes('upload') ||
                       uploadStatus?.toLowerCase().includes('parsing') ||
@@ -814,6 +819,11 @@ const AnalyzeWorkspaceView = ({
             {/* Reproducibility Certificate: re-verify numbers reproduce from raw data */}
             {latestAssistant?.certificate?.results_fingerprint && (
               <CertificateCard certificate={latestAssistant.certificate} onVerify={onVerify} />
+            )}
+
+            {/* Verified What-If Simulator: deterministic, receipt-backed scenarios */}
+            {whatIfColumns.length > 0 && latestAssistant?.kpis && latestAssistant.kpis.length > 0 && (
+              <WhatIfPanel columns={whatIfColumns} onSimulate={onWhatIf} />
             )}
 
             {/* Verification panel: every number with a downloadable receipt */}
@@ -1460,6 +1470,13 @@ export function DashboardApp() {
     return verifyDataset(currentSessionId, dataset.dataset_id, certificate);
   };
 
+  const handleWhatIf = async (column: string, pct: number): Promise<WhatIfResult> => {
+    if (!dataset || !currentSessionId) {
+      throw new Error('No active dataset to simulate.');
+    }
+    return whatifDataset(currentSessionId, dataset.dataset_id, column, pct);
+  };
+
   const handleRenarrate = async (messageId: string, reportId: string) => {
     if (!currentSessionId) {
       setUploadStatus('No active session for re-narration');
@@ -1664,6 +1681,7 @@ export function DashboardApp() {
                 onApplyFixes={handleApplyFixes}
                 isCleaning={isCleaning}
                 onVerify={handleVerify}
+                onWhatIf={handleWhatIf}
               />
             )}
             {currentView === 'report' && (

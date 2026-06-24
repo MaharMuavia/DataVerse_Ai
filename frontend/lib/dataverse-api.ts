@@ -161,6 +161,22 @@ export type VerifyResult = {
   actual: { data_fingerprint: string; results_fingerprint: string };
 };
 
+export type WhatIfDelta = {
+  label: string;
+  baseline: number | string | null;
+  scenario: number | string | null;
+  delta?: number;
+  pct?: number | null;
+};
+
+export type WhatIfResult = {
+  column: string;
+  pct_change: number;
+  baseline_kpis: Kpi[];
+  scenario_kpis: Kpi[];
+  deltas: WhatIfDelta[];
+};
+
 export type AnalysisResponse = {
   session_id: string;
   dataset_id: string;
@@ -610,6 +626,24 @@ export async function verifyDataset(
     throw new DataVerseApiError(await readError(response), response.status);
   }
   return response.json() as Promise<VerifyResult>;
+}
+
+export async function whatifDataset(
+  sessionId: string,
+  datasetId: string,
+  column: string,
+  pctChange: number,
+): Promise<WhatIfResult> {
+  await ensureBackendAvailable();
+  const response = await apiFetch(buildApiUrl(`/sessions/${sessionId}/datasets/${datasetId}/whatif`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ column, pct_change: pctChange }),
+  });
+  if (!response.ok) {
+    throw new DataVerseApiError(await readError(response), response.status);
+  }
+  return response.json() as Promise<WhatIfResult>;
 }
 
 export async function streamQuery(
