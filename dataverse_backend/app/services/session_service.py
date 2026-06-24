@@ -15,6 +15,7 @@ from .analysis_pipeline import AnalysisPipeline
 from .data_quality import json_safe, normalize_chart_specs
 from .quality_doctor import diagnose as diagnose_quality, apply_fixes as apply_quality_fixes
 from .certificate import verify_certificate
+from .whatif import simulate as simulate_whatif
 from .progress_bus import progress_bus
 from .report_generator import ReportGenerator
 from .report_narrator import ReportNarrator
@@ -426,6 +427,16 @@ class SessionService:
             use_llm=False, filename=dataset.get("filename"),
         )
         return verify_certificate(df, facts.get("audit_trail") or [], certificate)
+
+    async def whatif_dataset(self, session_id: str, dataset_id: str, column: str, pct_change: float) -> dict[str, Any]:
+        """Run a deterministic, receipt-backed what-if scenario on a numeric column."""
+        dataset = await self.get_dataset(dataset_id)
+        if not dataset:
+            raise KeyError("Dataset not found")
+        df, _metadata = load_dataframe_for_dataset(session_id, dataset_id)
+        if df is None:
+            raise ValueError("Dataset file is not available locally for simulation")
+        return json_safe(simulate_whatif(df, column, pct_change))
 
     async def generate_report(self, session_id: str, dataset_id: str, title: str, facts: dict[str, Any], xai_output: dict[str, Any]) -> dict[str, Any]:
         report_id = str(uuid.uuid4())

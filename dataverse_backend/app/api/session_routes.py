@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import APIRouter, File, Header, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
-from ..api.schemas import ChatMessageCreate, ChatSessionCreate, ChatSessionUpdate, DatasetCleanRequest, DatasetVerifyRequest, SessionAnalyzeRequest
+from ..api.schemas import ChatMessageCreate, ChatSessionCreate, ChatSessionUpdate, DatasetCleanRequest, DatasetVerifyRequest, DatasetWhatIfRequest, SessionAnalyzeRequest
 from ..core.config import settings
 from ..services.progress_bus import progress_bus
 from ..services.session_service import session_service
@@ -135,6 +135,17 @@ async def verify_dataset(session_id: str, dataset_id: str, request: DatasetVerif
     """Re-run the deterministic computation and verify it reproduces the certificate."""
     try:
         return await session_service.verify_dataset(session_id, dataset_id, request.certificate)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/sessions/{session_id}/datasets/{dataset_id}/whatif")
+async def whatif_dataset(session_id: str, dataset_id: str, request: DatasetWhatIfRequest) -> dict[str, Any]:
+    """Deterministic, receipt-backed what-if scenario on a numeric column."""
+    try:
+        return await session_service.whatif_dataset(session_id, dataset_id, request.column, request.pct_change)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:

@@ -120,6 +120,11 @@ class DatasetVerifyRequest(BaseModel):
     certificate: dict = {}
 
 
+class DatasetWhatIfRequest(BaseModel):
+    column: str
+    pct_change: float = 10.0
+
+
 class DatasetProfileResponse(BaseModel):
     session_id: str
     profile: Dict[str, Any]
