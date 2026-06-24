@@ -1,4 +1,4 @@
-import type { Kpi, AuditEntry, KpiProvenance } from '@/lib/dataverse-api';
+import type { Kpi, AuditEntry, KpiProvenance, VerificationCertificate } from '@/lib/dataverse-api';
 
 const esc = (value: unknown): string =>
   String(value ?? '')
@@ -36,9 +36,10 @@ export type VerifiedReportInput = {
   answer?: string;
   kpis?: Kpi[];
   audit?: AuditEntry[];
+  certificate?: VerificationCertificate;
 };
 
-export function buildVerifiedReportHtml({ title, answer, kpis = [], audit = [] }: VerifiedReportInput): string {
+export function buildVerifiedReportHtml({ title, answer, kpis = [], audit = [], certificate }: VerifiedReportInput): string {
   const heading = esc(title || 'DataVerse Verified Report');
   const generated = new Date().toLocaleString();
 
@@ -94,6 +95,12 @@ export function buildVerifiedReportHtml({ title, answer, kpis = [], audit = [] }
   <h1>${heading}</h1>
   <div class="meta">Generated ${esc(generated)}</div>
   <span class="badge">&#10003; Every number below is verifiable</span>
+  ${certificate ? `<div style="margin-top:14px;border:1px solid #a7f3d0;background:#ecfdf5;border-radius:10px;padding:12px;font-size:11px;color:#065f46;">
+    <div style="font-weight:700;margin-bottom:6px;">&#128273; Reproducibility certificate (${esc(certificate.algorithm)})</div>
+    <div style="font-family:ui-monospace,monospace;word-break:break-all;"><strong>data:</strong> ${esc(certificate.data_fingerprint)}</div>
+    <div style="font-family:ui-monospace,monospace;word-break:break-all;"><strong>results:</strong> ${esc(certificate.results_fingerprint)}</div>
+    <div style="margin-top:6px;">${esc(String(certificate.verified_numbers))} deterministic numbers &mdash; re-run DataVerse on the same data to reproduce these exact fingerprints.</div>
+  </div>` : ''}
   ${answer ? `<h2>Summary</h2><div class="answer">${esc(answer)}</div>` : ''}
   ${kpiCards ? `<h2>Key metrics &mdash; with receipts</h2><div class="kpis">${kpiCards}</div>` : ''}
   ${auditRows ? `<h2>Full audit trail (${audit.length})</h2>${auditRows}` : ''}

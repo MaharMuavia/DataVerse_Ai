@@ -15,6 +15,7 @@ import {
   BACKEND_START_COMMAND,
   analyzeSession,
   cleanDataset,
+  verifyDataset,
   checkBackendHealth,
   createSession,
   getSession,
@@ -43,8 +44,9 @@ import { Composer } from './Composer';
 import { VerificationPanel } from './VerificationPanel';
 import { QualityDoctorPanel } from './QualityDoctorPanel';
 import { ConversationThread } from './ConversationThread';
+import { CertificateCard } from './CertificateCard';
 import { formatCell, formatNumber } from '@/lib/dashboard-format';
-import type { Kpi, AuditEntry, QualityDiagnosis } from '@/lib/dataverse-api';
+import type { Kpi, AuditEntry, QualityDiagnosis, VerificationCertificate, VerifyResult } from '@/lib/dataverse-api';
 import { buildVerifiedReportHtml } from '@/lib/verified-report';
 import ReactMarkdown from 'react-markdown';
 
@@ -61,6 +63,7 @@ type ChatMessage = {
   narrationProvider?: string;
   kpis?: Kpi[];
   auditTrail?: AuditEntry[];
+  certificate?: VerificationCertificate;
   qualityDoctor?: QualityDiagnosis;
   charts?: ChartPayload[];
   tables?: TablePayload[];
@@ -433,6 +436,7 @@ const AnalyzeWorkspaceView = ({
   onCopyAsMarkdown,
   onApplyFixes,
   isCleaning,
+  onVerify,
 }: {
   dataset: DatasetSummary | null;
   uploadStatus: string | null;
@@ -448,6 +452,7 @@ const AnalyzeWorkspaceView = ({
   onCopyAsMarkdown: (message: ChatMessage) => void;
   onApplyFixes: (fixIds: string[]) => void;
   isCleaning: boolean;
+  onVerify: (cert: VerificationCertificate) => Promise<VerifyResult>;
 }) => {
   const assistantMessages = messages.filter((m) => m.role === 'assistant');
   const latestAssistant = assistantMessages.at(-1);
@@ -760,6 +765,7 @@ const AnalyzeWorkspaceView = ({
                             answer: latestAssistant.content,
                             kpis: latestAssistant.kpis,
                             audit: latestAssistant.auditTrail,
+                            certificate: latestAssistant.certificate,
                           });
                           const blob = new Blob([html], { type: 'text/html' });
                           const url = URL.createObjectURL(blob);
@@ -803,6 +809,11 @@ const AnalyzeWorkspaceView = ({
                 onApply={onApplyFixes}
                 isApplying={isCleaning}
               />
+            )}
+
+            {/* Reproducibility Certificate: re-verify numbers reproduce from raw data */}
+            {latestAssistant?.certificate?.results_fingerprint && (
+              <CertificateCard certificate={latestAssistant.certificate} onVerify={onVerify} />
             )}
 
             {/* Verification panel: every number with a downloadable receipt */}
@@ -1077,6 +1088,7 @@ export function DashboardApp() {
         : undefined,
       kpis: item.payload?.kpis as ChatMessage['kpis'],
       auditTrail: item.payload?.audit_trail as ChatMessage['auditTrail'],
+      certificate: item.payload?.certificate as ChatMessage['certificate'],
       qualityDoctor: item.payload?.quality_doctor as ChatMessage['qualityDoctor'],
       charts: item.payload?.charts as ChartPayload[] | undefined,
       tables: item.payload?.tables as TablePayload[] | undefined,
@@ -1240,6 +1252,7 @@ export function DashboardApp() {
               ]),
               kpis: result.kpis,
               auditTrail: result.audit_trail,
+              certificate: result.certificate,
               qualityDoctor: result.quality_doctor,
               tables: result.tables,
               charts: result.charts,
@@ -1364,6 +1377,7 @@ export function DashboardApp() {
                 report: lastAssistant.payload?.report as ChatMessage['report'],
                 kpis: lastAssistant.payload?.kpis as ChatMessage['kpis'],
                 auditTrail: lastAssistant.payload?.audit_trail as ChatMessage['auditTrail'],
+                certificate: lastAssistant.payload?.certificate as ChatMessage['certificate'],
                 qualityDoctor: lastAssistant.payload?.quality_doctor as ChatMessage['qualityDoctor'],
                 charts: lastAssistant.payload?.charts as ChartPayload[] | undefined,
                 tables: lastAssistant.payload?.tables as TablePayload[] | undefined,
@@ -1416,6 +1430,7 @@ export function DashboardApp() {
               content,
               kpis: result.kpis,
               auditTrail: result.audit_trail,
+              certificate: result.certificate,
               qualityDoctor: result.quality_doctor,
               tables: result.tables,
               charts: result.charts,
@@ -1436,6 +1451,13 @@ export function DashboardApp() {
     } finally {
       if (!isStaleRequest(token)) setIsCleaning(false);
     }
+  };
+
+  const handleVerify = async (certificate: VerificationCertificate): Promise<VerifyResult> => {
+    if (!dataset || !currentSessionId) {
+      throw new Error('No active dataset to verify.');
+    }
+    return verifyDataset(currentSessionId, dataset.dataset_id, certificate);
   };
 
   const handleRenarrate = async (messageId: string, reportId: string) => {
@@ -1641,6 +1663,7 @@ export function DashboardApp() {
                 onCopyAsMarkdown={handleCopyAsMarkdown}
                 onApplyFixes={handleApplyFixes}
                 isCleaning={isCleaning}
+                onVerify={handleVerify}
               />
             )}
             {currentView === 'report' && (

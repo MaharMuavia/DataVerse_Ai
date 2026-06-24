@@ -141,6 +141,26 @@ export type CleaningSummary = {
   after: QualityStats;
 };
 
+export type VerificationCertificate = {
+  algorithm: string;
+  tool: string;
+  data_fingerprint: string;
+  results_fingerprint: string;
+  row_count: number;
+  column_count: number;
+  verified_numbers: number;
+  generated_at: string;
+};
+
+export type VerifyResult = {
+  verified: boolean;
+  data_match: boolean;
+  results_match: boolean;
+  verified_numbers: number;
+  expected: { data_fingerprint?: string; results_fingerprint?: string };
+  actual: { data_fingerprint: string; results_fingerprint: string };
+};
+
 export type AnalysisResponse = {
   session_id: string;
   dataset_id: string;
@@ -149,6 +169,7 @@ export type AnalysisResponse = {
   answer: string;
   kpis?: Kpi[];
   audit_trail?: AuditEntry[];
+  certificate?: VerificationCertificate;
   quality_doctor?: QualityDiagnosis;
   cleaning_summary?: CleaningSummary;
   cleaned_dataset_id?: string;
@@ -572,6 +593,23 @@ export async function cleanDataset(
     throw new DataVerseApiError(await readError(response), response.status);
   }
   return response.json() as Promise<AnalysisResponse>;
+}
+
+export async function verifyDataset(
+  sessionId: string,
+  datasetId: string,
+  certificate: VerificationCertificate,
+): Promise<VerifyResult> {
+  await ensureBackendAvailable();
+  const response = await apiFetch(buildApiUrl(`/sessions/${sessionId}/datasets/${datasetId}/verify`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ certificate }),
+  });
+  if (!response.ok) {
+    throw new DataVerseApiError(await readError(response), response.status);
+  }
+  return response.json() as Promise<VerifyResult>;
 }
 
 export async function streamQuery(
