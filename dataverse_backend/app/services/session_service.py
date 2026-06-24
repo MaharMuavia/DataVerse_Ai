@@ -13,6 +13,7 @@ from ..api.upload_parsing import parse_uploaded_dataframe
 from ..core.config import settings
 from .analysis_pipeline import AnalysisPipeline
 from .data_quality import json_safe, normalize_chart_specs
+from .quality_doctor import diagnose as diagnose_quality, apply_fixes as apply_quality_fixes
 from .progress_bus import progress_bus
 from .report_generator import ReportGenerator
 from .report_narrator import ReportNarrator
@@ -235,6 +236,7 @@ class SessionService:
         df, metadata = load_dataframe_for_dataset(session_id, dataset_id)
         if df is None:
             raise ValueError("Dataset file is not available locally for analysis")
+        quality_diagnosis = json_safe(diagnose_quality(df))
 
         await self.add_message(session_id, "user", user_prompt, payload={"dataset_id": dataset_id})
         dataset_steps = self._dataset_steps()
@@ -341,6 +343,7 @@ class SessionService:
             ),
             "kpis": facts.get("kpis") or [],
             "audit_trail": facts.get("audit_trail") or [],
+            "quality_doctor": quality_diagnosis,
             "charts": response_charts,
             "tables": response_tables,
             "warnings": facts.get("warnings") or [],
@@ -358,6 +361,7 @@ class SessionService:
             "answer": answer,
             "kpis": assistant_payload["kpis"],
             "audit_trail": assistant_payload["audit_trail"],
+            "quality_doctor": quality_diagnosis,
             "tables": response_tables,
             "charts": response_charts,
             "warnings": assistant_payload["warnings"],
@@ -375,6 +379,37 @@ class SessionService:
             run_xai=True,
             generate_report=_explicit_report_request(content),
         )
+
+    async def clean_dataset(self, session_id: str, dataset_id: str, fix_ids: list[str]) -> dict[str, Any]:
+        """Apply Data Quality Doctor fixes, persist a cleaned dataset, re-analyze."""
+        dataset = await self.get_dataset(dataset_id)
+        if not dataset:
+            raise KeyError("Dataset not found")
+        if not fix_ids:
+            raise ValueError("No fixes were selected")
+        df, _metadata = load_dataframe_for_dataset(session_id, dataset_id)
+        if df is None:
+            raise ValueError("Dataset file is not available locally for cleaning")
+
+        cleaned, summary = apply_quality_fixes(df, fix_ids)
+        source_name = dataset.get("filename") or "dataset.csv"
+        cleaned_name = f"cleaned_{source_name}"
+        if not cleaned_name.lower().endswith(".csv"):
+            cleaned_name = cleaned_name.rsplit(".", 1)[0] + ".csv"
+        csv_bytes = cleaned.to_csv(index=False).encode("utf-8")
+
+        new_dataset = await self.upload_dataset(session_id, cleaned_name, csv_bytes)
+        analysis = await self.analyze(
+            session_id,
+            dataset_id=new_dataset["id"],
+            user_prompt="Analyze the cleaned dataset",
+            run_xai=False,
+            generate_report=False,
+        )
+        analysis["cleaning_summary"] = json_safe(summary)
+        analysis["cleaned_dataset_id"] = new_dataset["id"]
+        return analysis
+
     async def generate_report(self, session_id: str, dataset_id: str, title: str, facts: dict[str, Any], xai_output: dict[str, Any]) -> dict[str, Any]:
         report_id = str(uuid.uuid4())
         generated = await ReportGenerator().generate(title=title, facts=facts, xai_output=xai_output)

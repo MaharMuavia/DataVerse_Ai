@@ -112,6 +112,10 @@ class SessionAnalyzeRequest(BaseModel):
     generate_report: bool = True
 
 
+class DatasetCleanRequest(BaseModel):
+    fix_ids: list[str] = []
+
+
 class DatasetProfileResponse(BaseModel):
     session_id: str
     profile: Dict[str, Any]
