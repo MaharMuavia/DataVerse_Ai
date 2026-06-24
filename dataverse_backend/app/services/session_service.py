@@ -13,7 +13,9 @@ from ..api.upload_parsing import parse_uploaded_dataframe
 from ..core.config import settings
 from .analysis_pipeline import AnalysisPipeline
 from .data_quality import json_safe, normalize_chart_specs
+from .progress_bus import progress_bus
 from .report_generator import ReportGenerator
+from .report_narrator import ReportNarrator
 from .semantic_mapper import SemanticMapper
 from .session_store import (
     load_dataframe_for_dataset,
@@ -123,7 +125,13 @@ class SessionService:
         session = await self._get_by_id("chat_sessions", session_id)
         if not session:
             raise KeyError("Session not found")
+        progress_bus.start_stage(session_id, "upload", "Receiving file", f"{len(content) / 1024:.1f} KB")
+        progress_bus.complete_stage(session_id, "upload")
+
+        progress_bus.start_stage(session_id, "parse", "Parsing dataset", filename)
         df = parse_uploaded_dataframe(filename, content)
+        progress_bus.complete_stage(session_id, "parse", f"{len(df):,} rows × {len(df.columns)} cols")
+
         dataset_id = str(uuid.uuid4())
         safe_name = Path(filename).name or "dataset.csv"
         file_type = safe_name.rsplit(".", 1)[-1].lower() if "." in safe_name else "csv"
@@ -135,8 +143,18 @@ class SessionService:
             persisted_path = storage_path
         else:
             persisted_path = self.local.write_bytes(f"datasets/{storage_path}", content)
+
+        progress_bus.start_stage(session_id, "profile", "Profiling columns")
         profile = AnalysisPipeline().profile_dataset(df)
+        progress_bus.complete_stage(session_id, "profile")
+
+        progress_bus.start_stage(session_id, "semantic_map", "Building semantic map")
         semantic_map = SemanticMapper().map_dataframe(df, filename=safe_name)
+        progress_bus.complete_stage(
+            session_id,
+            "semantic_map",
+            f"Detected: {semantic_map.get('dataset_type', 'generic_tabular')}",
+        )
         profile["semantic_map"] = semantic_map
         semantic_type = semantic_map.get("dataset_type")
         if semantic_type and profile.get("dataset_type") in {None, "generic", "generic_tabular"}:
@@ -227,6 +245,12 @@ class SessionService:
             {"dataset_id": dataset_id},
             steps=dataset_steps,
         )
+        progress_bus.start_stage(session_id, "load_dataset", "Loading dataset")
+        progress_bus.complete_stage(
+            session_id,
+            "load_dataset",
+            f"{dataset.get('row_count'):,} rows × {dataset.get('column_count')} cols",
+        )
         await self._complete_agent(dataset_run["id"], {
             "summary": f"Loaded {dataset.get('filename')} with {dataset.get('row_count')} rows and {dataset.get('column_count')} columns.",
             "dataset_profile": dataset.get("schema_profile"),
@@ -242,15 +266,29 @@ class SessionService:
             {"prompt": user_prompt},
             steps=analysis_steps + report_steps,
         )
-        facts = await AnalysisPipeline().run_full_analysis_async(
-            df,
-            query=user_prompt,
-            run_xai=run_xai,
-            session_id=session_id,
-            filename=metadata.get("filename") or dataset.get("filename"),
-            use_llm=settings.USE_LLM_NARRATION,
-            provider=settings.LLM_PROVIDER,
-        )
+        try:
+            progress_bus.start_stage(session_id, "analyze", "Running deterministic analysis", "EDA · trends · metrics · modeling")
+            facts = await AnalysisPipeline().run_full_analysis_async(
+                df,
+                query=user_prompt,
+                run_xai=run_xai,
+                session_id=session_id,
+                filename=metadata.get("filename") or dataset.get("filename"),
+                use_llm=settings.USE_LLM_NARRATION,
+                provider=settings.LLM_PROVIDER,
+                progress_session_id=session_id,
+            )
+            prediction_status = (facts.get("prediction") or {}).get("status") or "skipped"
+            narration_provider = (facts.get("narration") or {}).get("narration_provider") or "deterministic"
+            progress_bus.complete_stage(
+                session_id,
+                "analyze",
+                f"prediction: {prediction_status} · narration: {narration_provider}",
+            )
+        except Exception as exc:
+            progress_bus.fail_stage(session_id, "analyze", f"{type(exc).__name__}: {exc}")
+            progress_bus.finish(session_id, "analysis failed")
+            raise
         await self._complete_agent(analyst_run["id"], {
             "summary": facts.get("executive_summary"),
             "dataset_profile": facts.get("dataset_profile"),
@@ -279,7 +317,13 @@ class SessionService:
         should_generate_report = bool(generate_report)
         report_facts = _promote_full_report_facts(facts) if should_generate_report else facts
         if should_generate_report:
-            report_payload = await self.generate_report(session_id, dataset_id, title, report_facts, xai_output if isinstance(xai_output, dict) else {})
+            progress_bus.start_stage(session_id, "report", "Composing report", "HTML + PDF")
+            try:
+                report_payload = await self.generate_report(session_id, dataset_id, title, report_facts, xai_output if isinstance(xai_output, dict) else {})
+                progress_bus.complete_stage(session_id, "report", "report ready")
+            except Exception as exc:
+                progress_bus.fail_stage(session_id, "report", f"{type(exc).__name__}: {exc}")
+                raise
 
         answer = (facts.get("query_answer") or {}).get("answer") or facts.get("executive_summary") or "Analysis complete."
         response_charts = _response_charts(report_facts, include_report_level=should_generate_report)
@@ -296,6 +340,7 @@ class SessionService:
                 xai_output=xai_output if isinstance(xai_output, dict) else {},
             ),
             "kpis": facts.get("kpis") or [],
+            "audit_trail": facts.get("audit_trail") or [],
             "charts": response_charts,
             "tables": response_tables,
             "warnings": facts.get("warnings") or [],
@@ -304,6 +349,7 @@ class SessionService:
             "xai": xai_payload,
         }
         await self.add_message(session_id, "assistant", answer, payload=assistant_payload)
+        progress_bus.finish(session_id, "analysis complete")
         return {
             "session_id": session_id,
             "dataset_id": dataset_id,
@@ -311,12 +357,14 @@ class SessionService:
             "agents": assistant_payload["agents"],
             "answer": answer,
             "kpis": assistant_payload["kpis"],
+            "audit_trail": assistant_payload["audit_trail"],
             "tables": response_tables,
             "charts": response_charts,
             "warnings": assistant_payload["warnings"],
             "recommendations": assistant_payload["recommendations"],
             "report": report_payload,
             "xai": xai_payload,
+            "narration_provider": (facts.get("narration") or {}).get("narration_provider") or "deterministic",
         }
 
     async def chat_message(self, session_id: str, content: str, dataset_id: str | None = None) -> dict[str, Any]:
@@ -358,6 +406,64 @@ class SessionService:
         }
         await self._insert("reports", report_row)
         return {"report_id": report_id, "html_url": html_url, "pdf_url": pdf_url}
+
+    async def renarrate_report(self, session_id: str, report_id: str) -> dict[str, Any]:
+        """Re-run only the LLM narration pass on an existing report.
+
+        Fast (~2 seconds): does not recompute any deterministic metrics. The
+        latest analyst assistant message in the session is used as the source of
+        facts, the report is regenerated with the new narration, and a fresh
+        report row replaces the old `report_id` pointer.
+        """
+        report = await self._get_by_id("reports", report_id)
+        if not report:
+            raise KeyError("Report not found")
+        if str(report.get("session_id")) != str(session_id):
+            raise ValueError("Report does not belong to this session")
+
+        messages = sorted(
+            [row for row in await self._all_rows("chat_messages") if row.get("session_id") == session_id and row.get("role") == "assistant"],
+            key=lambda row: row.get("created_at") or "",
+        )
+        if not messages:
+            raise ValueError("No prior assistant message available to re-narrate")
+        last_payload = messages[-1].get("payload") or {}
+
+        dataset_id = report.get("dataset_id") or last_payload.get("dataset_id")
+        if not dataset_id:
+            raise ValueError("Report has no associated dataset")
+        dataset = await self.get_dataset(dataset_id)
+        if not dataset:
+            raise KeyError("Dataset not found")
+
+        df, metadata = load_dataframe_for_dataset(session_id, dataset_id)
+        if df is None:
+            raise ValueError("Dataset file is not available locally for re-narration")
+
+        progress_bus.start_stage(session_id, "renarrate", "Re-narrating with GPT")
+        facts = await AnalysisPipeline().run_full_analysis_async(
+            df,
+            query="Re-narrate this analysis with polished prose.",
+            run_xai=False,
+            session_id=session_id,
+            filename=metadata.get("filename") or dataset.get("filename"),
+            use_llm=True,
+            provider=settings.LLM_PROVIDER or "openai",
+            progress_session_id=session_id,
+        )
+        report_facts = _promote_full_report_facts(facts)
+        new_report = await self.generate_report(
+            session_id,
+            dataset_id,
+            report.get("title") or "Analysis Report",
+            report_facts,
+            facts.get("xai") or {},
+        )
+        narration_provider = (facts.get("narration") or {}).get("narration_provider") or "deterministic"
+        progress_bus.complete_stage(session_id, "renarrate", f"narration: {narration_provider}")
+        progress_bus.finish(session_id, "re-narration complete")
+        new_report["narration_provider"] = narration_provider
+        return new_report
 
     async def list_reports(self, session_id: str) -> list[dict[str, Any]]:
         return [row for row in await self._all_rows("reports") if row.get("session_id") == session_id]
