@@ -90,13 +90,30 @@ export type XaiPayload = {
   warnings?: string[];
 };
 
+export type KpiProvenance = {
+  metric_key?: string;
+  label?: string;
+  operation: string;
+  formula_plain: string;
+  source_columns: string[];
+  value: number | string | null;
+  row_count: number;
+  sample_rows: Record<string, unknown>[];
+};
+
+export type Kpi = {
+  label: string;
+  value: string | number | null;
+  provenance?: KpiProvenance;
+};
+
 export type AnalysisResponse = {
   session_id: string;
   dataset_id: string;
   title: string;
   agents: AgentSummary[];
   answer: string;
-  kpis?: Array<{ label: string; value: string | number | null }>;
+  kpis?: Kpi[];
   tables?: TablePayload[];
   charts?: ChartPayload[];
   warnings?: string[];
@@ -107,6 +124,7 @@ export type AnalysisResponse = {
     pdf_url?: string;
   } | null;
   xai?: XaiPayload;
+  narration_provider?: string;
 };
 
 export type UploadResponse = {
@@ -189,6 +207,97 @@ export type ChatEvent = {
   recommendations?: string[];
   suggestions?: string[];
 };
+
+export type ProgressEvent = {
+  stage: string;
+  label?: string;
+  status: 'running' | 'done' | 'error' | 'ping';
+  elapsed_ms?: number;
+  detail?: string;
+};
+
+export type ProgressStreamHandle = {
+  close: () => void;
+};
+
+/**
+ * Subscribe to the server-sent events stream of pipeline-stage progress for a
+ * session. Calls `onEvent` for each stage emit, `onDone` when the analysis
+ * publishes its terminal `_done` event (or the stream closes), and `onError`
+ * on transport failures. Returns a handle whose `close()` aborts the fetch.
+ */
+export function openProgressStream(
+  sessionId: string,
+  onEvent: (event: ProgressEvent) => void,
+  onDone?: () => void,
+  onError?: (error: unknown) => void,
+): ProgressStreamHandle {
+  const controller = new AbortController();
+  const url = buildApiUrl(`/sessions/${sessionId}/progress/stream`);
+  void (async () => {
+    try {
+      const response = await fetch(url, {
+        ...withWorkspaceHeaders({ signal: controller.signal, cache: 'no-store' }),
+      });
+      if (!response.ok || !response.body) {
+        throw new DataVerseApiError(`Progress stream failed (${response.status})`, response.status);
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let separatorIndex = buffer.indexOf('\n\n');
+        while (separatorIndex !== -1) {
+          const rawEvent = buffer.slice(0, separatorIndex);
+          buffer = buffer.slice(separatorIndex + 2);
+          const dataLine = rawEvent.split('\n').find((line) => line.startsWith('data:'));
+          if (dataLine) {
+            const payload = dataLine.replace(/^data:\s?/, '');
+            try {
+              const parsed = JSON.parse(payload) as ProgressEvent;
+              if (parsed.stage === '_done') {
+                onDone?.();
+                controller.abort();
+                return;
+              }
+              if (parsed.stage !== '_ping') {
+                onEvent(parsed);
+              }
+            } catch {
+              // ignore malformed chunks
+            }
+          }
+          separatorIndex = buffer.indexOf('\n\n');
+        }
+      }
+      onDone?.();
+    } catch (error) {
+      if ((error as { name?: string }).name === 'AbortError') {
+        return;
+      }
+      onError?.(error);
+    }
+  })();
+  return { close: () => controller.abort() };
+}
+
+export async function renarrateReport(
+  sessionId: string,
+  reportId: string,
+): Promise<{ report_id: string; html_url?: string; pdf_url?: string; narration_provider?: string }> {
+  await ensureBackendAvailable();
+  const response = await apiFetch(buildApiUrl(`/sessions/${sessionId}/reports/${reportId}/renarrate`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!response.ok) {
+    throw new DataVerseApiError(await readError(response), response.status);
+  }
+  return response.json();
+}
 
 export class DataVerseApiError extends Error {
   status: number;
