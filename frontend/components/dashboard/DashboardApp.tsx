@@ -470,6 +470,10 @@ const AnalyzeWorkspaceView = ({
 
   const profile = dataset?.dataset_profile as Record<string, unknown> | undefined;
   const quality = (profile?.quality ?? {}) as Record<string, unknown>;
+  const qualityScoreRaw = quality.score ?? quality.quality_score ?? profile?.data_quality_score;
+  const qualityScore = qualityScoreRaw !== undefined && qualityScoreRaw !== null ? Number(qualityScoreRaw) : undefined;
+  const missingCells = Number(quality.total_missing ?? quality.missing_cells ?? 0);
+  const duplicateRows = Number(quality.duplicate_rows ?? 0);
   const datasetType = dataset ? datasetTypeLabel(dataset) : 'Generic';
   const previewRows = (profile?.preview_rows ?? []) as Array<Record<string, unknown>>;
   const previewColumns = (profile?.preview_columns ?? []) as string[];
@@ -593,15 +597,15 @@ const AnalyzeWorkspaceView = ({
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-[#F8FAFC] rounded-lg p-3 border border-[#E2E8F0]/50 text-center">
                     <p className="text-[10px] text-[#64748B] uppercase font-semibold">Score</p>
-                    <p className="text-2xl font-bold text-emerald-500 mt-1">{quality.quality_score !== undefined ? `${quality.quality_score}%` : 'N/A'}</p>
+                    <p className="text-2xl font-bold text-emerald-500 mt-1">{qualityScore !== undefined ? `${Math.round(qualityScore <= 1 ? qualityScore * 100 : qualityScore)}%` : 'N/A'}</p>
                   </div>
                   <div className="bg-[#F8FAFC] rounded-lg p-3 border border-[#E2E8F0]/50 text-center">
                     <p className="text-[10px] text-[#64748B] uppercase font-semibold">Missing Cells</p>
-                    <p className="text-xl font-bold text-[#0F172A] mt-1.5">{formatCell(quality.missing_cells ?? 0)}</p>
+                    <p className="text-xl font-bold text-[#0F172A] mt-1.5">{formatCell(missingCells)}</p>
                   </div>
                   <div className="bg-[#F8FAFC] rounded-lg p-3 border border-[#E2E8F0]/50 text-center">
                     <p className="text-[10px] text-[#64748B] uppercase font-semibold">Duplicate Rows</p>
-                    <p className="text-xl font-bold text-[#0F172A] mt-1.5">{formatCell(quality.duplicate_rows ?? 0)}</p>
+                    <p className="text-xl font-bold text-[#0F172A] mt-1.5">{formatCell(duplicateRows)}</p>
                   </div>
                 </div>
 
