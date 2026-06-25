@@ -13,6 +13,12 @@ from fastapi.testclient import TestClient
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_dataverse.db"
 os.environ["UPLOAD_DIR"] = tempfile.mkdtemp(prefix="dataverse_test_")
 os.environ["ENVIRONMENT"] = "test"
+# Keep tests deterministic and offline: never call a live LLM during the suite.
+os.environ["USE_LLM_NARRATION"] = "false"
+os.environ["LLM_PROVIDER"] = "deterministic"
+os.environ["INTENT_LLM_PROVIDER"] = "deterministic"
+os.environ["OPENAI_API_KEY"] = ""
+os.environ["GEMINI_API_KEY"] = ""
 
 from app.main import app  # noqa: E402
 

@@ -19,6 +19,7 @@ from .whatif import simulate as simulate_whatif
 from .progress_bus import progress_bus
 from .report_generator import ReportGenerator
 from .report_narrator import ReportNarrator
+from .llm_provider import LLMProvider
 from .semantic_mapper import SemanticMapper
 from .session_store import (
     load_dataframe_for_dataset,
@@ -329,7 +330,8 @@ class SessionService:
                 progress_bus.fail_stage(session_id, "report", f"{type(exc).__name__}: {exc}")
                 raise
 
-        answer = (facts.get("query_answer") or {}).get("answer") or facts.get("executive_summary") or "Analysis complete."
+        deterministic_answer = (facts.get("query_answer") or {}).get("answer") or facts.get("executive_summary") or "Analysis complete."
+        answer = await self._compose_chat_answer(user_prompt, facts, deterministic_answer)
         response_charts = _response_charts(report_facts, include_report_level=should_generate_report)
         response_tables = _response_tables(report_facts if should_generate_report else facts)
         xai_payload = _response_xai(report_facts if should_generate_report else facts, xai_output if isinstance(xai_output, dict) else {})
@@ -374,6 +376,55 @@ class SessionService:
             "xai": xai_payload,
             "narration_provider": (facts.get("narration") or {}).get("narration_provider") or "deterministic",
         }
+
+    async def _compose_chat_answer(
+        self, query: str, facts: dict[str, Any], deterministic_answer: str, provider: LLMProvider | None = None
+    ) -> str:
+        """Write a specific, grounded answer from the deterministic facts using the LLM.
+
+        The LLM is given the exact computed numbers and instructed to use only those — it
+        never originates a figure. Falls back to the deterministic answer if the LLM is off
+        or unavailable, so the deterministic-first guarantee holds.
+        """
+        if not settings.USE_LLM_NARRATION:
+            return deterministic_answer
+        provider = provider or LLMProvider()
+        if not provider.is_configured():
+            return deterministic_answer
+        bm = facts.get("business_metrics") or {}
+        prediction = facts.get("prediction") or {}
+        xai = facts.get("xai") or {}
+        context = {
+            "kpis": {k: bm.get(k) for k in (
+                "total_revenue", "total_profit", "gross_margin", "total_quantity",
+                "transaction_count", "average_order_value")},
+            "top_products": (bm.get("top_products") or [])[:3],
+            "top_categories": (bm.get("top_categories") or [])[:3],
+            "top_regions": (bm.get("top_regions") or [])[:3],
+            "deterministic_answer": deterministic_answer,
+            "prediction": ({k: prediction.get(k) for k in (
+                "selected_model", "target_column", "test_metrics", "train_rows", "test_rows")}
+                if prediction.get("status") == "complete" else None),
+            "xai_top_features": (xai.get("top_features") or [])[:5],
+            "xai_explanation": xai.get("plain_english_explanation"),
+            "key_insights": (facts.get("key_insights") or [])[:4],
+        }
+        prompt = (
+            f"User question: {query}\n\n"
+            "Authoritative computed facts (use these EXACT numbers; never invent or change a number):\n"
+            f"{json.dumps(context, default=str)[:3500]}\n\n"
+            "Answer the user's question in 2-4 concise sentences, like a senior data analyst. Be specific and use "
+            "the numbers above. If a prediction or driver/feature information is present and relevant, summarise it "
+            "(model, accuracy/error, key drivers). No disclaimers, no preamble."
+        )
+        try:
+            text = await provider.generate(
+                prompt,
+                system_prompt="You are a precise business data analyst. Use only the provided numbers; never fabricate figures.",
+            )
+        except Exception:
+            text = None
+        return (text or "").strip() or deterministic_answer
 
     async def chat_message(self, session_id: str, content: str, dataset_id: str | None = None) -> dict[str, Any]:
         return await self.analyze(
