@@ -39,7 +39,10 @@ def calculate_business_metrics(df: pd.DataFrame, semantic_map: dict[str, Any]) -
     average_order_value = total_revenue / sales_transaction_count if total_revenue is not None and sales_transaction_count else None
 
     date_col = _metric_col(metrics.get("date"))
-    product_col = _metric_col(metrics.get("product"))
+    product_col = _metric_col(metrics.get("product")) or _fallback_column(
+        df, roles, role_names=("product",),
+        name_tokens=("product", "item", "sku", "subcategory", "sub_category"),
+    )
     category_col = _metric_col(metrics.get("category"))
     customer_col = _metric_col(metrics.get("customer"))
     region_col = _metric_col(metrics.get("region"))
@@ -546,7 +549,7 @@ def _group_by_dimension(df: pd.DataFrame, column: str, values: pd.Series, value_
     work = pd.DataFrame({"_dimension": df[column].fillna("Unknown").astype(str), "_value": values})
     grouped = work.groupby("_dimension")["_value"].sum().sort_values(ascending=False).head(20)
     normalized = column.lower().replace(" ", "_")
-    if any(token in normalized for token in ("product", "item", "sku")):
+    if any(token in normalized for token in ("product", "item", "sku", "subcategory", "sub_category")):
         key = "product"
     elif "category" in normalized:
         key = "category"

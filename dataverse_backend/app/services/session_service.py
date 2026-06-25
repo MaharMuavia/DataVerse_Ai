@@ -666,7 +666,11 @@ def normalize_charts(charts: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _response_charts(facts: dict[str, Any], *, include_report_level: bool) -> list[dict[str, Any]]:
     if include_report_level or str((facts.get("query_plan") or {}).get("report_mode")) == "full_analysis_report":
         return normalize_charts(facts.get("charts") or [])
-    return normalize_charts((facts.get("query_answer") or {}).get("charts") or [])
+    # Focused answers should still be visual: prefer the answer's own charts, then fall
+    # back to the intent-specific charts the pipeline already computed (facts["charts"]).
+    answer_charts = (facts.get("query_answer") or {}).get("charts") or []
+    charts = answer_charts or (facts.get("charts") or [])
+    return normalize_charts(charts[:4])
 
 
 def _response_tables(facts: dict[str, Any]) -> list[dict[str, Any]]:

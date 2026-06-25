@@ -270,4 +270,6 @@ def test_total_sales_message_returns_focused_answer_without_report(tmp_path, mon
     assert body["report"] is None
     assert body["xai"] is None
     assert body["kpis"]
-    assert body["charts"] == []
+    # Focused answers are now visual: the total-sales intent surfaces its charts
+    # (sales by month / category / region) even without generating a full report.
+    assert body["charts"]
