@@ -38,7 +38,7 @@ import {
 } from '@/lib/dataverse-api';
 import { useAuth } from '@/lib/auth';
 import { ThinkingTrace, reduceProgress, type ThinkingStep } from '@/components/ThinkingTrace';
-import { DropZone } from '@/components/DropZone';
+import { HeroUpload } from './HeroUpload';
 import { GlassCard } from './GlassCard';
 import { KpiCard } from './KpiCard';
 import { Composer } from './Composer';
@@ -482,7 +482,8 @@ const AnalyzeWorkspaceView = ({
     <div className="flex-1 w-full mx-auto px-4 md:px-8 pb-32 pt-24 overflow-y-auto overflow-x-hidden custom-scrollbar bg-[#F8FAFC]">
       <div className="max-w-[1000px] mx-auto space-y-8">
 
-        {/* Header Block */}
+        {/* Header Block — hidden on the empty/home hero for a clean Claude-style start */}
+        {dataset && (
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center shadow-lg">
@@ -502,43 +503,18 @@ const AnalyzeWorkspaceView = ({
             </button>
           )}
         </div>
+        )}
 
-        {/* Upload State */}
+        {/* Empty/home state — Claude-style hero: greeting + upload composer + example chips */}
         {!dataset && (
-          <div className="space-y-6">
-            <DropZone
-              isUploading={!!isUploading}
-              uploadStatus={uploadStatus}
-              backendStatus={backendStatus}
-              onUpload={onUpload}
-            />
-
-            {/* Recent Datasets */}
-            {recentDatasets.length > 0 && !isUploading && (
-              <div className="space-y-3">
-                <h3 className="text-xs font-semibold text-[#64748B] uppercase tracking-wider">Reload Recent Sessions</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {recentDatasets.slice(0, 4).map((recent) => (
-                    <GlassCard
-                      key={recent.id}
-                      onClick={() => onSelectRecentDataset(recent.session_id)}
-                      className="p-4 bg-white border-[#E2E8F0] hover:bg-[#F8FAFC]"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500">
-                          <Table size={16} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-[#0F172A] truncate">{recent.filename}</p>
-                          <p className="text-xs text-[#64748B] mt-0.5">{formatNumber(recent.row_count)} rows &bull; {recent.column_count} cols</p>
-                        </div>
-                      </div>
-                    </GlassCard>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <HeroUpload
+            onUpload={onUpload}
+            isUploading={!!isUploading}
+            uploadStatus={uploadStatus}
+            backendStatus={backendStatus}
+            recentDatasets={recentDatasets}
+            onSelectRecent={onSelectRecentDataset}
+          />
         )}
 
         {/* Loading / Agent processing state */}
