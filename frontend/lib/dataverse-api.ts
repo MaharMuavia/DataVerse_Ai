@@ -80,12 +80,31 @@ export type AgentSummary = {
   steps?: AgentStep[];
 };
 
+export type CounterfactualChange = {
+  feature: string;
+  original: number;
+  new: number;
+  pct_change: number;
+  prediction_before: string | number;
+  prediction_after: string | number;
+  sentence: string;
+};
+
+export type CounterfactualRow = {
+  sample_index: number;
+  row_index: number | string;
+  prediction_before: string | number;
+  counterfactuals: CounterfactualChange[];
+};
+
 export type XaiPayload = {
   status?: string;
   method?: string | null;
   global_feature_importance?: Array<{ feature: string; importance: number }>;
   top_features?: string[];
   local_explanations?: Array<{ sample_index: number; top_contributors: Array<{ feature: string; shap_value: number }> }>;
+  counterfactuals?: CounterfactualRow[];
+  counterfactual_method?: string | null;
   plain_english_explanation?: string;
   warnings?: string[];
 };
@@ -177,12 +196,64 @@ export type WhatIfResult = {
   deltas: WhatIfDelta[];
 };
 
+export type AgentTraceStep = {
+  thought?: string | null;
+  tool?: string | null;
+  args?: Record<string, unknown> | null;
+  observation?: Record<string, unknown> | null;
+};
+
+export type RootCauseDriver = {
+  value: string;
+  before: number;
+  after: number;
+  contribution: number;
+  share_of_delta?: number | null;
+};
+
+export type RootCauseStep = {
+  action: string;
+  finding: string;
+  receipt?: KpiProvenance | null;
+};
+
+export type RootCauseResult = {
+  status: 'complete' | 'unsupported' | string;
+  question?: string;
+  metric?: string;
+  reason?: string;
+  direction?: string;
+  period_a?: string;
+  period_b?: string;
+  value_a?: number;
+  value_b?: number;
+  delta?: number;
+  pct_change?: number | null;
+  primary_dimension?: string;
+  drivers?: RootCauseDriver[];
+  breakdowns?: Record<string, RootCauseDriver[]>;
+  price_volume?: {
+    price_effect: number;
+    volume_effect: number;
+    mix_effect: number;
+    avg_price_before: number;
+    avg_price_after: number;
+    quantity_before: number;
+    quantity_after: number;
+  } | null;
+  steps?: RootCauseStep[];
+  chart?: ChartPayload | null;
+  narrative?: string;
+};
+
 export type AnalysisResponse = {
   session_id: string;
   dataset_id: string;
   title: string;
   agents: AgentSummary[];
   answer: string;
+  agent_trace?: AgentTraceStep[];
+  root_cause?: RootCauseResult | null;
   kpis?: Kpi[];
   audit_trail?: AuditEntry[];
   certificate?: VerificationCertificate;
@@ -644,6 +715,23 @@ export async function whatifDataset(
     throw new DataVerseApiError(await readError(response), response.status);
   }
   return response.json() as Promise<WhatIfResult>;
+}
+
+export async function investigateDataset(
+  sessionId: string,
+  datasetId: string,
+  question: string,
+): Promise<RootCauseResult> {
+  await ensureBackendAvailable();
+  const response = await apiFetch(buildApiUrl(`/sessions/${sessionId}/datasets/${datasetId}/investigate`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question }),
+  });
+  if (!response.ok) {
+    throw new DataVerseApiError(await readError(response), response.status);
+  }
+  return response.json() as Promise<RootCauseResult>;
 }
 
 export async function streamQuery(

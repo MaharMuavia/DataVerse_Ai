@@ -44,11 +44,13 @@ import { KpiCard } from './KpiCard';
 import { Composer } from './Composer';
 import { VerificationPanel } from './VerificationPanel';
 import { QualityDoctorPanel } from './QualityDoctorPanel';
+import { RootCausePanel } from './RootCausePanel';
+import { AgentTracePanel } from './AgentTracePanel';
 import { ConversationThread } from './ConversationThread';
 import { CertificateCard } from './CertificateCard';
 import { WhatIfPanel } from './WhatIfPanel';
 import { formatCell, formatNumber } from '@/lib/dashboard-format';
-import type { Kpi, AuditEntry, QualityDiagnosis, VerificationCertificate, VerifyResult, WhatIfResult } from '@/lib/dataverse-api';
+import type { Kpi, AuditEntry, QualityDiagnosis, VerificationCertificate, VerifyResult, WhatIfResult, AgentTraceStep, RootCauseResult, CounterfactualRow } from '@/lib/dataverse-api';
 import { buildVerifiedReportHtml } from '@/lib/verified-report';
 import ReactMarkdown from 'react-markdown';
 
@@ -82,9 +84,13 @@ type ChatMessage = {
     global_feature_importance?: Array<{ feature: string; importance: number }>;
     top_features?: string[];
     local_explanations?: Array<{ sample_index: number; top_contributors: Array<{ feature: string; shap_value: number }> }>;
+    counterfactuals?: CounterfactualRow[];
+    counterfactual_method?: string | null;
     plain_english_explanation?: string;
     warnings?: string[];
   } | null;
+  agentTrace?: AgentTraceStep[];
+  rootCause?: RootCauseResult | null;
   isLoading?: boolean;
 };
 
@@ -173,6 +179,7 @@ const datasetSuggestions = (dataset: DatasetSummary | null) => {
   }
   if (type === 'sales') {
     return [
+      semantic.revenue && semantic.date ? 'Why did revenue change last month?' : null,
       semantic.product ? 'What are the top products?' : null,
       semantic.product && semantic.date ? 'Which products are trending?' : null,
       semantic.revenue && semantic.date ? 'Show revenue by month.' : null,
@@ -778,6 +785,16 @@ const AnalyzeWorkspaceView = ({
               </GlassCard>
             )}
 
+            {/* Root-Cause Investigator: deterministic "why did X change?" decomposition */}
+            {latestAssistant?.rootCause?.status === 'complete' && (
+              <RootCausePanel result={latestAssistant.rootCause} />
+            )}
+
+            {/* Agent trace: the LLM plan→act→observe loop behind the answer */}
+            {latestAssistant?.agentTrace && latestAssistant.agentTrace.length > 0 && (
+              <AgentTracePanel trace={latestAssistant.agentTrace} />
+            )}
+
             {/* Tables from streamed queries */}
             {latestAssistant?.tables && latestAssistant.tables.length > 0 && (
               <div className="space-y-3">
@@ -954,6 +971,33 @@ const ReportXAIPageView = ({
                 </div>
               </div>
             )}
+
+            {/* Counterfactuals: the smallest change that would flip each prediction */}
+            {(() => {
+              const sentences = (xai.counterfactuals ?? [])
+                .flatMap((row) => row.counterfactuals ?? [])
+                .map((cf) => cf.sentence)
+                .filter(Boolean);
+              if (!sentences.length) return null;
+              return (
+                <div className="space-y-3 pt-2">
+                  <h4 className="text-xs font-bold text-[#64748B] uppercase tracking-wider flex items-center gap-2">
+                    <BrainCircuit size={14} className="text-blue-500" /> What Would Change This Outcome (Counterfactuals)
+                  </h4>
+                  <ul className="space-y-2 bg-blue-50/40 border border-blue-100 rounded-xl p-4">
+                    {sentences.slice(0, 4).map((sentence, idx) => (
+                      <li key={idx} className="text-sm text-[#334155] leading-relaxed flex gap-2">
+                        <span className="text-blue-500 font-bold shrink-0">→</span>
+                        <span>{sentence}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-[10px] text-[#64748B]">
+                    Found by a deterministic single-feature search — the same model and data always produce the same counterfactuals.
+                  </p>
+                </div>
+              );
+            })()}
           </GlassCard>
         )}
 
@@ -1085,6 +1129,8 @@ export function DashboardApp() {
       recommendations: item.payload?.recommendations as string[] | undefined,
       report: item.payload?.report as ChatMessage['report'],
       xai: item.payload?.xai as ChatMessage['xai'],
+      agentTrace: item.payload?.agent_trace as ChatMessage['agentTrace'],
+      rootCause: item.payload?.root_cause as ChatMessage['rootCause'],
     })));
     setCurrentView('analyze');
     await refreshSidebar();
@@ -1249,6 +1295,8 @@ export function DashboardApp() {
               recommendations: result.recommendations,
               report: result.report,
               xai: result.xai as ChatMessage['xai'],
+              agentTrace: result.agent_trace,
+              rootCause: result.root_cause,
               narrationProvider: result.narration_provider,
               isLoading: false,
             }
@@ -1373,6 +1421,8 @@ export function DashboardApp() {
                 tables: lastAssistant.payload?.tables as TablePayload[] | undefined,
                 recommendations: lastAssistant.payload?.recommendations as string[] | undefined,
                 xai: lastAssistant.payload?.xai as ChatMessage['xai'],
+                agentTrace: lastAssistant.payload?.agent_trace as ChatMessage['agentTrace'],
+                rootCause: lastAssistant.payload?.root_cause as ChatMessage['rootCause'],
               }
             : message
         )));
