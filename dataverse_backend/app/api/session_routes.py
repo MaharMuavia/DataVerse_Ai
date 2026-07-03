@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import APIRouter, File, Header, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
-from ..api.schemas import ChatMessageCreate, ChatSessionCreate, ChatSessionUpdate, DatasetCleanRequest, DatasetVerifyRequest, DatasetWhatIfRequest, SessionAnalyzeRequest
+from ..api.schemas import ChatMessageCreate, ChatSessionCreate, ChatSessionUpdate, DatasetCleanRequest, DatasetInvestigateRequest, DatasetVerifyRequest, DatasetWhatIfRequest, SessionAnalyzeRequest
 from ..core.config import settings
 from ..services.progress_bus import progress_bus
 from ..services.session_service import session_service
@@ -146,6 +146,19 @@ async def whatif_dataset(session_id: str, dataset_id: str, request: DatasetWhatI
     """Deterministic, receipt-backed what-if scenario on a numeric column."""
     try:
         return await session_service.whatif_dataset(session_id, dataset_id, request.column, request.pct_change)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/sessions/{session_id}/datasets/{dataset_id}/investigate")
+async def investigate_dataset(session_id: str, dataset_id: str, request: DatasetInvestigateRequest) -> dict[str, Any]:
+    """Root-cause investigation: explain WHY a metric changed, with receipts."""
+    try:
+        return await session_service.investigate_dataset(
+            session_id, dataset_id, question=request.question, metric=request.metric, period=request.period,
+        )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:

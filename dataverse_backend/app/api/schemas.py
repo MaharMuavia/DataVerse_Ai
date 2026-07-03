@@ -125,6 +125,12 @@ class DatasetWhatIfRequest(BaseModel):
     pct_change: float = 10.0
 
 
+class DatasetInvestigateRequest(BaseModel):
+    question: str = "Why did the main metric change?"
+    metric: Optional[str] = None
+    period: Optional[str] = None
+
+
 class DatasetProfileResponse(BaseModel):
     session_id: str
     profile: Dict[str, Any]

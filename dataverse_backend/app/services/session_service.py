@@ -11,8 +11,10 @@ import pandas as pd
 
 from ..api.upload_parsing import parse_uploaded_dataframe
 from ..core.config import settings
+from .agent_loop import AgentLoop
 from .analysis_pipeline import AnalysisPipeline
 from .data_quality import json_safe, normalize_chart_specs
+from .root_cause import investigate as investigate_root_cause, is_why_question
 from .quality_doctor import diagnose as diagnose_quality, apply_fixes as apply_quality_fixes
 from .certificate import verify_certificate
 from .whatif import simulate as simulate_whatif
@@ -318,6 +320,26 @@ class SessionService:
             await self._update("datasets", dataset_id, {"semantic_map": facts["semantic_map"], "updated_at": utc_now_iso()})
 
 
+        deterministic_answer = (facts.get("query_answer") or {}).get("answer") or facts.get("executive_summary") or "Analysis complete."
+
+        # Root-cause: "why" questions get a deterministic multi-step investigation
+        # (drivers, price/volume split, receipts) even with no LLM configured.
+        root_cause_payload = None
+        if is_why_question(user_prompt):
+            progress_bus.start_stage(session_id, "root_cause", "Investigating root cause", "period delta · drivers · price/volume")
+            try:
+                investigation = investigate_root_cause(df, facts.get("semantic_map") or {}, question=user_prompt)
+                root_cause_payload = json_safe(investigation)
+                if investigation.get("status") == "complete":
+                    deterministic_answer = f"{investigation['narrative']}\n\n{deterministic_answer}"
+                    if investigation.get("chart"):
+                        facts.setdefault("charts", []).insert(0, investigation["chart"])
+                    progress_bus.complete_stage(session_id, "root_cause", f"top driver: {investigation['drivers'][0]['value']}")
+                else:
+                    progress_bus.complete_stage(session_id, "root_cause", investigation.get("reason"))
+            except Exception as exc:
+                progress_bus.fail_stage(session_id, "root_cause", f"{type(exc).__name__}: {exc}")
+
         report_payload = None
         should_generate_report = bool(generate_report)
         report_facts = _promote_full_report_facts(facts) if should_generate_report else facts
@@ -330,8 +352,23 @@ class SessionService:
                 progress_bus.fail_stage(session_id, "report", f"{type(exc).__name__}: {exc}")
                 raise
 
-        deterministic_answer = (facts.get("query_answer") or {}).get("answer") or facts.get("executive_summary") or "Analysis complete."
-        answer = await self._compose_chat_answer(user_prompt, facts, deterministic_answer)
+        # Agentic answer: an LLM plan→act→observe loop over deterministic tools.
+        # Falls back to the grounded single-shot answer when no LLM is available.
+        agent_trace = None
+        answer = None
+        if settings.USE_LLM_NARRATION:
+            try:
+                agent_result = await AgentLoop().run(
+                    df, facts.get("semantic_map") or {}, user_prompt, facts,
+                    progress_session_id=session_id,
+                )
+            except Exception:
+                agent_result = None
+            if agent_result:
+                answer = agent_result["answer"]
+                agent_trace = json_safe(agent_result["trace"])
+        if not answer:
+            answer = await self._compose_chat_answer(user_prompt, facts, deterministic_answer)
         response_charts = _response_charts(report_facts, include_report_level=should_generate_report)
         response_tables = _response_tables(report_facts if should_generate_report else facts)
         xai_payload = _response_xai(report_facts if should_generate_report else facts, xai_output if isinstance(xai_output, dict) else {})
@@ -355,6 +392,8 @@ class SessionService:
             "recommendations": facts.get("recommendations") or [],
             "report": report_payload,
             "xai": xai_payload,
+            "agent_trace": agent_trace or [],
+            "root_cause": root_cause_payload,
         }
         await self.add_message(session_id, "assistant", answer, payload=assistant_payload)
         progress_bus.finish(session_id, "analysis complete")
@@ -374,6 +413,8 @@ class SessionService:
             "recommendations": assistant_payload["recommendations"],
             "report": report_payload,
             "xai": xai_payload,
+            "agent_trace": agent_trace or [],
+            "root_cause": root_cause_payload,
             "narration_provider": (facts.get("narration") or {}).get("narration_provider") or "deterministic",
         }
 
@@ -478,6 +519,22 @@ class SessionService:
             use_llm=False, filename=dataset.get("filename"),
         )
         return verify_certificate(df, facts.get("audit_trail") or [], certificate)
+
+    async def investigate_dataset(
+        self, session_id: str, dataset_id: str, *,
+        question: str, metric: str | None = None, period: str | None = None,
+    ) -> dict[str, Any]:
+        """Run the deterministic root-cause investigation on a session dataset."""
+        dataset = await self.get_dataset(dataset_id)
+        if not dataset:
+            raise KeyError("Dataset not found")
+        df, _metadata = load_dataframe_for_dataset(session_id, dataset_id)
+        if df is None:
+            raise ValueError("Dataset file is not available locally for investigation")
+        semantic_map = dataset.get("semantic_map")
+        if not isinstance(semantic_map, dict) or not semantic_map:
+            semantic_map = SemanticMapper().map_dataframe(df, filename=dataset.get("filename"))
+        return json_safe(investigate_root_cause(df, semantic_map, question=question, metric=metric, period=period))
 
     async def whatif_dataset(self, session_id: str, dataset_id: str, column: str, pct_change: float) -> dict[str, Any]:
         """Run a deterministic, receipt-backed what-if scenario on a numeric column."""
