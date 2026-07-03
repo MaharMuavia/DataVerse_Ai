@@ -6,7 +6,28 @@ The LLM is optional and only used to polish the narration of computed facts. All
 
 ## Two-Agent Architecture
 
-The MVP relies on exactly two agents:
+The MVP relies on exactly two agents with a clear division of labor:
+
+```mermaid
+graph TD
+    User([User]) -->|1. Uploads CSV/XLSX| DatasetAgent[DatasetAgent]
+    DatasetAgent -->|2. Validates & Parses| DatasetAgent
+    DatasetAgent -->|3. Profiles Columns & Quality Scan| DatasetAgent
+    DatasetAgent -->|4. Persists Session| Store[(Session Store)]
+    DatasetAgent -->|5. Delivers Profile & Quality| Workspace[Analyze Workspace]
+    
+    Workspace -->|6. Triggers Analysis| AnalystAgent[AnalystAgent]
+    AnalystAgent -->|7. Semantic KPI Mapping| AnalystAgent
+    AnalystAgent -->|8. Runs EDA & AutoML Modeling| AnalystAgent
+    AnalystAgent -->|9. SHAP Explainable AI XAI| AnalystAgent
+    AnalystAgent -->|10. Compiles Report max 2 charts| ReportCompiler[Report Compiler]
+    
+    ReportCompiler -->|11. Generates Compact HTML & PDF| Store
+    ReportCompiler -->|12. Renders Preview & XAI Card| ReportPage[Report & XAI Page]
+```
+
+### Division of Labor
+
 1. **`DatasetAgent`** (`app/agents/dataset_agent.py`):
    - Validates uploaded file limits and file formats.
    - Parses CSV/XLSX safely.
@@ -21,6 +42,33 @@ The MVP relies on exactly two agents:
    - Triggers predictive machine learning (Ridge or RandomForest) only if the dataset has at least **30 rows** (`MIN_ROWS_FOR_PREDICTION`) and a target is provided.
    - Runs XAI (Shapley/Feature Importance) upon successful modeling.
    - Generates charts-ready JSON and final polished report narration (using offline deterministic narration if LLM keys are absent).
+
+---
+
+## Unique Capabilities
+
+Beyond the verifiable-analyst core (provenance receipts, reproducibility certificate,
+verified what-if, quality doctor), DataVerse AI ships three capabilities no comparable
+tool combines:
+
+1. **Root-Cause Investigator** — ask *"Why did revenue drop in May?"* and the system runs
+   a deterministic multi-step investigation: it locates the period delta, decomposes the
+   change across every dimension (product / category / region / customer), ranks drivers
+   by contribution ("Widget explains 100% of the drop"), and splits the change into price
+   vs volume effects. Every step carries a provenance receipt. Works fully offline.
+   (`app/services/root_cause.py`, `POST /api/sessions/{sid}/datasets/{did}/investigate`)
+2. **Counterfactual XAI** — for each explained prediction, a deterministic single-feature
+   search finds the smallest change that flips the outcome: *"Raising `quantity` from 8
+   to 9.2 (+15%) would flip the predicted label from 'low' to 'high'."* Goes beyond SHAP
+   importance to actionable, reproducible explanations. (`app/services/counterfactual.py`)
+3. **Agentic chat loop** — when an LLM key is configured, chat answers come from a real
+   plan→act→observe agent: the LLM chooses deterministic tools (KPIs, segments, trends,
+   what-if, root-cause, prediction/XAI, quality), reads the computed observations, and
+   answers using only those numbers. The full tool trace streams live into the UI. With
+   no key, it falls back to the deterministic answer path. (`app/services/agent_loop.py`)
+
+All three preserve the core guarantee: **every number is computed in pandas/scikit-learn;
+the LLM only plans and phrases.**
 
 ---
 
