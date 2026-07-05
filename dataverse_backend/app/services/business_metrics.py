@@ -561,7 +561,16 @@ def _group_by_dimension(df: pd.DataFrame, column: str, values: pd.Series, value_
         key = "store"
     else:
         key = column
-    return [{key: str(name), value_name: _money(value)} for name, value in grouped.items() if float(value) != 0]
+
+    def _label(name: Any) -> str:
+        text = str(name).strip()
+        # Integer-coded categories ("0", "3") read badly in narrative and charts;
+        # prefix with the source column so they render as "subcategory 3".
+        if text.lstrip("-").isdigit():
+            return f"{column.replace('_', ' ')} {text}"
+        return text
+
+    return [{key: _label(name), value_name: _money(value)} for name, value in grouped.items() if float(value) != 0]
 
 
 def _count_by_dimension(df: pd.DataFrame, column: str, label_name: str) -> list[dict[str, Any]]:
