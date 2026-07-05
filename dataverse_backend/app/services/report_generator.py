@@ -61,29 +61,29 @@ REPORT_TEMPLATE = Template(
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      color-scheme: dark;
-      --bg: #0B1120;
-      --bg-surface: #111827;
-      --card: #1E293B;
-      --card-hover: #253349;
-      --line: rgba(148,163,184,.12);
-      --line-accent: rgba(99,102,241,.25);
-      --primary: #818CF8;
-      --primary-bright: #A5B4FC;
-      --secondary: #38BDF8;
+      color-scheme: light;
+      --bg: #F8FAFC;
+      --bg-surface: #F1F5F9;
+      --card: #FFFFFF;
+      --card-hover: #F8FAFC;
+      --line: #E2E8F0;
+      --line-accent: rgba(99,102,241,.30);
+      --primary: #6D28D9;
+      --primary-bright: #7C3AED;
+      --secondary: #0284C7;
       --accent: #6366F1;
-      --accent-glow: rgba(99,102,241,.15);
-      --success: #34D399;
-      --success-bg: rgba(52,211,153,.08);
-      --warning: #FBBF24;
-      --warning-bg: rgba(251,191,36,.08);
-      --danger: #F87171;
-      --danger-bg: rgba(248,113,113,.08);
-      --ink: #F1F5F9;
-      --ink-secondary: #CBD5E1;
-      --muted: #94A3B8;
-      --glass-bg: rgba(30,41,59,.65);
-      --glass-border: rgba(148,163,184,.1);
+      --accent-glow: rgba(109,40,217,.08);
+      --success: #059669;
+      --success-bg: rgba(5,150,105,.08);
+      --warning: #B45309;
+      --warning-bg: rgba(180,83,9,.08);
+      --danger: #DC2626;
+      --danger-bg: rgba(220,38,38,.08);
+      --ink: #0F172A;
+      --ink-secondary: #334155;
+      --muted: #64748B;
+      --glass-bg: rgba(255,255,255,.75);
+      --glass-border: #E2E8F0;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -96,7 +96,7 @@ REPORT_TEMPLATE = Template(
     .cover {
       position: relative; overflow: hidden;
       padding: 48px 40px 40px;
-      background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 40%, #312E81 70%, #1E293B 100%);
+      background: linear-gradient(135deg, #FFFFFF 0%, #F5F3FF 45%, #EDE9FE 75%, #EFF6FF 100%);
       border-bottom: 1px solid var(--line-accent);
     }
     .cover::before {
@@ -118,7 +118,7 @@ REPORT_TEMPLATE = Template(
     }
     .cover h1 {
       font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 800;
-      letter-spacing: -.02em; color: #fff; margin-bottom: 10px;
+      letter-spacing: -.02em; color: var(--ink); margin-bottom: 10px;
     }
     .cover .meta {
       color: var(--muted); font-size: 12px;
@@ -157,10 +157,10 @@ REPORT_TEMPLATE = Template(
       padding: 6px 16px; border-radius: 999px;
       font-size: 13px; font-weight: 700; letter-spacing: .02em;
     }
-    .verdict-excellent { background: rgba(52,211,153,.15); color: #34D399; border: 1px solid rgba(52,211,153,.25); }
-    .verdict-good { background: rgba(56,189,248,.15); color: #38BDF8; border: 1px solid rgba(56,189,248,.25); }
-    .verdict-needs-improvement { background: rgba(251,191,36,.15); color: #FBBF24; border: 1px solid rgba(251,191,36,.25); }
-    .verdict-critical { background: rgba(248,113,113,.15); color: #F87171; border: 1px solid rgba(248,113,113,.25); }
+    .verdict-excellent { background: rgba(5,150,105,.10); color: #059669; border: 1px solid rgba(5,150,105,.30); }
+    .verdict-good { background: rgba(2,132,199,.10); color: #0284C7; border: 1px solid rgba(2,132,199,.30); }
+    .verdict-needs-improvement { background: rgba(180,83,9,.10); color: #B45309; border: 1px solid rgba(180,83,9,.30); }
+    .verdict-critical { background: rgba(220,38,38,.10); color: #DC2626; border: 1px solid rgba(220,38,38,.30); }
 
     /* ── Page ── */
     .page { max-width: 1140px; margin: 0 auto; padding: 24px 20px 48px; }
@@ -169,7 +169,7 @@ REPORT_TEMPLATE = Template(
     .section {
       background: var(--card); border: 1px solid var(--line);
       border-radius: 16px; padding: 20px 22px; margin: 0 0 14px;
-      box-shadow: 0 4px 24px rgba(0,0,0,.12), 0 1px 3px rgba(0,0,0,.08);
+      box-shadow: 0 2px 12px rgba(15,23,42,.05), 0 1px 3px rgba(15,23,42,.04);
       animation: fadeInUp .45s ease both;
     }
     .section h2 {
@@ -202,7 +202,7 @@ REPORT_TEMPLATE = Template(
       background: linear-gradient(90deg, var(--primary), var(--secondary));
       opacity: 0; transition: opacity .2s ease;
     }
-    .kpi-card:hover { transform: translateY(-2px); border-color: var(--line-accent); box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+    .kpi-card:hover { transform: translateY(-2px); border-color: var(--line-accent); box-shadow: 0 8px 24px rgba(15,23,42,.08); }
     .kpi-card:hover::before { opacity: 1; }
     .kpi-label {
       font-size: 10px; font-weight: 700; text-transform: uppercase;
@@ -230,7 +230,7 @@ REPORT_TEMPLATE = Template(
       border-radius: 14px; padding: 18px; overflow: hidden;
       transition: border-color .2s ease, box-shadow .2s ease;
     }
-    .chart-card:hover { border-color: var(--line-accent); box-shadow: 0 8px 32px rgba(0,0,0,.15); }
+    .chart-card:hover { border-color: var(--line-accent); box-shadow: 0 8px 32px rgba(15,23,42,.07); }
     .chart-card h3 { color: var(--ink); font-weight: 600; margin-bottom: 4px; }
     .chart-card .explain { font-size: 12px; color: var(--muted); margin: 4px 0 12px; line-height: 1.5; }
     .chart-card .takeaway {
@@ -534,19 +534,29 @@ class ReportGenerator:
                         recs = body["bullets"]
                         break
         recs_list = list(dict.fromkeys([str(r) for r in recs if r]))
-        # A clean dataset must not be told to "review missing values": drop
-        # quality boilerplate when the data is verifiably clean, then top up with
-        # actions derived from the actual findings.
-        data_is_clean = (
-            float(quality_score or 0) >= 99.0
-            and int(quality.get("missing_cells") or 0) == 0
-            and int(quality.get("duplicate_rows") or 0) == 0
-        )
-        if data_is_clean:
-            recs_list = [
-                r for r in recs_list
-                if not re.search(r"missing values|duplicate rows|imputation", r, re.IGNORECASE)
-            ]
+        # Actions must never contradict the measured data: if there are zero
+        # missing cells / duplicates, no action may tell the reader to review
+        # them. The blanket quality boilerplate is replaced by an action that
+        # names only the issues that actually exist.
+        no_missing = int(quality.get("missing_cells") or 0) == 0
+        no_dupes = int(quality.get("duplicate_rows") or 0) == 0
+        if no_missing and no_dupes:
+            rewritten: list[str] = []
+            for r in recs_list:
+                if re.search(r"missing values|duplicate rows|imputation", r, re.IGNORECASE):
+                    real_issues: list[str] = []
+                    outlier_total = self._outlier_total(facts)
+                    if outlier_total:
+                        real_issues.append(f"{outlier_total:,} outlier values")
+                    if quality.get("high_cardinality_columns"):
+                        real_issues.append("high-cardinality identifier columns")
+                    if real_issues:
+                        rewritten.append(
+                            f"Review {' and '.join(real_issues)} before operational decisions."
+                        )
+                    continue
+                rewritten.append(r)
+            recs_list = rewritten
         # Developer-facing phrasing never belongs in an executive action list.
         recs_list = [
             r for r in recs_list
@@ -829,16 +839,18 @@ class ReportGenerator:
             for c in charts:
                 title = str(c.get("title", "")).lower()
                 ctype = str(c.get("type", "")).lower()
-                if not revenue_trend and (ctype == "line" or "revenue" in title or "trend" in title or "month" in title):
+                # The trend slot demands an actual time series — a bar titled
+                # "Top Products by Revenue" must not fill it.
+                if not revenue_trend and (ctype == "line" or "trend" in title or "month" in title or "over time" in title):
                     revenue_trend = c
                 elif not top_cat_prod and (ctype == "bar" or "category" in title or "product" in title):
                     top_cat_prod = c
-            
+
             if revenue_trend:
                 selected.append(revenue_trend)
-            if top_cat_prod:
+            if top_cat_prod and top_cat_prod is not revenue_trend:
                 selected.append(top_cat_prod)
-                
+
         else:
             missing_chart = None
             cat_dist = None
@@ -854,12 +866,24 @@ class ReportGenerator:
             if cat_dist:
                 selected.append(cat_dist)
 
+        def _dimension(chart: dict[str, Any]) -> str:
+            return str(chart.get("x_key") or chart.get("series_key") or chart.get("title") or "")
+
+        # Top-up preferring dimension diversity: two "Top Products by ..." bars
+        # tell one story; a product chart + a region/category chart tell two.
+        used_dims = {_dimension(c) for c in selected}
+        for c in charts:
+            if len(selected) >= 2:
+                break
+            if c not in selected and _dimension(c) not in used_dims:
+                selected.append(c)
+                used_dims.add(_dimension(c))
         for c in charts:
             if len(selected) >= 2:
                 break
             if c not in selected:
                 selected.append(c)
-                
+
         return selected[:2]
 
     def _augment_food(self, composed: dict[str, Any], facts: dict[str, Any]) -> dict[str, Any]:
@@ -1657,12 +1681,12 @@ def _truncate(value: str, length: int) -> str:
 def _health_color(score: int) -> str:
     """Map a 0–100 health score to a hex colour."""
     if score >= 80:
-        return "#34D399"  # success green
+        return "#059669"  # success green
     if score >= 60:
-        return "#38BDF8"  # info blue
+        return "#0284C7"  # info blue
     if score >= 40:
-        return "#FBBF24"  # warning amber
-    return "#F87171"  # danger red
+        return "#B45309"  # warning amber
+    return "#DC2626"  # danger red
 
 
 def _health_gauge_svg(score: int, color: str) -> str:
@@ -1693,19 +1717,19 @@ def _executive_verdict(score: int) -> tuple[str, str, str]:
 
 
 _SECTION_ICONS: dict[str, tuple[str, str, str]] = {
-    "Executive Summary":     ("📋", "rgba(99,102,241,.15)", "#818CF8"),
-    "KPI Dashboard":         ("📊", "rgba(56,189,248,.15)", "#38BDF8"),
-    "Data Quality Summary":  ("🛡️", "rgba(52,211,153,.15)", "#34D399"),
-    "AI-Generated Insights": ("🤖", "rgba(168,85,247,.15)", "#A855F7"),
-    "Visual Insights":       ("📈", "rgba(99,102,241,.15)", "#818CF8"),
-    "Explainable AI":        ("🧠", "rgba(236,72,153,.15)", "#EC4899"),
-    "Key Actions":           ("🎯", "rgba(251,191,36,.15)", "#FBBF24"),
+    "Executive Summary":     ("📋", "rgba(109,40,217,.10)", "#6D28D9"),
+    "KPI Dashboard":         ("📊", "rgba(2,132,199,.10)", "#0284C7"),
+    "Data Quality Summary":  ("🛡️", "rgba(5,150,105,.10)", "#059669"),
+    "AI-Generated Insights": ("🤖", "rgba(147,51,234,.10)", "#9333EA"),
+    "Visual Insights":       ("📈", "rgba(109,40,217,.10)", "#6D28D9"),
+    "Explainable AI":        ("🧠", "rgba(219,39,119,.10)", "#DB2777"),
+    "Key Actions":           ("🎯", "rgba(180,83,9,.10)", "#B45309"),
 }
 
 
 def _section_icon(title: str) -> tuple[str, str, str]:
     """Return (icon_emoji, bg_color, text_color) for a section title."""
-    return _SECTION_ICONS.get(title, ("📄", "rgba(148,163,184,.1)", "#94A3B8"))
+    return _SECTION_ICONS.get(title, ("📄", "rgba(100,116,139,.10)", "#64748B"))
 
 
 def _chartjs_init_script(canvas_id: str, chart: dict[str, Any]) -> str:
@@ -1720,7 +1744,7 @@ def _chartjs_init_script(canvas_id: str, chart: dict[str, Any]) -> str:
     y_key = chart.get("y_key") or chart.get("y")
     series_key = chart.get("series_key")
 
-    palette = ["#818CF8", "#38BDF8", "#34D399", "#FBBF24", "#F87171", "#A855F7", "#14B8A6", "#6366F1"]
+    palette = ["#7C3AED", "#0284C7", "#059669", "#D97706", "#DC2626", "#9333EA", "#0D9488", "#4F46E5"]
 
     if chart_type in ("pie", "donut"):
         labels = [str(row.get(x_key, "")) for row in data[:8] if isinstance(row, dict)]
@@ -1735,7 +1759,7 @@ def _chartjs_init_script(canvas_id: str, chart: dict[str, Any]) -> str:
             "options": {
                 "responsive": True,
                 "maintainAspectRatio": False,
-                "plugins": {"legend": {"position": "right", "labels": {"color": "#94A3B8", "font": {"size": 11}}}},
+                "plugins": {"legend": {"position": "right", "labels": {"color": "#64748B", "font": {"size": 11}}}},
             },
         }
 
@@ -1779,10 +1803,10 @@ def _chartjs_init_script(canvas_id: str, chart: dict[str, Any]) -> str:
                 "responsive": True,
                 "maintainAspectRatio": False,
                 "scales": {
-                    "x": {"ticks": {"color": "#94A3B8", "font": {"size": 10}}, "grid": {"color": "rgba(148,163,184,.08)"}},
-                    "y": {"ticks": {"color": "#94A3B8", "font": {"size": 10}}, "grid": {"color": "rgba(148,163,184,.08)"}},
+                    "x": {"ticks": {"color": "#64748B", "font": {"size": 10}}, "grid": {"color": "rgba(15,23,42,.07)"}},
+                    "y": {"ticks": {"color": "#64748B", "font": {"size": 10}}, "grid": {"color": "rgba(15,23,42,.07)"}},
                 },
-                "plugins": {"legend": {"labels": {"color": "#CBD5E1", "font": {"size": 11}}}},
+                "plugins": {"legend": {"labels": {"color": "#334155", "font": {"size": 11}}}},
             },
         }
 
@@ -1802,8 +1826,8 @@ def _chartjs_init_script(canvas_id: str, chart: dict[str, Any]) -> str:
                 "responsive": True,
                 "maintainAspectRatio": False,
                 "scales": {
-                    "x": {"ticks": {"color": "#94A3B8", "font": {"size": 10}}, "grid": {"color": "rgba(148,163,184,.08)"}},
-                    "y": {"ticks": {"color": "#CBD5E1", "font": {"size": 11}}, "grid": {"display": False}},
+                    "x": {"ticks": {"color": "#64748B", "font": {"size": 10}}, "grid": {"color": "rgba(15,23,42,.07)"}},
+                    "y": {"ticks": {"color": "#334155", "font": {"size": 11}}, "grid": {"display": False}},
                 },
                 "plugins": {"legend": {"display": False}},
             },

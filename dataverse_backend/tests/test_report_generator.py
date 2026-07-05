@@ -133,11 +133,14 @@ def test_insights_are_deduplicated_globally():
     assert len(memory.ranked_insights()) == 1
 
 
-def test_full_html_report_is_light_themed_and_has_no_duplicate_bullets():
+def test_full_html_report_is_premium_themed_and_has_no_duplicate_bullets():
     facts = _sales_facts()
     generated = asyncio.run(ReportGenerator().generate(title="Sales Report", facts=facts))
     html = str(generated["html"])
-    assert "#F8FAFC" in html and "#0b1326" not in html  # light background, no dark cover
+    # Premium light theme (project convention: light theme only).
+    assert "color-scheme: light" in html
+    assert "#0B1120" not in html  # dark-mode background must be gone
+    assert "@media print" in html  # print fallback
     bullets = re.findall(r"<li>(.*?)</li>", html)
     normalized = [re.sub(r"\s+", " ", b).strip().lower() for b in bullets]
     assert len(normalized) == len(set(normalized)), "duplicate bullet content rendered"
