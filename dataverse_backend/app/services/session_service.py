@@ -81,6 +81,21 @@ class SessionService:
             for row in rows
         ]
 
+    async def ensure_access(self, session_id: str, identity: str | None) -> dict[str, Any]:
+        """Authorize `identity` for a session (IDOR guard).
+
+        Sessions without an owner (legacy/anonymous) stay open; owned sessions
+        require the caller's verified identity to match. Raises KeyError when
+        the session does not exist and PermissionError when access is denied.
+        """
+        row = await self._get_by_id("chat_sessions", session_id)
+        if not row:
+            raise KeyError("Session not found")
+        owner = row.get("user_id")
+        if owner and str(owner) != str(identity or ""):
+            raise PermissionError("You do not have access to this session")
+        return row
+
     async def get_session(self, session_id: str) -> dict[str, Any]:
         session = await self._get_by_id("chat_sessions", session_id)
         if not session:

@@ -4,11 +4,12 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from fastapi import APIRouter, File, Header, HTTPException, Query, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import StreamingResponse
 
 from ..api.schemas import ChatMessageCreate, ChatSessionCreate, ChatSessionUpdate, DatasetCleanRequest, DatasetInvestigateRequest, DatasetVerifyRequest, DatasetWhatIfRequest, SessionAnalyzeRequest
 from ..core.config import settings
+from ..services.auth_service import resolve_identity
 from ..services.progress_bus import progress_bus
 from ..services.session_service import session_service
 
@@ -16,23 +17,27 @@ from ..services.session_service import session_service
 router = APIRouter()
 
 
+async def _authorize(session_id: str, request: Request) -> None:
+    """Ownership guard: 404 if missing, 403 if the caller isn't the owner."""
+    try:
+        await session_service.ensure_access(session_id, resolve_identity(request))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @router.post("/sessions")
-async def create_session(
-    request: ChatSessionCreate,
-    dataverse_user: str | None = Header(default=None, alias="X-Dataverse-User"),
-) -> dict[str, Any]:
-    return await session_service.create_session(title=request.title, user_id=dataverse_user)
+async def create_session(request: ChatSessionCreate, http_request: Request) -> dict[str, Any]:
+    return await session_service.create_session(title=request.title, user_id=resolve_identity(http_request))
 
 
 @router.get("/sessions")
-async def list_sessions(
-    dataverse_user: str | None = Header(default=None, alias="X-Dataverse-User"),
-) -> list[dict[str, Any]]:
-    return await session_service.list_sessions(user_id=dataverse_user)
+async def list_sessions(request: Request) -> list[dict[str, Any]]:
+    return await session_service.list_sessions(user_id=resolve_identity(request))
 
 
 @router.get("/sessions/{session_id}")
-async def get_session(session_id: str) -> dict[str, Any]:
+async def get_session(session_id: str, request: Request) -> dict[str, Any]:
+    await _authorize(session_id, request)
     try:
         return await session_service.get_session(session_id)
     except KeyError as exc:
@@ -40,7 +45,8 @@ async def get_session(session_id: str) -> dict[str, Any]:
 
 
 @router.patch("/sessions/{session_id}")
-async def update_session(session_id: str, request: ChatSessionUpdate) -> dict[str, Any]:
+async def update_session(session_id: str, request: ChatSessionUpdate, http_request: Request) -> dict[str, Any]:
+    await _authorize(session_id, http_request)
     payload = {key: value for key, value in request.model_dump(exclude_unset=True).items() if value is not None}
     updated = await session_service.update_session(session_id, payload)
     if not updated:
@@ -49,7 +55,8 @@ async def update_session(session_id: str, request: ChatSessionUpdate) -> dict[st
 
 
 @router.delete("/sessions/{session_id}")
-async def delete_session(session_id: str) -> dict[str, Any]:
+async def delete_session(session_id: str, request: Request) -> dict[str, Any]:
+    await _authorize(session_id, request)
     await session_service.delete_session(session_id)
     return {"session_id": session_id, "deleted": True}
 
@@ -57,11 +64,13 @@ async def delete_session(session_id: str) -> dict[str, Any]:
 @router.post("/sessions/{session_id}/datasets/upload")
 async def upload_dataset_to_session(
     session_id: str,
+    request: Request,
     file: UploadFile = File(...),
     auto_analyze: bool = Query(default=False),
     generate_report: bool = Query(default=False),
     run_xai: bool = Query(default=False),
 ) -> dict[str, Any]:
+    await _authorize(session_id, request)
     contents = await file.read()
     filename = file.filename or "dataset.csv"
     if not contents:
@@ -99,12 +108,14 @@ async def upload_dataset_to_session(
 
 
 @router.get("/sessions/{session_id}/datasets")
-async def list_session_datasets(session_id: str) -> list[dict[str, Any]]:
+async def list_session_datasets(session_id: str, request: Request) -> list[dict[str, Any]]:
+    await _authorize(session_id, request)
     return await session_service.list_session_datasets(session_id)
 
 
 @router.post("/sessions/{session_id}/analyze")
-async def analyze_session(session_id: str, request: SessionAnalyzeRequest) -> dict[str, Any]:
+async def analyze_session(session_id: str, request: SessionAnalyzeRequest, http_request: Request) -> dict[str, Any]:
+    await _authorize(session_id, http_request)
     try:
         return await session_service.analyze(
             session_id,
@@ -120,8 +131,9 @@ async def analyze_session(session_id: str, request: SessionAnalyzeRequest) -> di
 
 
 @router.post("/sessions/{session_id}/datasets/{dataset_id}/clean")
-async def clean_dataset(session_id: str, dataset_id: str, request: DatasetCleanRequest) -> dict[str, Any]:
+async def clean_dataset(session_id: str, dataset_id: str, request: DatasetCleanRequest, http_request: Request) -> dict[str, Any]:
     """Apply Data Quality Doctor fixes and return the re-analysis of the cleaned data."""
+    await _authorize(session_id, http_request)
     try:
         return await session_service.clean_dataset(session_id, dataset_id, request.fix_ids)
     except KeyError as exc:
@@ -131,8 +143,9 @@ async def clean_dataset(session_id: str, dataset_id: str, request: DatasetCleanR
 
 
 @router.post("/sessions/{session_id}/datasets/{dataset_id}/verify")
-async def verify_dataset(session_id: str, dataset_id: str, request: DatasetVerifyRequest) -> dict[str, Any]:
+async def verify_dataset(session_id: str, dataset_id: str, request: DatasetVerifyRequest, http_request: Request) -> dict[str, Any]:
     """Re-run the deterministic computation and verify it reproduces the certificate."""
+    await _authorize(session_id, http_request)
     try:
         return await session_service.verify_dataset(session_id, dataset_id, request.certificate)
     except KeyError as exc:
@@ -142,8 +155,9 @@ async def verify_dataset(session_id: str, dataset_id: str, request: DatasetVerif
 
 
 @router.post("/sessions/{session_id}/datasets/{dataset_id}/whatif")
-async def whatif_dataset(session_id: str, dataset_id: str, request: DatasetWhatIfRequest) -> dict[str, Any]:
+async def whatif_dataset(session_id: str, dataset_id: str, request: DatasetWhatIfRequest, http_request: Request) -> dict[str, Any]:
     """Deterministic, receipt-backed what-if scenario on a numeric column."""
+    await _authorize(session_id, http_request)
     try:
         return await session_service.whatif_dataset(session_id, dataset_id, request.column, request.pct_change)
     except KeyError as exc:
@@ -153,8 +167,9 @@ async def whatif_dataset(session_id: str, dataset_id: str, request: DatasetWhatI
 
 
 @router.post("/sessions/{session_id}/datasets/{dataset_id}/investigate")
-async def investigate_dataset(session_id: str, dataset_id: str, request: DatasetInvestigateRequest) -> dict[str, Any]:
+async def investigate_dataset(session_id: str, dataset_id: str, request: DatasetInvestigateRequest, http_request: Request) -> dict[str, Any]:
     """Root-cause investigation: explain WHY a metric changed, with receipts."""
+    await _authorize(session_id, http_request)
     try:
         return await session_service.investigate_dataset(
             session_id, dataset_id, question=request.question, metric=request.metric, period=request.period,
@@ -166,7 +181,8 @@ async def investigate_dataset(session_id: str, dataset_id: str, request: Dataset
 
 
 @router.post("/sessions/{session_id}/messages")
-async def create_message(session_id: str, request: ChatMessageCreate) -> dict[str, Any]:
+async def create_message(session_id: str, request: ChatMessageCreate, http_request: Request) -> dict[str, Any]:
+    await _authorize(session_id, http_request)
     try:
         return await session_service.chat_message(session_id, request.content, dataset_id=request.dataset_id)
     except KeyError as exc:
@@ -200,8 +216,9 @@ async def stream_progress(session_id: str) -> StreamingResponse:
 
 
 @router.post("/sessions/{session_id}/reports/{report_id}/renarrate")
-async def renarrate_report(session_id: str, report_id: str) -> dict[str, Any]:
+async def renarrate_report(session_id: str, report_id: str, request: Request) -> dict[str, Any]:
     """Re-run only the LLM narration pass on an existing report's facts."""
+    await _authorize(session_id, request)
     try:
         return await session_service.renarrate_report(session_id, report_id)
     except KeyError as exc:
@@ -211,11 +228,13 @@ async def renarrate_report(session_id: str, report_id: str) -> dict[str, Any]:
 
 
 @router.get("/sessions/{session_id}/agent-runs")
-async def list_agent_runs(session_id: str) -> list[dict[str, Any]]:
+async def list_agent_runs(session_id: str, request: Request) -> list[dict[str, Any]]:
+    await _authorize(session_id, request)
     session = await session_service.get_session(session_id)
     return session.get("agent_runs", [])
 
 
 @router.get("/sessions/{session_id}/reports")
-async def list_session_reports(session_id: str) -> list[dict[str, Any]]:
+async def list_session_reports(session_id: str, request: Request) -> list[dict[str, Any]]:
+    await _authorize(session_id, request)
     return await session_service.list_reports(session_id)

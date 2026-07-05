@@ -19,6 +19,9 @@ os.environ["LLM_PROVIDER"] = "deterministic"
 os.environ["INTENT_LLM_PROVIDER"] = "deterministic"
 os.environ["OPENAI_API_KEY"] = ""
 os.environ["GEMINI_API_KEY"] = ""
+# The suite fires hundreds of uploads/messages in minutes; keep the limiter out
+# of the way except in the test that exercises it explicitly.
+os.environ["RATE_LIMIT_PER_MINUTE"] = "100000"
 
 from app.main import app  # noqa: E402
 
