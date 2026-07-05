@@ -507,7 +507,7 @@ class ReportGenerator:
 
         # 4. AI-Generated Insights — granular trends/anomalies/correlations/risks,
         #    deliberately distinct from the Executive Summary headlines.
-        ai_bullets = self._ai_insight_bullets(composed, exec_bullets)
+        ai_bullets = self._ai_insight_bullets(composed, exec_bullets, facts)
         if len(ai_bullets) < 3:
             ai_bullets.append(
                 "Variables move largely independently — no single factor dominates the others."
@@ -533,10 +533,29 @@ class ReportGenerator:
                     if isinstance(body, dict) and body.get("bullets"):
                         recs = body["bullets"]
                         break
-        recs_list = list(dict.fromkeys([str(r) for r in recs if r]))[:5]
+        recs_list = list(dict.fromkeys([str(r) for r in recs if r]))
+        # A clean dataset must not be told to "review missing values": drop
+        # quality boilerplate when the data is verifiably clean, then top up with
+        # actions derived from the actual findings.
+        data_is_clean = (
+            float(quality_score or 0) >= 99.0
+            and int(quality.get("missing_cells") or 0) == 0
+            and int(quality.get("duplicate_rows") or 0) == 0
+        )
+        if data_is_clean:
+            recs_list = [
+                r for r in recs_list
+                if not re.search(r"missing values|duplicate rows|imputation", r, re.IGNORECASE)
+            ]
+        # Developer-facing phrasing never belongs in an executive action list.
+        recs_list = [
+            r for r in recs_list
+            if not re.search(r"json|chart-ready|specs|render the chart", r, re.IGNORECASE)
+        ]
+        recs_list.extend(self._data_driven_actions(facts, existing=recs_list))
+        recs_list = list(dict.fromkeys(recs_list))[:5]
         if not recs_list:
             recs_list = [
-                "Resolve missing values and duplicates before relying on the headline KPIs.",
                 "Double down on the leading revenue driver while reducing single-point dependency.",
                 "Stand up an automated data-quality check so new records stay analysis-ready.",
             ]
@@ -615,12 +634,15 @@ class ReportGenerator:
         by_column = (facts.get("outliers") or {}).get("by_column") or {}
         return sum(int(info.get("count", 0) or 0) for info in by_column.values())
 
-    def _ai_insight_bullets(self, composed: dict[str, Any], exec_bullets: list[str]) -> list[str]:
+    def _ai_insight_bullets(
+        self, composed: dict[str, Any], exec_bullets: list[str], facts: dict[str, Any] | None = None
+    ) -> list[str]:
         """Harvest granular trend/correlation/category/forecast statements.
 
-        These are the deterministic narration lines already produced by the composer;
-        they give the AI-Insights section a different analytical angle from the
-        Executive Summary. Anything that duplicates an executive bullet is dropped.
+        These are the deterministic narration lines already produced by the composer,
+        topped up with business-dimension findings (region share, discount-profit
+        relationship, monthly trend) computed straight from the facts. Anything that
+        duplicates an executive bullet is dropped.
         """
         def _norm(value: Any) -> str:
             return re.sub(r"[^a-z0-9]+", " ", str(value).lower()).strip()
@@ -628,17 +650,103 @@ class ReportGenerator:
         seen = {_norm(b) for b in exec_bullets}
         wanted = ("Trend Analysis", "Correlation Analysis", "Category Analysis", "Forecasting")
         out: list[str] = []
+
+        def _push(line: str) -> None:
+            fp = _norm(line)
+            if fp and fp not in seen:
+                seen.add(fp)
+                out.append(line)
+
+        composer_lines: list[str] = []
         for section in (composed.get("sections") or []):
             if section.get("title") not in wanted:
                 continue
             body = section.get("body") or {}
-            for line in (body.get("lines") or []):
-                fp = _norm(line)
-                if not fp or fp in seen:
-                    continue
-                seen.add(fp)
-                out.append(str(line))
+            composer_lines.extend(str(line) for line in (body.get("lines") or []))
+        # Balance the section: cap same-flavour composer lines (e.g. four category
+        # shares) so region / discount / trend findings also make the cut.
+        for line in composer_lines[:3]:
+            _push(line)
+        for line in self._business_dimension_bullets(facts or {}):
+            _push(line)
+        for line in composer_lines[3:]:
+            _push(line)
         return out[:5]
+
+    def _business_dimension_bullets(self, facts: dict[str, Any]) -> list[str]:
+        """Deterministic region / discount / trend findings for the insights section."""
+        bullets: list[str] = []
+        business = facts.get("business_metrics") or {}
+        total_revenue = _num(business.get("total_revenue"))
+        top_regions = business.get("top_regions") or []
+        if top_regions and total_revenue:
+            leader = top_regions[0]
+            region_label = leader.get("region")
+            region_revenue = _num(leader.get("revenue"))
+            if region_label and region_revenue:
+                share = region_revenue / total_revenue * 100
+                bullets.append(
+                    f"{region_label} is the strongest region with {_fmt(region_revenue)} "
+                    f"({share:.1f}% of revenue) — prioritise stock and marketing there."
+                )
+        matrix = (facts.get("correlations") or {}).get("matrix") or {}
+        discount_row = matrix.get("discount") or {}
+        discount_corr = discount_row.get("profit", discount_row.get("total_sales"))
+        if discount_corr is not None:
+            r = float(discount_corr)
+            if abs(r) < 0.2:
+                bullets.append(
+                    f"Discounts show almost no relationship with profit (r = {r:.2f}) — "
+                    "discounting is not buying profitability."
+                )
+            elif r < 0:
+                bullets.append(
+                    f"Discounts correlate negatively with profit (r = {r:.2f}) — heavy "
+                    "discounting is eroding margin."
+                )
+        series = (facts.get("trends") or {}).get("series") or []
+        if series:
+            first = series[0]
+            direction = str(first.get("direction") or "").lower()
+            pct = first.get("percent_change")
+            column = first.get("value_column")
+            if column and direction in {"up", "upward", "down", "downward"} and pct is not None:
+                arrow = "grew" if direction.startswith("up") else "declined"
+                bullets.append(
+                    f"{str(column).replace('_', ' ')} {arrow} {abs(float(pct)):.1f}% across the tracked period."
+                )
+        return bullets
+
+    def _data_driven_actions(self, facts: dict[str, Any], existing: list[str]) -> list[str]:
+        """Actions grounded in the computed findings (used to replace boilerplate)."""
+        existing_text = " ".join(existing).lower()
+        actions: list[str] = []
+        business = facts.get("business_metrics") or {}
+        total_revenue = _num(business.get("total_revenue"))
+        top_products = business.get("top_products") or []
+        if top_products and total_revenue:
+            leader = top_products[0]
+            label = leader.get("product")
+            revenue = _num(leader.get("revenue"))
+            if label and revenue and str(label).lower() not in existing_text:
+                share = revenue / total_revenue * 100
+                if share >= 12:
+                    actions.append(
+                        f"Diversify beyond {label}: it contributes {share:.1f}% of revenue, a concentration risk."
+                    )
+        margin = business.get("gross_margin")
+        if margin is not None and float(margin) < 20 and "margin" not in existing_text:
+            actions.append(
+                f"Investigate cost structure: gross margin of {float(margin):.1f}% is thin for sustaining growth."
+            )
+        matrix = (facts.get("correlations") or {}).get("matrix") or {}
+        discount_row = matrix.get("discount") or {}
+        discount_corr = discount_row.get("profit")
+        if discount_corr is not None and abs(float(discount_corr)) < 0.2 and "discount" not in existing_text:
+            actions.append(
+                "Re-evaluate blanket discounting — discounts show near-zero correlation with profit."
+            )
+        return actions
 
     def _xai_section(self, facts: dict[str, Any], xai_output: dict[str, Any] | None) -> dict[str, Any]:
         """Explainable AI section: the top-5 outcome drivers in plain language."""
@@ -1014,8 +1122,13 @@ class ReportGenerator:
             styles["Italic"].leading = 10
         gap_small = 6 if compact == 0 else 3
         gap_large = 8 if compact == 0 else 4
-        max_paragraphs = None if compact == 0 else (2 if compact == 1 else 1)
-        max_charts = 1 if compact >= 2 else 2
+        # Level 1 only tightens typography — content is preserved. Paragraph caps
+        # start at level 2, and headline sections (KPIs, exec summary, actions)
+        # keep a higher budget so compaction never guts the report's essence.
+        max_paragraphs = None if compact <= 1 else (3 if compact == 2 else 2)
+        essential_paragraphs = None if compact <= 1 else 6
+        essential_titles = {"KPI Dashboard", "Executive Summary", "Key Actions", "KPI Metrics"}
+        max_charts = 1 if compact >= 3 else 2
         all_sections = list(composed.get("sections") or [])
         if compact >= 3:
             all_sections = all_sections[:8]
@@ -1040,8 +1153,9 @@ class ReportGenerator:
         def _render_pdf_section(section: dict[str, Any]) -> None:
             story.append(Paragraph(html.escape(str(section["title"])), styles["Heading2"]))
             paragraphs = _section_plaintext(section.get("body"))
-            if max_paragraphs is not None:
-                paragraphs = paragraphs[:max_paragraphs]
+            cap = essential_paragraphs if str(section.get("title")) in essential_titles else max_paragraphs
+            if cap is not None:
+                paragraphs = paragraphs[:cap]
             for paragraph in paragraphs:
                 story.append(Paragraph(html.escape(paragraph), styles["BodyText"]))
             story.append(Spacer(1, gap_small))

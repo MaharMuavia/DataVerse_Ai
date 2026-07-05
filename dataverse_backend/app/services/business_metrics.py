@@ -592,7 +592,15 @@ def _rank_dimension(
         return []
     work = pd.DataFrame({"_label": df[column].fillna("Unknown").astype(str), "_value": values})
     grouped = work.groupby("_label")["_value"].sum().sort_values(ascending=False).head(limit)
-    return [{label_name: str(name), value_name: _money(value)} for name, value in grouped.items() if float(value) != 0]
+
+    def _label(name: Any) -> str:
+        text = str(name).strip()
+        # Coded categories ("0", "3") must read as "subcategory 3" in charts/takeaways.
+        if text.lstrip("-").isdigit():
+            return f"{column.replace('_', ' ')} {text}"
+        return text
+
+    return [{label_name: _label(name), value_name: _money(value)} for name, value in grouped.items() if float(value) != 0]
 
 
 def _product_monthly_trends(
