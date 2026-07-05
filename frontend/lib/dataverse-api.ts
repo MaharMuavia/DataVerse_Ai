@@ -15,6 +15,16 @@ export { API_BASE_URL, API_HEALTH_URL, BACKEND_START_COMMAND } from './apiConfig
 
 const WORKSPACE_USER_ID_KEY = 'dataverse.workspaceUserId';
 const USER_HEADER = 'X-Dataverse-User';
+const TOKEN_KEY = 'dataverse.token';
+
+export function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
 
 function createWorkspaceUserId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -41,13 +51,17 @@ function getWorkspaceUserId() {
 }
 
 function withWorkspaceHeaders(init?: RequestInit): RequestInit {
-  const userId = getWorkspaceUserId();
-  if (!userId) {
-    return init ?? {};
-  }
-
   const headers = new Headers(init?.headers);
-  headers.set(USER_HEADER, userId);
+  // A verified JWT is the real identity; the workspace id is a legacy/anonymous
+  // fallback used only when the user hasn't authenticated.
+  const token = getAuthToken();
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  const userId = getWorkspaceUserId();
+  if (userId) {
+    headers.set(USER_HEADER, userId);
+  }
   return { ...init, headers };
 }
 
