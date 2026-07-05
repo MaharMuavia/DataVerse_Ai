@@ -18,3 +18,4 @@ openai
 google-generativeai
 shap
 matplotlib
+pypdf
