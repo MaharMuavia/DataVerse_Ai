@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 from urllib.parse import quote
 
@@ -154,7 +154,9 @@ class SessionService:
         progress_bus.complete_stage(session_id, "parse", f"{len(df):,} rows × {len(df.columns)} cols")
 
         dataset_id = str(uuid.uuid4())
-        safe_name = Path(filename).name or "dataset.csv"
+        # PureWindowsPath treats both / and \ as separators, so traversal
+        # components are stripped regardless of the host platform.
+        safe_name = PureWindowsPath(filename).name or "dataset.csv"
         file_type = safe_name.rsplit(".", 1)[-1].lower() if "." in safe_name else "csv"
         storage_path = f"{session_id}/{dataset_id}/{safe_name}"
         local_path = persist_dataframe_for_dataset(session_id, dataset_id, df, filename=safe_name)
