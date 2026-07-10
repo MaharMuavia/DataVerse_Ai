@@ -20,19 +20,19 @@ router = APIRouter()
 async def _authorize(session_id: str, request: Request) -> None:
     """Ownership guard: 404 if missing, 403 if the caller isn't the owner."""
     try:
-        await session_service.ensure_access(session_id, resolve_identity(request))
+        await session_service.ensure_access(session_id, await resolve_identity(request))
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post("/sessions")
 async def create_session(request: ChatSessionCreate, http_request: Request) -> dict[str, Any]:
-    return await session_service.create_session(title=request.title, user_id=resolve_identity(http_request))
+    return await session_service.create_session(title=request.title, user_id=await resolve_identity(http_request))
 
 
 @router.get("/sessions")
 async def list_sessions(request: Request) -> list[dict[str, Any]]:
-    return await session_service.list_sessions(user_id=resolve_identity(request))
+    return await session_service.list_sessions(user_id=await resolve_identity(request))
 
 
 @router.get("/sessions/{session_id}")

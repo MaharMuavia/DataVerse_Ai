@@ -106,7 +106,7 @@ async def test_compact_report_limits_charts_and_orders_them_before_xai():
     html = str((await ReportGenerator().generate(title="Dataset Analysis Report", facts=facts))["html"])
 
     # Exactly two charts, no more.
-    assert 0 < html.count('<div class="chart">') <= 2
+    assert 0 < html.count('<div class="chart-card">') <= 2
 
     # Document order: charts → Explainable AI → Key Actions (closing section).
     assert html.index("Visual Insights") < html.index("Explainable AI") < html.index("Key Actions")
@@ -205,3 +205,9 @@ async def test_compact_report_pdf_and_html_render():
     assert isinstance(result["pdf"], bytes)
     assert len(result["pdf"]) > 100
     assert "Headline Metrics" not in str(result["html"])  # KPI cards render once, in the dashboard
+    # Verify cover page elements are present in the premium BI template.
+    html_out = str(result["html"])
+    assert "Health Score" in html_out
+    assert "AI Confidence" in html_out
+    assert "Executive Verdict" in html_out
+    assert "chart.js" in html_out.lower() or "Chart" in html_out

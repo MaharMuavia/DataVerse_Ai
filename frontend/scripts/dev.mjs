@@ -4,7 +4,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const DEFAULT_API_URL = 'http://localhost:8000/api';
+const DEFAULT_API_URL = 'http://127.0.0.1:8000/api';
 const DEFAULT_FRONTEND_HOST = '127.0.0.1';
 const DEFAULT_FRONTEND_PORT = '3000';
 const STARTUP_TIMEOUT_MS = 120_000;
@@ -168,7 +168,7 @@ function killPort(port) {
       const lines = output.split('\n');
       for (const line of lines) {
         const parts = line.trim().split(/\s+/);
-        if (parts.length >= 5 && parts[1].includes(`:${port}`)) {
+        if (parts.length >= 5 && parts[1].endsWith(`:${port}`)) {
           const pid = parts[parts.length - 1];
           if (pid && pid !== '0') {
             console.log(`[dev] Stopping existing process (PID ${pid}) on port ${port}...`);

@@ -41,7 +41,7 @@ class ReportNarrator:
             return fallback
         try:
             text = await asyncio.wait_for(
-                llm_provider.generate(self._prompt(facts)),
+                llm_provider.generate(self._prompt(facts), system_prompt=self._system_prompt()),
                 timeout=settings.REPORT_NARRATOR_TIMEOUT_SECONDS,
             )
             if text:
@@ -75,6 +75,19 @@ class ReportNarrator:
             return text
         return f"{text}\n\n{required or fallback.get('executive_summary', '')}".strip()
 
+    def _system_prompt(self) -> str:
+        return (
+            "You are a senior data analyst writing a polished, board-ready report. "
+            "STRICT RULES — violating any of these makes the report unusable:\n"
+            "1. Use ONLY the numbers in the JSON facts. Never invent, round, or extrapolate values.\n"
+            "2. If a metric is missing or null, say 'not available' — do not fabricate a stand-in.\n"
+            "3. Quote currency, percentages, and counts exactly as given.\n"
+            "4. Be specific. Replace 'sales are strong' with 'sales total ₹1.2M, up X% MoM' — but only when X is in the facts.\n"
+            "5. No hedging fluff ('it is important to note', 'as we can see'). Lead with the insight.\n"
+            "6. Keep the executive summary tight: 3–5 sentences max, each carrying a distinct fact.\n"
+            "Tone: confident, specific, plain English. Audience: a business owner who wants the takeaway in 60 seconds."
+        )
+
     def _prompt(self, facts: dict[str, Any]) -> str:
         safe = {
             "dataset_profile": facts.get("dataset_profile"),
@@ -92,10 +105,14 @@ class ReportNarrator:
             "xai": facts.get("xai"),
         }
         return (
-            "Write a concise professional AI data analyst report with these sections: "
-            "Executive Summary, Dataset Overview, Data Quality, Key Insights, Trends, Correlations, "
-            "Outliers, Prediction Results, XAI Explanation, Risks and Limitations, Recommendations, Next Questions. "
-            "Use only the computed facts below and do not invent numbers.\n"
+            "Write the report body as continuous prose covering: Executive Summary, Dataset Overview, "
+            "Data Quality, Key Insights, Trends, Correlations, Outliers, Prediction Results, XAI "
+            "Explanation, Risks and Limitations, Recommendations, and Next Questions.\n\n"
+            "Structure each section as a short paragraph (2–4 sentences). Every quantitative claim must "
+            "cite a number drawn directly from the facts below. If a section has no supporting data, "
+            "write one sentence stating that explicitly and move on — do not pad.\n\n"
+            "Recommendations and Next Questions should be 3 bullet items each, prefixed with '- '.\n\n"
+            "FACTS (JSON):\n"
             f"{json.dumps(safe, default=str)[:12000]}"
         )
 

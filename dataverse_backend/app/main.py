@@ -58,7 +58,7 @@ async def security_headers_and_rate_limit(request: Request, call_next):
         or path.endswith("/datasets/upload")
         or path.endswith("/messages")
     ):
-        key = f"{resolve_identity(request) or (request.client.host if request.client else 'anon')}:{path}"
+        key = f"{await resolve_identity(request) or (request.client.host if request.client else 'anon')}:{path}"
         if not rate_limiter.allow(key, settings.RATE_LIMIT_PER_MINUTE):
             return JSONResponse(
                 status_code=429,

@@ -1,153 +1,246 @@
-"""Authentication: salted PBKDF2 password hashing + JWT identity tokens.
+"""Authentication: strictly integrated with Supabase Auth.
 
-Users are stored through the same persistence layer as sessions (local
-filesystem or Supabase), so test isolation and deployments behave identically.
-The JWT `sub` is a server-generated user id — the verified identity used for
-session-ownership checks.
+Delegates signup, login, guest creation, and token verification to the Supabase Auth REST API.
 """
 from __future__ import annotations
 
-import hashlib
-import hmac
 import secrets
+import time
 import uuid
-from datetime import datetime, timedelta, timezone
 from typing import Any
 
+import httpx
 import jwt
 from fastapi import Request
 
 from ..core.config import settings
+from ..core.logger import logger
 
-_PBKDF2_ITERATIONS = 240_000
-
-
-def hash_password(password: str, salt: str | None = None) -> str:
-    salt = salt or secrets.token_hex(16)
-    digest = hashlib.pbkdf2_hmac(
-        "sha256", password.encode("utf-8"), bytes.fromhex(salt), _PBKDF2_ITERATIONS
-    )
-    return f"pbkdf2${_PBKDF2_ITERATIONS}${salt}${digest.hex()}"
+# In-memory cache for verified tokens to avoid calling Supabase Auth API on every request
+# Maps token -> (user_id, expires_at)
+_TOKEN_CACHE: dict[str, tuple[str, float]] = {}
 
 
-def verify_password(password: str, stored: str) -> bool:
-    try:
-        _scheme, iterations, salt, expected = stored.split("$", 3)
-        digest = hashlib.pbkdf2_hmac(
-            "sha256", password.encode("utf-8"), bytes.fromhex(salt), int(iterations)
-        )
-        return hmac.compare_digest(digest.hex(), expected)
-    except (ValueError, TypeError):
-        return False
-
-
-def create_token(user_id: str, email: str | None = None) -> str:
-    payload = {
-        "sub": str(user_id),
-        "email": email,
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-        "iat": datetime.now(timezone.utc),
-    }
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-
-
-def decode_token(token: str) -> dict[str, Any] | None:
-    try:
-        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    except jwt.PyJWTError:
-        return None
-
-
-def public_user(row: dict[str, Any]) -> dict[str, Any]:
-    """The user shape exposed by the API — never includes the password hash."""
+def public_user(user_info: dict[str, Any]) -> dict[str, Any]:
+    """Format Supabase user data into the expected public user shape."""
+    metadata = user_info.get("user_metadata") or {}
     return {
-        "id": row.get("id"),
-        "email": row.get("email"),
-        "name": row.get("name"),
-        "guest": bool(row.get("guest")),
+        "id": user_info.get("id"),
+        "email": user_info.get("email"),
+        "name": metadata.get("name") or user_info.get("email", "").split("@")[0] or "User",
+        "guest": bool(metadata.get("guest")),
     }
 
 
 class AuthService:
-    """Signup / login / guest identities on top of the shared persistence."""
+    """Signup, login, guest, and token validation via Supabase Auth API."""
 
-    def _store(self):
-        # Late import so tests that monkeypatch session_service.local isolate
-        # user rows exactly like session rows.
-        from .session_service import session_service
-
-        return session_service
-
-    async def find_by_email(self, email: str) -> dict[str, Any] | None:
-        store = self._store()
-        rows = await store._all_rows("users")
-        target = email.strip().lower()
-        for row in rows:
-            if str(row.get("email") or "").lower() == target:
-                return row
-        return None
+    def __init__(self) -> None:
+        pass
 
     async def signup(self, email: str, password: str, name: str | None = None) -> dict[str, Any]:
+        """Sign up a new user using Supabase Auth Admin API (for auto-confirming email) or standard signup."""
         email = email.strip().lower()
         if len(password) < 8:
             raise ValueError("Password must be at least 8 characters")
-        if await self.find_by_email(email):
-            raise FileExistsError("An account with this email already exists")
-        store = self._store()
-        row = await store._insert("users", {
-            "id": str(uuid.uuid4()),
+
+        # We first check if the user exists using the Admin API or direct login to prevent duplicates if possible.
+        # Alternatively, we can use the Admin API to create the user with email_confirm = True
+        # which provides a frictionless signup experience.
+        headers = {
+            "apikey": settings.SUPABASE_SERVICE_ROLE_KEY or settings.SUPABASE_ANON_KEY or "",
+            "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY or ''}",
+            "Content-Type": "application/json"
+        }
+        
+        # Use Admin Create User to bypass email confirmation
+        admin_payload = {
             "email": email,
-            "name": (name or email.split("@")[0]).strip(),
-            "password_hash": hash_password(password),
-            "guest": False,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        })
-        return {"token": create_token(row["id"], email), "user": public_user(row)}
+            "password": password,
+            "email_confirm": True,
+            "user_metadata": {
+                "name": (name or email.split("@")[0]).strip(),
+                "guest": False
+            }
+        }
+        
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{settings.SUPABASE_URL}/auth/v1/admin/users",
+                json=admin_payload,
+                headers=headers
+            )
+            
+            if resp.status_code == 400 or resp.status_code == 422:
+                # User might already exist
+                error_data = resp.json()
+                msg = error_data.get("msg", "") or error_data.get("message", "")
+                if "already" in msg.lower() or "registered" in msg.lower() or "exists" in msg.lower():
+                    raise FileExistsError("An account with this email already exists")
+                raise ValueError(msg or "Registration failed")
+            
+            resp.raise_for_status()
+            user_info = resp.json()
+
+        # Login immediately after successful registration to get a session token
+        return await self.login(email, password)
 
     async def login(self, email: str, password: str) -> dict[str, Any]:
-        row = await self.find_by_email(email)
-        if not row or not verify_password(password, str(row.get("password_hash") or "")):
-            raise PermissionError("Invalid email or password")
-        return {"token": create_token(row["id"], row.get("email")), "user": public_user(row)}
+        """Authenticate user credentials against Supabase GoTrue Auth API."""
+        headers = {
+            "apikey": settings.SUPABASE_ANON_KEY or settings.SUPABASE_SERVICE_ROLE_KEY or "",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "email": email.strip().lower(),
+            "password": password
+        }
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{settings.SUPABASE_URL}/auth/v1/token?grant_type=password",
+                json=payload,
+                headers=headers
+            )
+            if resp.status_code != 200:
+                raise PermissionError("Invalid email or password")
+            
+            data = resp.json()
+            user_info = data["user"]
+            token = data["access_token"]
+            
+            # Pre-cache this token to avoid token verification lookup
+            _TOKEN_CACHE[token] = (user_info["id"], time.time() + 300)
+            
+            return {
+                "token": token,
+                "user": public_user(user_info)
+            }
 
     async def guest(self) -> dict[str, Any]:
-        store = self._store()
-        row = await store._insert("users", {
-            "id": str(uuid.uuid4()),
-            "email": None,
-            "name": "Guest Analyst",
-            "password_hash": None,
-            "guest": True,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        })
-        return {"token": create_token(row["id"]), "user": public_user(row)}
+        """Create a frictionless auto-confirmed guest user profile in Supabase Auth."""
+        guest_id = str(uuid.uuid4())
+        email = f"guest_{guest_id}@dataverse-guest.local"
+        password = secrets.token_urlsafe(16)
+        
+        headers = {
+            "apikey": settings.SUPABASE_SERVICE_ROLE_KEY or "",
+            "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY or ''}",
+            "Content-Type": "application/json"
+        }
+        admin_payload = {
+            "email": email,
+            "password": password,
+            "email_confirm": True,
+            "user_metadata": {
+                "name": "Guest Analyst",
+                "guest": True
+            }
+        }
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{settings.SUPABASE_URL}/auth/v1/admin/users",
+                json=admin_payload,
+                headers=headers
+            )
+            resp.raise_for_status()
+            user_info = resp.json()
+
+        # Login to get the token
+        return await self.login(email, password)
 
     async def me(self, token: str) -> dict[str, Any]:
-        payload = decode_token(token)
-        if not payload or not payload.get("sub"):
-            raise PermissionError("Invalid or expired token")
-        store = self._store()
-        row = await store._get_by_id("users", str(payload["sub"]))
-        if not row:
-            raise PermissionError("Unknown user")
-        return public_user(row)
+        """Validate token and fetch user details from Supabase Auth API."""
+        # Try local decode first if JWT secret is set
+        if settings.SUPABASE_JWT_SECRET:
+            try:
+                payload = jwt.decode(token, settings.SUPABASE_JWT_SECRET, algorithms=["HS256"], options={"verify_aud": False})
+                if payload and payload.get("sub"):
+                    return {
+                        "id": payload["sub"],
+                        "email": payload.get("email"),
+                        "name": payload.get("user_metadata", {}).get("name") or payload.get("email", "").split("@")[0] or "User",
+                        "guest": bool(payload.get("user_metadata", {}).get("guest")),
+                    }
+            except jwt.PyJWTError:
+                raise PermissionError("Invalid or expired token")
+
+        # Fallback to Supabase /user endpoint
+        headers = {
+            "apikey": settings.SUPABASE_ANON_KEY or settings.SUPABASE_SERVICE_ROLE_KEY or "",
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(
+                f"{settings.SUPABASE_URL}/auth/v1/user",
+                headers=headers
+            )
+            if resp.status_code != 200:
+                raise PermissionError("Invalid or expired token")
+            
+            user_info = resp.json()
+            # Cache the verified token
+            _TOKEN_CACHE[token] = (user_info["id"], time.time() + 300)
+            
+            return public_user(user_info)
 
 
 auth_service = AuthService()
 
 
-def resolve_identity(request: Request) -> str | None:
-    """The caller's identity: a verified JWT subject, else the legacy header.
+async def resolve_identity(request: Request) -> str | None:
+    """Asynchronously verify standard Bearer JWT token and return the user ID.
 
-    A verified Bearer token always wins. The plain X-Dataverse-User header is
-    kept for anonymous/legacy clients; it can only ever match sessions created
-    with that same client-generated id.
+    Maintains strict Supabase integration and uses local caching for performance.
     """
     auth = request.headers.get("Authorization") or ""
-    if auth.startswith("Bearer "):
-        payload = decode_token(auth[7:].strip())
-        if payload and payload.get("sub"):
-            return str(payload["sub"])
-        return None  # an invalid token never falls back to the spoofable header
-    header = request.headers.get("X-Dataverse-User")
-    return str(header) if header else None
+    if not auth.startswith("Bearer "):
+        header = request.headers.get("X-Dataverse-User")
+        return str(header) if header else None
+        
+    token = auth[7:].strip()
+    if not token:
+        return None
+
+    # Check cache first
+    now = time.time()
+    if token in _TOKEN_CACHE:
+        user_id, expires_at = _TOKEN_CACHE[token]
+        if now < expires_at:
+            return user_id
+
+    # Fallback to local decoding (if JWT secret exists) or remote verification
+    if settings.SUPABASE_JWT_SECRET:
+        try:
+            payload = jwt.decode(token, settings.SUPABASE_JWT_SECRET, algorithms=["HS256"], options={"verify_aud": False})
+            if payload and payload.get("sub"):
+                user_id = str(payload["sub"])
+                _TOKEN_CACHE[token] = (user_id, now + 300)
+                return user_id
+        except jwt.PyJWTError:
+            pass
+
+    # Remote verification against Supabase Auth /user
+    try:
+        headers = {
+            "apikey": settings.SUPABASE_ANON_KEY or settings.SUPABASE_SERVICE_ROLE_KEY or "",
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(
+                f"{settings.SUPABASE_URL}/auth/v1/user",
+                headers=headers
+            )
+            if resp.status_code == 200:
+                user_info = resp.json()
+                user_id = str(user_info["id"])
+                _TOKEN_CACHE[token] = (user_id, now + 300)
+                return user_id
+    except Exception as e:
+        logger.error(f"Error validating Supabase token: {e}")
+
+    return None

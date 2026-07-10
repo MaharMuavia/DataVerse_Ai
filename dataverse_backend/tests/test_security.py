@@ -63,3 +63,64 @@ def test_oversized_file_rejected(client):
     # Should be rejected if over limit (depends on MAX_UPLOAD_SIZE_MB config)
     # For test env, we just verify it doesn't crash with a 500
     assert resp.status_code in (200, 400)
+
+
+def test_secret_scanning():
+    """Scan files under the workspace for hardcoded secrets/keys, ignoring build/venv dirs."""
+    import re
+    from pathlib import Path
+
+    workspace_root = Path(__file__).resolve().parents[2]
+    
+    # Excluded directories
+    ignore_dirs = {
+        ".venv",
+        "venv",
+        "node_modules",
+        "dist",
+        "build",
+        "__pycache__",
+        ".git",
+        ".next",
+    }
+    
+    # Excluded file extensions or specific filenames
+    ignore_files = {
+        "package-lock.json",
+        "yarn.lock",
+        "pnpm-lock.yaml",
+        "bun.lockb",
+        ".env.example",  # contains placeholders, not real secrets
+    }
+    
+    # Secrets patterns: OpenAI key pattern (sk-...)
+    openai_key_regex = re.compile(r"\bsk-[a-zA-Z0-9-]{32,}\b")
+    
+    found_secrets = []
+    
+    for path in workspace_root.rglob("*"):
+        if not path.is_file():
+            continue
+            
+        # Check if file is in an ignored directory
+        parts = path.relative_to(workspace_root).parts
+        if any(ignored in parts for ignored in ignore_dirs):
+            continue
+            
+        if path.name in ignore_files or path.suffix in (".pyc", ".png", ".jpg", ".jpeg", ".pdf", ".zip", ".tar", ".gz"):
+            continue
+            
+        try:
+            with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+                
+            matches = openai_key_regex.findall(content)
+            for match in matches:
+                # Filter out obvious placeholders
+                if "placeholder" not in match.lower() and "your_key" not in match.lower() and "sk-your-openai-api-key" not in match.lower():
+                    found_secrets.append(f"{path.name}: {match}")
+        except Exception:
+            # Skip unreadable files
+            pass
+            
+    assert not found_secrets, f"Found potential hardcoded secrets: {found_secrets}"

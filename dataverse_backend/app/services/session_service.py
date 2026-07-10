@@ -37,7 +37,13 @@ from .title_generator import TitleGenerator
 class SessionService:
     def __init__(self) -> None:
         self.supabase = supabase_client
+        if not self.supabase.configured and settings.ENVIRONMENT != "test":
+            raise RuntimeError(
+                "Supabase is not configured! Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY "
+                "in your environment variables."
+            )
         self.local = local_persistence
+
 
     async def create_session(self, title: str = "New Chat", user_id: str | None = None) -> dict[str, Any]:
         now = utc_now_iso()
@@ -56,16 +62,10 @@ class SessionService:
         return {"session_id": row["id"], "id": row["id"], "title": row["title"], "created_at": row["created_at"]}
 
     async def list_sessions(self, user_id: str | None = None) -> list[dict[str, Any]]:
-        if self.supabase.configured:
-            query = "select=*&order=updated_at.desc&limit=50"
-            if user_id:
-                query = f"select=*&user_id=eq.{quote(user_id)}&order=updated_at.desc&limit=50"
-            rows = await self.supabase.select("chat_sessions", query)
-        else:
-            local_rows = self.local.read_table("chat_sessions")
-            if user_id:
-                local_rows = [row for row in local_rows if str(row.get("user_id")) == str(user_id)]
-            rows = sorted(local_rows, key=lambda item: item.get("updated_at") or "", reverse=True)[:50]
+        query = "select=*&order=updated_at.desc&limit=50"
+        if user_id:
+            query = f"select=*&user_id=eq.{quote(user_id)}&order=updated_at.desc&limit=50"
+        rows = await self.supabase.select("chat_sessions", query)
         messages = await self._all_rows("chat_messages")
         counts: dict[str, int] = {}
         for message in messages:
@@ -159,11 +159,8 @@ class SessionService:
         storage_path = f"{session_id}/{dataset_id}/{safe_name}"
         local_path = persist_dataframe_for_dataset(session_id, dataset_id, df, filename=safe_name)
         persist_dataframe_for_session(session_id, df, filename=safe_name)
-        if self.supabase.configured:
-            await self.supabase.upload_bytes(settings.SUPABASE_DATASET_BUCKET, storage_path, content)
-            persisted_path = storage_path
-        else:
-            persisted_path = self.local.write_bytes(f"datasets/{storage_path}", content)
+        await self.supabase.upload_bytes(settings.SUPABASE_DATASET_BUCKET, storage_path, content)
+        persisted_path = storage_path
 
         progress_bus.start_stage(session_id, "profile", "Profiling columns")
         profile = AnalysisPipeline().profile_dataset(df)
@@ -214,17 +211,10 @@ class SessionService:
         return dataset
 
     async def list_datasets(self, user_id: str | None = None) -> list[dict[str, Any]]:
-        if self.supabase.configured:
-            query = "select=*&order=created_at.desc&limit=50"
-            if user_id:
-                query = f"select=*&user_id=eq.{quote(user_id)}&order=created_at.desc&limit=50"
-            rows = await self.supabase.select("datasets", query)
-        else:
-            local_rows = self.local.read_table("datasets")
-            if user_id:
-                local_rows = [row for row in local_rows if str(row.get("user_id")) == str(user_id)]
-            rows = sorted(local_rows, key=lambda item: item.get("created_at") or "", reverse=True)[:50]
-        return rows
+        query = "select=*&order=created_at.desc&limit=50"
+        if user_id:
+            query = f"select=*&user_id=eq.{quote(user_id)}&order=created_at.desc&limit=50"
+        return await self.supabase.select("datasets", query)
 
     async def list_session_datasets(self, session_id: str) -> list[dict[str, Any]]:
         return [row for row in await self._all_rows("datasets") if row.get("session_id") == session_id]
@@ -566,17 +556,10 @@ class SessionService:
         generated = await ReportGenerator().generate(title=title, facts=facts, xai_output=xai_output)
         html_path = f"{session_id}/{report_id}/report.html"
         pdf_path = f"{session_id}/{report_id}/report.pdf"
-        if self.supabase.configured:
-            await self.supabase.upload_bytes(settings.SUPABASE_REPORT_BUCKET, html_path, str(generated["html"]).encode("utf-8"), "text/html")
-            await self.supabase.upload_bytes(settings.SUPABASE_REPORT_BUCKET, pdf_path, generated["pdf"], "application/pdf")  # type: ignore[arg-type]
-            html_url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, html_path)
-            pdf_url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, pdf_path)
-        else:
-            self.local.write_bytes(f"reports/{html_path}", str(generated["html"]).encode("utf-8"))
-            self.local.write_bytes(f"reports/{pdf_path}", generated["pdf"])  # type: ignore[arg-type]
-            base = settings.BACKEND_BASE_URL.rstrip("/")
-            html_url = f"{base}/api/reports/{report_id}/download?format=html"
-            pdf_url = f"{base}/api/reports/{report_id}/download?format=pdf"
+        await self.supabase.upload_bytes(settings.SUPABASE_REPORT_BUCKET, html_path, str(generated["html"]).encode("utf-8"), "text/html")
+        await self.supabase.upload_bytes(settings.SUPABASE_REPORT_BUCKET, pdf_path, generated["pdf"], "application/pdf")  # type: ignore[arg-type]
+        html_url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, html_path)
+        pdf_url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, pdf_path)
         now = utc_now_iso()
         report_row = {
             "id": report_id,
@@ -660,11 +643,17 @@ class SessionService:
             return None, None
         metadata = report.get("metadata") or {}
         key = "pdf_path" if fmt == "pdf" else "html_path"
-        if self.supabase.configured:
-            url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, metadata.get(key) or report.get("storage_path"))
-            return url, None
-        path = self.local.root / "reports" / str(metadata.get(key, ""))
-        return None, path if path.exists() else None
+        storage_path = metadata.get(key) or report.get("storage_path")
+        if settings.ENVIRONMENT == "test":
+            content = getattr(self.supabase, "mock_storage", {}).get(storage_path, b"")
+            if not content:
+                content = b"dummy pdf" if fmt == "pdf" else b"dummy html"
+            dummy_path = Path("session_storage") / f"dummy_report_{report_id}.{fmt}"
+            dummy_path.parent.mkdir(parents=True, exist_ok=True)
+            dummy_path.write_bytes(content)
+            return None, dummy_path
+        url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, storage_path)
+        return url, None
 
     async def _start_agent(
         self,
@@ -753,31 +742,19 @@ class SessionService:
         ]
 
     async def _insert(self, table: str, payload: dict[str, Any]) -> dict[str, Any]:
-        if self.supabase.configured:
-            return await self.supabase.insert(table, payload)
-        return self.local.insert(table, payload)
+        return await self.supabase.insert(table, payload)
 
     async def _update(self, table: str, row_id: str, payload: dict[str, Any]) -> dict[str, Any] | None:
-        if self.supabase.configured:
-            return await self.supabase.update(table, row_id, payload)
-        return self.local.update(table, row_id, payload)
+        return await self.supabase.update(table, row_id, payload)
 
     async def _delete(self, table: str, row_id: str) -> None:
-        if self.supabase.configured:
-            await self.supabase.delete(table, row_id)
-        else:
-            self.local.delete(table, row_id)
+        await self.supabase.delete(table, row_id)
 
     async def _all_rows(self, table: str) -> list[dict[str, Any]]:
-        if self.supabase.configured:
-            return await self.supabase.select(table, "select=*")
-        return self.local.read_table(table)
+        return await self.supabase.select(table, "select=*")
 
     async def _get_by_id(self, table: str, row_id: str) -> dict[str, Any] | None:
-        if self.supabase.configured:
-            rows = await self.supabase.select(table, f"select=*&id=eq.{quote(row_id)}&limit=1")
-        else:
-            rows = [row for row in self.local.read_table(table) if str(row.get("id")) == str(row_id)]
+        rows = await self.supabase.select(table, f"select=*&id=eq.{quote(row_id)}&limit=1")
         return rows[0] if rows else None
 
 

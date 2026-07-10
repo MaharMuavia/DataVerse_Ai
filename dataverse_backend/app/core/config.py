@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     SUPABASE_URL: Optional[str] = None
     SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
     SUPABASE_ANON_KEY: Optional[str] = None
+    SUPABASE_JWT_SECRET: Optional[str] = None
     SUPABASE_DATASET_BUCKET: str = "dataverse-datasets"
     SUPABASE_REPORT_BUCKET: str = "dataverse-reports"
     BACKEND_BASE_URL: str = "http://localhost:8000"

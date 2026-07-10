@@ -14,7 +14,7 @@ router = APIRouter()
 @router.post("/sessions/{session_id}/reports/generate")
 async def generate_report(session_id: str, request: Request, dataset_id: str, title: str = "DataVerse Analysis Report") -> dict:
     try:
-        await session_service.ensure_access(session_id, resolve_identity(request))
+        await session_service.ensure_access(session_id, await resolve_identity(request))
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Session not found") from exc
     try:
