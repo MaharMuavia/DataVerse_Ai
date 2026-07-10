@@ -99,11 +99,17 @@ Upload → DatasetAgent (validate, parse, normalize headers, profile, quality, p
 
 ### Persistence
 
-`app/services/session_service.py` + `supabase_client.py`: Supabase is **optional**. When
-`SUPABASE_*` env vars are unset, everything falls back to the local filesystem
-(`session_storage/` under the backend cwd; dataframes are pickled — see `session_store.py`
-`_read_pickle_compat` / numpy alias shims for cross-version pickle loading). DB
-(`DATABASE_URL`, SQLAlchemy) and Supabase are not required to run the MVP.
+`app/services/session_service.py` + `supabase_client.py`: Supabase is **required outside
+tests** — `SessionService.__init__` raises at import time when `SUPABASE_URL` /
+`SUPABASE_SERVICE_ROLE_KEY` are unset and `ENVIRONMENT != "test"` (auth also needs
+`SUPABASE_ANON_KEY`; schema lives in `dataverse_backend/supabase_schema.sql`). Dataframes
+are additionally cached on the local filesystem (`session_storage/` under the backend cwd;
+pickled — see `session_store.py` `_read_pickle_compat` / numpy alias shims for
+cross-version pickle loading). DB (`DATABASE_URL`, SQLAlchemy) is not required.
+
+Deployment: Vercel hosts only `frontend/` (project Root Directory = `frontend`); the
+FastAPI backend deploys to Render via the root `render.yaml` blueprint. The frontend
+finds the backend through `NEXT_PUBLIC_DATAVERSE_API_URL` (build-time, set in Vercel).
 
 ### API surface
 
