@@ -19,3 +19,6 @@ google-generativeai
 shap
 supabase
 anthropic
+jinja2
+PyJWT
+pypdf

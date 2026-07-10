@@ -19,3 +19,6 @@ google-generativeai
 shap
 matplotlib
 pypdf
+jinja2
+PyJWT
+anthropic
