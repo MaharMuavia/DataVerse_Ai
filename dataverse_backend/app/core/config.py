@@ -26,6 +26,9 @@ class Settings(BaseSettings):
 
     # API and transport security
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001"
+    # Optional regex matched against the Origin header in addition to CORS_ORIGINS,
+    # e.g. ^https://myapp-[a-z0-9]+-myteam\.vercel\.app$ for preview deployments.
+    CORS_ORIGIN_REGEX: Optional[str] = None
     TRUSTED_HOSTS: str = "localhost,127.0.0.1,testserver"
     SECURE_HEADERS_ENABLED: bool = True
     HTTPS_REDIRECT: bool = False
