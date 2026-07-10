@@ -51,3 +51,9 @@ dataverse_backend/logs/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Dependency directories
+node_modules/
+
+# Crash logs
+*.stackdump
