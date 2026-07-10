@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
-pandas
+pandas<3
 openpyxl
 python-dotenv
 pydantic
@@ -13,9 +13,14 @@ joblib
 httpx
 requests
 pytest
+pytest-asyncio
 reportlab
 openai
 google-generativeai
 shap
 supabase
 anthropic
+jinja2
+PyJWT
+pypdf
+email-validator

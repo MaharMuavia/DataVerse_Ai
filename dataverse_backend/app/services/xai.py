@@ -5,6 +5,7 @@ from typing import Any
 
 import numpy as np
 
+from .counterfactual import generate_counterfactuals
 from .modeling import TrainedModelBundle
 
 
@@ -63,12 +64,24 @@ def explain_model(bundle: TrainedModelBundle | None, prediction: dict[str, Any],
     for item in prediction.get("limitations", []):
         if "leakage" in str(item).lower() and item not in warnings:
             warnings.append(str(item))
+    counterfactuals: list[dict[str, Any]] = []
+    counterfactual_method = None
+    try:
+        cf = generate_counterfactuals(bundle, feature_importance=prediction.get("feature_importance"))
+        if cf.get("status") == "complete":
+            counterfactuals = cf["rows"]
+            counterfactual_method = cf["method"]
+            warnings.extend(str(item) for item in cf.get("limitations", []) if str(item) not in warnings)
+    except Exception as exc:
+        warnings.append(f"Counterfactual search failed ({type(exc).__name__}).")
     return {
         "status": "success" if global_importance and method == "shap_tree_explainer" else "fallback" if global_importance else "limited",
         "method": method,
         "global_feature_importance": global_importance,
         "top_features": top_features,
         "local_explanations": local_explanations,
+        "counterfactuals": counterfactuals,
+        "counterfactual_method": counterfactual_method,
         "plain_english_explanation": explanation,
         "warnings": warnings,
     }

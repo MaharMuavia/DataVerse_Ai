@@ -1,6 +1,9 @@
 {
   "name": "dataverse-workspace",
   "private": true,
+  "workspaces": [
+    "frontend"
+  ],
   "scripts": {
     "dev": "npm --prefix frontend run dev",
     "lint": "npm --prefix frontend run lint",
@@ -8,3 +11,4 @@
     "test:dev": "npm --prefix frontend run test:dev"
   }
 }
+

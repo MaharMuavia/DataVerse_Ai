@@ -21,6 +21,8 @@ from .core.logger import logger
 async def lifespan(app: FastAPI):
     """Application lifecycle: simple startup/shutdown logs without DB dependencies."""
     logger.info(f"Starting {settings.APP_NAME} MVP v{settings.APP_VERSION}")
+    if not settings.OPENAI_API_KEY:
+        logger.warning("OPENAI_API_KEY env var is missing! LLM provider will start in Mock mode.")
     yield
     logger.info("Shutting down")
 
@@ -37,11 +39,45 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
+    allow_origin_regex=settings.CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 app.add_middleware(GZipMiddleware, minimum_size=500)
+
+
+@app.middleware("http")
+async def security_headers_and_rate_limit(request: Request, call_next):
+    """Security headers on every response + rate limiting on abuse-prone routes."""
+    from .services import rate_limiter
+    from .services.auth_service import resolve_identity
+
+    path = request.url.path
+    if request.method == "POST" and (
+        path.startswith("/api/auth/")
+        or path.endswith("/datasets/upload")
+        or path.endswith("/messages")
+    ):
+        key = f"{await resolve_identity(request) or (request.client.host if request.client else 'anon')}:{path}"
+        if not rate_limiter.allow(key, settings.RATE_LIMIT_PER_MINUTE):
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many requests — please slow down and try again in a minute."},
+            )
+
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    return response
+
+
+@app.exception_handler(PermissionError)
+async def permission_error_handler(request: Request, exc: PermissionError):
+    """Ownership/authorization failures are always a clean 403 — never a 500."""
+    return JSONResponse(status_code=403, content={"detail": str(exc) or "Access denied"})
 
 
 @app.get("/health/live")
@@ -97,6 +133,10 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # Include Routers
+from .api.auth_routes import router as auth_router  # noqa: E402
+
+app.include_router(auth_router, prefix="/api", tags=["auth"])
+
 # /api/health, /api/upload, /api/session/{session_id} (GET/DELETE)
 app.include_router(core_router, prefix="/api", tags=["core"])
 

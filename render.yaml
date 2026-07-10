@@ -1,0 +1,39 @@
+# Render Blueprint: deploys the FastAPI backend (the Next.js frontend lives on Vercel).
+# Create it once at https://dashboard.render.com -> New -> Blueprint -> pick this repo.
+services:
+  - type: web
+    name: dataverse-ai-backend
+    runtime: python
+    plan: free
+    rootDir: dataverse_backend
+    buildCommand: pip install -r requirements-mvp.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health/live
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: ENVIRONMENT
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://data-verse-ai.vercel.app
+      # Lets Vercel preview deployments (per-commit URLs) call the API too.
+      - key: CORS_ORIGIN_REGEX
+        value: ^https://data-verse-[a-z0-9]+-mahar-muavias-projects\.vercel\.app$
+      # Supabase is REQUIRED in production (session persistence + auth).
+      # Get these from Supabase: Project Settings -> API. Run
+      # dataverse_backend/supabase_schema.sql in the SQL editor first.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      # Optional: speeds up auth (Project Settings -> API -> JWT Secret).
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      # Optional LLM narration key (app runs in Mock mode without one).
+      - key: ANTHROPIC_API_KEY
+        sync: false

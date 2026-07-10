@@ -112,6 +112,25 @@ class SessionAnalyzeRequest(BaseModel):
     generate_report: bool = True
 
 
+class DatasetCleanRequest(BaseModel):
+    fix_ids: list[str] = []
+
+
+class DatasetVerifyRequest(BaseModel):
+    certificate: dict = {}
+
+
+class DatasetWhatIfRequest(BaseModel):
+    column: str
+    pct_change: float = 10.0
+
+
+class DatasetInvestigateRequest(BaseModel):
+    question: str = "Why did the main metric change?"
+    metric: Optional[str] = None
+    period: Optional[str] = None
+
+
 class DatasetProfileResponse(BaseModel):
     session_id: str
     profile: Dict[str, Any]

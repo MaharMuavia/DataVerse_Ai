@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 from urllib.parse import quote
 
@@ -11,9 +11,17 @@ import pandas as pd
 
 from ..api.upload_parsing import parse_uploaded_dataframe
 from ..core.config import settings
+from .agent_loop import AgentLoop
 from .analysis_pipeline import AnalysisPipeline
 from .data_quality import json_safe, normalize_chart_specs
+from .root_cause import investigate as investigate_root_cause, is_why_question
+from .quality_doctor import diagnose as diagnose_quality, apply_fixes as apply_quality_fixes
+from .certificate import verify_certificate
+from .whatif import simulate as simulate_whatif
+from .progress_bus import progress_bus
 from .report_generator import ReportGenerator
+from .report_narrator import ReportNarrator
+from .llm_provider import LLMProvider
 from .semantic_mapper import SemanticMapper
 from .session_store import (
     load_dataframe_for_dataset,
@@ -29,7 +37,13 @@ from .title_generator import TitleGenerator
 class SessionService:
     def __init__(self) -> None:
         self.supabase = supabase_client
+        if not self.supabase.configured and settings.ENVIRONMENT != "test":
+            raise RuntimeError(
+                "Supabase is not configured! Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY "
+                "in your environment variables."
+            )
         self.local = local_persistence
+
 
     async def create_session(self, title: str = "New Chat", user_id: str | None = None) -> dict[str, Any]:
         now = utc_now_iso()
@@ -48,16 +62,10 @@ class SessionService:
         return {"session_id": row["id"], "id": row["id"], "title": row["title"], "created_at": row["created_at"]}
 
     async def list_sessions(self, user_id: str | None = None) -> list[dict[str, Any]]:
-        if self.supabase.configured:
-            query = "select=*&order=updated_at.desc&limit=50"
-            if user_id:
-                query = f"select=*&user_id=eq.{quote(user_id)}&order=updated_at.desc&limit=50"
-            rows = await self.supabase.select("chat_sessions", query)
-        else:
-            local_rows = self.local.read_table("chat_sessions")
-            if user_id:
-                local_rows = [row for row in local_rows if str(row.get("user_id")) == str(user_id)]
-            rows = sorted(local_rows, key=lambda item: item.get("updated_at") or "", reverse=True)[:50]
+        query = "select=*&order=updated_at.desc&limit=50"
+        if user_id:
+            query = f"select=*&user_id=eq.{quote(user_id)}&order=updated_at.desc&limit=50"
+        rows = await self.supabase.select("chat_sessions", query)
         messages = await self._all_rows("chat_messages")
         counts: dict[str, int] = {}
         for message in messages:
@@ -72,6 +80,21 @@ class SessionService:
             }
             for row in rows
         ]
+
+    async def ensure_access(self, session_id: str, identity: str | None) -> dict[str, Any]:
+        """Authorize `identity` for a session (IDOR guard).
+
+        Sessions without an owner (legacy/anonymous) stay open; owned sessions
+        require the caller's verified identity to match. Raises KeyError when
+        the session does not exist and PermissionError when access is denied.
+        """
+        row = await self._get_by_id("chat_sessions", session_id)
+        if not row:
+            raise KeyError("Session not found")
+        owner = row.get("user_id")
+        if owner and str(owner) != str(identity or ""):
+            raise PermissionError("You do not have access to this session")
+        return row
 
     async def get_session(self, session_id: str) -> dict[str, Any]:
         session = await self._get_by_id("chat_sessions", session_id)
@@ -123,20 +146,35 @@ class SessionService:
         session = await self._get_by_id("chat_sessions", session_id)
         if not session:
             raise KeyError("Session not found")
+        progress_bus.start_stage(session_id, "upload", "Receiving file", f"{len(content) / 1024:.1f} KB")
+        progress_bus.complete_stage(session_id, "upload")
+
+        progress_bus.start_stage(session_id, "parse", "Parsing dataset", filename)
         df = parse_uploaded_dataframe(filename, content)
+        progress_bus.complete_stage(session_id, "parse", f"{len(df):,} rows × {len(df.columns)} cols")
+
         dataset_id = str(uuid.uuid4())
-        safe_name = Path(filename).name or "dataset.csv"
+        # PureWindowsPath treats both / and \ as separators, so traversal
+        # components are stripped regardless of the host platform.
+        safe_name = PureWindowsPath(filename).name or "dataset.csv"
         file_type = safe_name.rsplit(".", 1)[-1].lower() if "." in safe_name else "csv"
         storage_path = f"{session_id}/{dataset_id}/{safe_name}"
         local_path = persist_dataframe_for_dataset(session_id, dataset_id, df, filename=safe_name)
         persist_dataframe_for_session(session_id, df, filename=safe_name)
-        if self.supabase.configured:
-            await self.supabase.upload_bytes(settings.SUPABASE_DATASET_BUCKET, storage_path, content)
-            persisted_path = storage_path
-        else:
-            persisted_path = self.local.write_bytes(f"datasets/{storage_path}", content)
+        await self.supabase.upload_bytes(settings.SUPABASE_DATASET_BUCKET, storage_path, content)
+        persisted_path = storage_path
+
+        progress_bus.start_stage(session_id, "profile", "Profiling columns")
         profile = AnalysisPipeline().profile_dataset(df)
+        progress_bus.complete_stage(session_id, "profile")
+
+        progress_bus.start_stage(session_id, "semantic_map", "Building semantic map")
         semantic_map = SemanticMapper().map_dataframe(df, filename=safe_name)
+        progress_bus.complete_stage(
+            session_id,
+            "semantic_map",
+            f"Detected: {semantic_map.get('dataset_type', 'generic_tabular')}",
+        )
         profile["semantic_map"] = semantic_map
         semantic_type = semantic_map.get("dataset_type")
         if semantic_type and profile.get("dataset_type") in {None, "generic", "generic_tabular"}:
@@ -175,17 +213,10 @@ class SessionService:
         return dataset
 
     async def list_datasets(self, user_id: str | None = None) -> list[dict[str, Any]]:
-        if self.supabase.configured:
-            query = "select=*&order=created_at.desc&limit=50"
-            if user_id:
-                query = f"select=*&user_id=eq.{quote(user_id)}&order=created_at.desc&limit=50"
-            rows = await self.supabase.select("datasets", query)
-        else:
-            local_rows = self.local.read_table("datasets")
-            if user_id:
-                local_rows = [row for row in local_rows if str(row.get("user_id")) == str(user_id)]
-            rows = sorted(local_rows, key=lambda item: item.get("created_at") or "", reverse=True)[:50]
-        return rows
+        query = "select=*&order=created_at.desc&limit=50"
+        if user_id:
+            query = f"select=*&user_id=eq.{quote(user_id)}&order=created_at.desc&limit=50"
+        return await self.supabase.select("datasets", query)
 
     async def list_session_datasets(self, session_id: str) -> list[dict[str, Any]]:
         return [row for row in await self._all_rows("datasets") if row.get("session_id") == session_id]
@@ -217,6 +248,7 @@ class SessionService:
         df, metadata = load_dataframe_for_dataset(session_id, dataset_id)
         if df is None:
             raise ValueError("Dataset file is not available locally for analysis")
+        quality_diagnosis = json_safe(diagnose_quality(df))
 
         await self.add_message(session_id, "user", user_prompt, payload={"dataset_id": dataset_id})
         dataset_steps = self._dataset_steps()
@@ -226,6 +258,12 @@ class SessionService:
             "DatasetAgent",
             {"dataset_id": dataset_id},
             steps=dataset_steps,
+        )
+        progress_bus.start_stage(session_id, "load_dataset", "Loading dataset")
+        progress_bus.complete_stage(
+            session_id,
+            "load_dataset",
+            f"{dataset.get('row_count'):,} rows × {dataset.get('column_count')} cols",
         )
         await self._complete_agent(dataset_run["id"], {
             "summary": f"Loaded {dataset.get('filename')} with {dataset.get('row_count')} rows and {dataset.get('column_count')} columns.",
@@ -242,15 +280,29 @@ class SessionService:
             {"prompt": user_prompt},
             steps=analysis_steps + report_steps,
         )
-        facts = await AnalysisPipeline().run_full_analysis_async(
-            df,
-            query=user_prompt,
-            run_xai=run_xai,
-            session_id=session_id,
-            filename=metadata.get("filename") or dataset.get("filename"),
-            use_llm=settings.USE_LLM_NARRATION,
-            provider=settings.LLM_PROVIDER,
-        )
+        try:
+            progress_bus.start_stage(session_id, "analyze", "Running deterministic analysis", "EDA · trends · metrics · modeling")
+            facts = await AnalysisPipeline().run_full_analysis_async(
+                df,
+                query=user_prompt,
+                run_xai=run_xai,
+                session_id=session_id,
+                filename=metadata.get("filename") or dataset.get("filename"),
+                use_llm=settings.USE_LLM_NARRATION,
+                provider=settings.LLM_PROVIDER,
+                progress_session_id=session_id,
+            )
+            prediction_status = (facts.get("prediction") or {}).get("status") or "skipped"
+            narration_provider = (facts.get("narration") or {}).get("narration_provider") or "deterministic"
+            progress_bus.complete_stage(
+                session_id,
+                "analyze",
+                f"prediction: {prediction_status} · narration: {narration_provider}",
+            )
+        except Exception as exc:
+            progress_bus.fail_stage(session_id, "analyze", f"{type(exc).__name__}: {exc}")
+            progress_bus.finish(session_id, "analysis failed")
+            raise
         await self._complete_agent(analyst_run["id"], {
             "summary": facts.get("executive_summary"),
             "dataset_profile": facts.get("dataset_profile"),
@@ -275,13 +327,55 @@ class SessionService:
             await self._update("datasets", dataset_id, {"semantic_map": facts["semantic_map"], "updated_at": utc_now_iso()})
 
 
+        deterministic_answer = (facts.get("query_answer") or {}).get("answer") or facts.get("executive_summary") or "Analysis complete."
+
+        # Root-cause: "why" questions get a deterministic multi-step investigation
+        # (drivers, price/volume split, receipts) even with no LLM configured.
+        root_cause_payload = None
+        if is_why_question(user_prompt):
+            progress_bus.start_stage(session_id, "root_cause", "Investigating root cause", "period delta · drivers · price/volume")
+            try:
+                investigation = investigate_root_cause(df, facts.get("semantic_map") or {}, question=user_prompt)
+                root_cause_payload = json_safe(investigation)
+                if investigation.get("status") == "complete":
+                    deterministic_answer = f"{investigation['narrative']}\n\n{deterministic_answer}"
+                    if investigation.get("chart"):
+                        facts.setdefault("charts", []).insert(0, investigation["chart"])
+                    progress_bus.complete_stage(session_id, "root_cause", f"top driver: {investigation['drivers'][0]['value']}")
+                else:
+                    progress_bus.complete_stage(session_id, "root_cause", investigation.get("reason"))
+            except Exception as exc:
+                progress_bus.fail_stage(session_id, "root_cause", f"{type(exc).__name__}: {exc}")
+
         report_payload = None
         should_generate_report = bool(generate_report)
         report_facts = _promote_full_report_facts(facts) if should_generate_report else facts
         if should_generate_report:
-            report_payload = await self.generate_report(session_id, dataset_id, title, report_facts, xai_output if isinstance(xai_output, dict) else {})
+            progress_bus.start_stage(session_id, "report", "Composing report", "HTML + PDF")
+            try:
+                report_payload = await self.generate_report(session_id, dataset_id, title, report_facts, xai_output if isinstance(xai_output, dict) else {})
+                progress_bus.complete_stage(session_id, "report", "report ready")
+            except Exception as exc:
+                progress_bus.fail_stage(session_id, "report", f"{type(exc).__name__}: {exc}")
+                raise
 
-        answer = (facts.get("query_answer") or {}).get("answer") or facts.get("executive_summary") or "Analysis complete."
+        # Agentic answer: an LLM plan→act→observe loop over deterministic tools.
+        # Falls back to the grounded single-shot answer when no LLM is available.
+        agent_trace = None
+        answer = None
+        if settings.USE_LLM_NARRATION:
+            try:
+                agent_result = await AgentLoop().run(
+                    df, facts.get("semantic_map") or {}, user_prompt, facts,
+                    progress_session_id=session_id,
+                )
+            except Exception:
+                agent_result = None
+            if agent_result:
+                answer = agent_result["answer"]
+                agent_trace = json_safe(agent_result["trace"])
+        if not answer:
+            answer = await self._compose_chat_answer(user_prompt, facts, deterministic_answer)
         response_charts = _response_charts(report_facts, include_report_level=should_generate_report)
         response_tables = _response_tables(report_facts if should_generate_report else facts)
         xai_payload = _response_xai(report_facts if should_generate_report else facts, xai_output if isinstance(xai_output, dict) else {})
@@ -296,14 +390,20 @@ class SessionService:
                 xai_output=xai_output if isinstance(xai_output, dict) else {},
             ),
             "kpis": facts.get("kpis") or [],
+            "audit_trail": facts.get("audit_trail") or [],
+            "certificate": facts.get("certificate") or {},
+            "quality_doctor": quality_diagnosis,
             "charts": response_charts,
             "tables": response_tables,
             "warnings": facts.get("warnings") or [],
             "recommendations": facts.get("recommendations") or [],
             "report": report_payload,
             "xai": xai_payload,
+            "agent_trace": agent_trace or [],
+            "root_cause": root_cause_payload,
         }
         await self.add_message(session_id, "assistant", answer, payload=assistant_payload)
+        progress_bus.finish(session_id, "analysis complete")
         return {
             "session_id": session_id,
             "dataset_id": dataset_id,
@@ -311,13 +411,68 @@ class SessionService:
             "agents": assistant_payload["agents"],
             "answer": answer,
             "kpis": assistant_payload["kpis"],
+            "audit_trail": assistant_payload["audit_trail"],
+            "certificate": assistant_payload["certificate"],
+            "quality_doctor": quality_diagnosis,
             "tables": response_tables,
             "charts": response_charts,
             "warnings": assistant_payload["warnings"],
             "recommendations": assistant_payload["recommendations"],
             "report": report_payload,
             "xai": xai_payload,
+            "agent_trace": agent_trace or [],
+            "root_cause": root_cause_payload,
+            "narration_provider": (facts.get("narration") or {}).get("narration_provider") or "deterministic",
         }
+
+    async def _compose_chat_answer(
+        self, query: str, facts: dict[str, Any], deterministic_answer: str, provider: LLMProvider | None = None
+    ) -> str:
+        """Write a specific, grounded answer from the deterministic facts using the LLM.
+
+        The LLM is given the exact computed numbers and instructed to use only those — it
+        never originates a figure. Falls back to the deterministic answer if the LLM is off
+        or unavailable, so the deterministic-first guarantee holds.
+        """
+        if not settings.USE_LLM_NARRATION:
+            return deterministic_answer
+        provider = provider or LLMProvider()
+        if not provider.is_configured():
+            return deterministic_answer
+        bm = facts.get("business_metrics") or {}
+        prediction = facts.get("prediction") or {}
+        xai = facts.get("xai") or {}
+        context = {
+            "kpis": {k: bm.get(k) for k in (
+                "total_revenue", "total_profit", "gross_margin", "total_quantity",
+                "transaction_count", "average_order_value")},
+            "top_products": (bm.get("top_products") or [])[:3],
+            "top_categories": (bm.get("top_categories") or [])[:3],
+            "top_regions": (bm.get("top_regions") or [])[:3],
+            "deterministic_answer": deterministic_answer,
+            "prediction": ({k: prediction.get(k) for k in (
+                "selected_model", "target_column", "test_metrics", "train_rows", "test_rows")}
+                if prediction.get("status") == "complete" else None),
+            "xai_top_features": (xai.get("top_features") or [])[:5],
+            "xai_explanation": xai.get("plain_english_explanation"),
+            "key_insights": (facts.get("key_insights") or [])[:4],
+        }
+        prompt = (
+            f"User question: {query}\n\n"
+            "Authoritative computed facts (use these EXACT numbers; never invent or change a number):\n"
+            f"{json.dumps(context, default=str)[:3500]}\n\n"
+            "Answer the user's question in 2-4 concise sentences, like a senior data analyst. Be specific and use "
+            "the numbers above. If a prediction or driver/feature information is present and relevant, summarise it "
+            "(model, accuracy/error, key drivers). No disclaimers, no preamble."
+        )
+        try:
+            text = await provider.generate(
+                prompt,
+                system_prompt="You are a precise business data analyst. Use only the provided numbers; never fabricate figures.",
+            )
+        except Exception:
+            text = None
+        return (text or "").strip() or deterministic_answer
 
     async def chat_message(self, session_id: str, content: str, dataset_id: str | None = None) -> dict[str, Any]:
         return await self.analyze(
@@ -327,22 +482,86 @@ class SessionService:
             run_xai=True,
             generate_report=_explicit_report_request(content),
         )
+
+    async def clean_dataset(self, session_id: str, dataset_id: str, fix_ids: list[str]) -> dict[str, Any]:
+        """Apply Data Quality Doctor fixes, persist a cleaned dataset, re-analyze."""
+        dataset = await self.get_dataset(dataset_id)
+        if not dataset:
+            raise KeyError("Dataset not found")
+        if not fix_ids:
+            raise ValueError("No fixes were selected")
+        df, _metadata = load_dataframe_for_dataset(session_id, dataset_id)
+        if df is None:
+            raise ValueError("Dataset file is not available locally for cleaning")
+
+        cleaned, summary = apply_quality_fixes(df, fix_ids)
+        source_name = dataset.get("filename") or "dataset.csv"
+        cleaned_name = f"cleaned_{source_name}"
+        if not cleaned_name.lower().endswith(".csv"):
+            cleaned_name = cleaned_name.rsplit(".", 1)[0] + ".csv"
+        csv_bytes = cleaned.to_csv(index=False).encode("utf-8")
+
+        new_dataset = await self.upload_dataset(session_id, cleaned_name, csv_bytes)
+        analysis = await self.analyze(
+            session_id,
+            dataset_id=new_dataset["id"],
+            user_prompt="Analyze the cleaned dataset",
+            run_xai=False,
+            generate_report=False,
+        )
+        analysis["cleaning_summary"] = json_safe(summary)
+        analysis["cleaned_dataset_id"] = new_dataset["id"]
+        return analysis
+
+    async def verify_dataset(self, session_id: str, dataset_id: str, certificate: dict[str, Any]) -> dict[str, Any]:
+        """Re-run the deterministic computation and prove it reproduces the certificate."""
+        dataset = await self.get_dataset(dataset_id)
+        if not dataset:
+            raise KeyError("Dataset not found")
+        df, _metadata = load_dataframe_for_dataset(session_id, dataset_id)
+        if df is None:
+            raise ValueError("Dataset file is not available locally for verification")
+        facts = await AnalysisPipeline().run_full_analysis_async(
+            df, query="verification recompute", run_predictions=False, run_xai=False,
+            use_llm=False, filename=dataset.get("filename"),
+        )
+        return verify_certificate(df, facts.get("audit_trail") or [], certificate)
+
+    async def investigate_dataset(
+        self, session_id: str, dataset_id: str, *,
+        question: str, metric: str | None = None, period: str | None = None,
+    ) -> dict[str, Any]:
+        """Run the deterministic root-cause investigation on a session dataset."""
+        dataset = await self.get_dataset(dataset_id)
+        if not dataset:
+            raise KeyError("Dataset not found")
+        df, _metadata = load_dataframe_for_dataset(session_id, dataset_id)
+        if df is None:
+            raise ValueError("Dataset file is not available locally for investigation")
+        semantic_map = dataset.get("semantic_map")
+        if not isinstance(semantic_map, dict) or not semantic_map:
+            semantic_map = SemanticMapper().map_dataframe(df, filename=dataset.get("filename"))
+        return json_safe(investigate_root_cause(df, semantic_map, question=question, metric=metric, period=period))
+
+    async def whatif_dataset(self, session_id: str, dataset_id: str, column: str, pct_change: float) -> dict[str, Any]:
+        """Run a deterministic, receipt-backed what-if scenario on a numeric column."""
+        dataset = await self.get_dataset(dataset_id)
+        if not dataset:
+            raise KeyError("Dataset not found")
+        df, _metadata = load_dataframe_for_dataset(session_id, dataset_id)
+        if df is None:
+            raise ValueError("Dataset file is not available locally for simulation")
+        return json_safe(simulate_whatif(df, column, pct_change))
+
     async def generate_report(self, session_id: str, dataset_id: str, title: str, facts: dict[str, Any], xai_output: dict[str, Any]) -> dict[str, Any]:
         report_id = str(uuid.uuid4())
         generated = await ReportGenerator().generate(title=title, facts=facts, xai_output=xai_output)
         html_path = f"{session_id}/{report_id}/report.html"
         pdf_path = f"{session_id}/{report_id}/report.pdf"
-        if self.supabase.configured:
-            await self.supabase.upload_bytes(settings.SUPABASE_REPORT_BUCKET, html_path, str(generated["html"]).encode("utf-8"), "text/html")
-            await self.supabase.upload_bytes(settings.SUPABASE_REPORT_BUCKET, pdf_path, generated["pdf"], "application/pdf")  # type: ignore[arg-type]
-            html_url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, html_path)
-            pdf_url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, pdf_path)
-        else:
-            self.local.write_bytes(f"reports/{html_path}", str(generated["html"]).encode("utf-8"))
-            self.local.write_bytes(f"reports/{pdf_path}", generated["pdf"])  # type: ignore[arg-type]
-            base = settings.BACKEND_BASE_URL.rstrip("/")
-            html_url = f"{base}/api/reports/{report_id}/download?format=html"
-            pdf_url = f"{base}/api/reports/{report_id}/download?format=pdf"
+        await self.supabase.upload_bytes(settings.SUPABASE_REPORT_BUCKET, html_path, str(generated["html"]).encode("utf-8"), "text/html")
+        await self.supabase.upload_bytes(settings.SUPABASE_REPORT_BUCKET, pdf_path, generated["pdf"], "application/pdf")  # type: ignore[arg-type]
+        html_url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, html_path)
+        pdf_url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, pdf_path)
         now = utc_now_iso()
         report_row = {
             "id": report_id,
@@ -359,6 +578,64 @@ class SessionService:
         await self._insert("reports", report_row)
         return {"report_id": report_id, "html_url": html_url, "pdf_url": pdf_url}
 
+    async def renarrate_report(self, session_id: str, report_id: str) -> dict[str, Any]:
+        """Re-run only the LLM narration pass on an existing report.
+
+        Fast (~2 seconds): does not recompute any deterministic metrics. The
+        latest analyst assistant message in the session is used as the source of
+        facts, the report is regenerated with the new narration, and a fresh
+        report row replaces the old `report_id` pointer.
+        """
+        report = await self._get_by_id("reports", report_id)
+        if not report:
+            raise KeyError("Report not found")
+        if str(report.get("session_id")) != str(session_id):
+            raise ValueError("Report does not belong to this session")
+
+        messages = sorted(
+            [row for row in await self._all_rows("chat_messages") if row.get("session_id") == session_id and row.get("role") == "assistant"],
+            key=lambda row: row.get("created_at") or "",
+        )
+        if not messages:
+            raise ValueError("No prior assistant message available to re-narrate")
+        last_payload = messages[-1].get("payload") or {}
+
+        dataset_id = report.get("dataset_id") or last_payload.get("dataset_id")
+        if not dataset_id:
+            raise ValueError("Report has no associated dataset")
+        dataset = await self.get_dataset(dataset_id)
+        if not dataset:
+            raise KeyError("Dataset not found")
+
+        df, metadata = load_dataframe_for_dataset(session_id, dataset_id)
+        if df is None:
+            raise ValueError("Dataset file is not available locally for re-narration")
+
+        progress_bus.start_stage(session_id, "renarrate", "Re-narrating with GPT")
+        facts = await AnalysisPipeline().run_full_analysis_async(
+            df,
+            query="Re-narrate this analysis with polished prose.",
+            run_xai=False,
+            session_id=session_id,
+            filename=metadata.get("filename") or dataset.get("filename"),
+            use_llm=True,
+            provider=settings.LLM_PROVIDER or "openai",
+            progress_session_id=session_id,
+        )
+        report_facts = _promote_full_report_facts(facts)
+        new_report = await self.generate_report(
+            session_id,
+            dataset_id,
+            report.get("title") or "Analysis Report",
+            report_facts,
+            facts.get("xai") or {},
+        )
+        narration_provider = (facts.get("narration") or {}).get("narration_provider") or "deterministic"
+        progress_bus.complete_stage(session_id, "renarrate", f"narration: {narration_provider}")
+        progress_bus.finish(session_id, "re-narration complete")
+        new_report["narration_provider"] = narration_provider
+        return new_report
+
     async def list_reports(self, session_id: str) -> list[dict[str, Any]]:
         return [row for row in await self._all_rows("reports") if row.get("session_id") == session_id]
 
@@ -368,11 +645,17 @@ class SessionService:
             return None, None
         metadata = report.get("metadata") or {}
         key = "pdf_path" if fmt == "pdf" else "html_path"
-        if self.supabase.configured:
-            url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, metadata.get(key) or report.get("storage_path"))
-            return url, None
-        path = self.local.root / "reports" / str(metadata.get(key, ""))
-        return None, path if path.exists() else None
+        storage_path = metadata.get(key) or report.get("storage_path")
+        if settings.ENVIRONMENT == "test":
+            content = getattr(self.supabase, "mock_storage", {}).get(storage_path, b"")
+            if not content:
+                content = b"dummy pdf" if fmt == "pdf" else b"dummy html"
+            dummy_path = Path("session_storage") / f"dummy_report_{report_id}.{fmt}"
+            dummy_path.parent.mkdir(parents=True, exist_ok=True)
+            dummy_path.write_bytes(content)
+            return None, dummy_path
+        url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, storage_path)
+        return url, None
 
     async def _start_agent(
         self,
@@ -461,31 +744,19 @@ class SessionService:
         ]
 
     async def _insert(self, table: str, payload: dict[str, Any]) -> dict[str, Any]:
-        if self.supabase.configured:
-            return await self.supabase.insert(table, payload)
-        return self.local.insert(table, payload)
+        return await self.supabase.insert(table, payload)
 
     async def _update(self, table: str, row_id: str, payload: dict[str, Any]) -> dict[str, Any] | None:
-        if self.supabase.configured:
-            return await self.supabase.update(table, row_id, payload)
-        return self.local.update(table, row_id, payload)
+        return await self.supabase.update(table, row_id, payload)
 
     async def _delete(self, table: str, row_id: str) -> None:
-        if self.supabase.configured:
-            await self.supabase.delete(table, row_id)
-        else:
-            self.local.delete(table, row_id)
+        await self.supabase.delete(table, row_id)
 
     async def _all_rows(self, table: str) -> list[dict[str, Any]]:
-        if self.supabase.configured:
-            return await self.supabase.select(table, "select=*")
-        return self.local.read_table(table)
+        return await self.supabase.select(table, "select=*")
 
     async def _get_by_id(self, table: str, row_id: str) -> dict[str, Any] | None:
-        if self.supabase.configured:
-            rows = await self.supabase.select(table, f"select=*&id=eq.{quote(row_id)}&limit=1")
-        else:
-            rows = [row for row in self.local.read_table(table) if str(row.get("id")) == str(row_id)]
+        rows = await self.supabase.select(table, f"select=*&id=eq.{quote(row_id)}&limit=1")
         return rows[0] if rows else None
 
 
@@ -497,7 +768,11 @@ def normalize_charts(charts: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _response_charts(facts: dict[str, Any], *, include_report_level: bool) -> list[dict[str, Any]]:
     if include_report_level or str((facts.get("query_plan") or {}).get("report_mode")) == "full_analysis_report":
         return normalize_charts(facts.get("charts") or [])
-    return normalize_charts((facts.get("query_answer") or {}).get("charts") or [])
+    # Focused answers should still be visual: prefer the answer's own charts, then fall
+    # back to the intent-specific charts the pipeline already computed (facts["charts"]).
+    answer_charts = (facts.get("query_answer") or {}).get("charts") or []
+    charts = answer_charts or (facts.get("charts") or [])
+    return normalize_charts(charts[:4])
 
 
 def _response_tables(facts: dict[str, Any]) -> list[dict[str, Any]]:

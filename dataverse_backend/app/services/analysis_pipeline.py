@@ -7,7 +7,8 @@ import pandas as pd
 
 from .data_profiler import profile_dataframe
 from .ai_khata import AI_KHATA_TYPES, business_summary, monthly_sales_revenue
-from .business_metrics import answer_business_query, calculate_business_metrics, compute_product_trends
+from .business_metrics import answer_business_query, build_kpi_cards, calculate_business_metrics, compute_product_trends
+from .progress_bus import progress_bus
 from .data_quality import (
     build_chart_specs,
     compute_correlations,
@@ -24,6 +25,8 @@ from .report_narrator import ReportNarrator
 from .semantic_mapper import SemanticMapper
 from .session_store import create_session_id, persist_dataframe_for_session
 from .xai import explain_model
+from .audit import build_audit_trail
+from .certificate import build_certificate
 
 try:
     import shap
@@ -83,6 +86,7 @@ class AnalysisPipeline:
         use_llm: bool = True,
         provider: str | None = None,
         semantic_map: dict[str, Any] | None = None,
+        progress_session_id: str | None = None,
     ) -> dict[str, Any]:
         semantic_map = semantic_map or await SemanticMapper().map_dataframe_async(df, filename=filename, query=query)
         query_plan = await QueryPlanner().plan_async(query or "dataset overview", semantic_map, None)
@@ -97,8 +101,17 @@ class AnalysisPipeline:
             filename=filename,
             semantic_map=semantic_map,
             query_plan=query_plan,
+            progress_session_id=progress_session_id,
         )
+        if progress_session_id:
+            progress_bus.start_stage(progress_session_id, "narration", "Polishing narration", f"provider: {provider or 'auto'}")
         narration = await self.narrator.narrate_async(facts, use_llm=use_llm, provider=provider)
+        if progress_session_id:
+            progress_bus.complete_stage(
+                progress_session_id,
+                "narration",
+                f"provider: {narration.get('narration_provider', 'deterministic')}",
+            )
         return self._merge_narration(facts, narration)
 
     def _compute(
@@ -114,10 +127,21 @@ class AnalysisPipeline:
         filename: str | None,
         semantic_map: dict[str, Any] | None = None,
         query_plan: dict[str, Any] | None = None,
+        progress_session_id: str | None = None,
     ) -> dict[str, Any]:
         if df is None or df.empty or len(df.columns) == 0:
             raise ValueError("Dataset is empty or has no columns")
         work = df.copy()
+
+        def _emit_start(stage: str, label: str, detail: str | None = None) -> None:
+            if progress_session_id:
+                progress_bus.start_stage(progress_session_id, stage, label, detail)
+
+        def _emit_done(stage: str, detail: str | None = None) -> None:
+            if progress_session_id:
+                progress_bus.complete_stage(progress_session_id, stage, detail)
+
+        _emit_start("metrics", "Computing business metrics")
         dataset_profile = self.profile_dataset(work)
         if filename:
             dataset_profile["filename"] = filename
@@ -131,10 +155,16 @@ class AnalysisPipeline:
         if food_analysis:
             product_analysis = _merge_food_analysis(product_analysis, food_analysis)
             query_answer = _food_query_answer(query, food_analysis) or query_answer
+        _emit_done("metrics")
+
+        _emit_start("quality", "Scoring data quality")
         data_quality = self.compute_data_quality(work)
         dataset_profile["data_quality_score"] = data_quality.get("data_quality_score")
         if isinstance(dataset_profile.get("quality"), dict):
             dataset_profile["quality"]["score"] = data_quality.get("data_quality_score")
+        _emit_done("quality", f"score: {data_quality.get('data_quality_score')}")
+
+        _emit_start("eda", "Running EDA + outliers")
         outliers = self.compute_outliers(work)
         eda = self.compute_eda(work, outliers=outliers)
         eda.setdefault(
@@ -144,8 +174,16 @@ class AnalysisPipeline:
                 "columns": data_quality.get("missing_values_by_column", {}),
             },
         )
+        _emit_done("eda", f"{outliers.get('total_outlier_cells', 0)} outlier flags")
+
+        _emit_start("trends", "Detecting trends + correlations")
         trends = self.compute_trends(work)
         correlations = self.compute_correlations(work)
+        _emit_done(
+            "trends",
+            f"{len(trends.get('series', []))} trend series · {len(correlations.get('strong_pairs', []))} strong pairs",
+        )
+
         effective_target, effective_task, effective_run_predictions = _prediction_request(
             df=work,
             query_plan=query_plan,
@@ -154,6 +192,11 @@ class AnalysisPipeline:
             task_type=task_type,
             run_predictions=run_predictions,
         )
+        _emit_start(
+            "modeling",
+            "Training prediction model" if effective_run_predictions else "Checking prediction readiness",
+            f"target: {effective_target or 'auto'}",
+        )
         prediction, trained_bundle, target_suggestions = self.train_model(
             work,
             query=query,
@@ -161,7 +204,14 @@ class AnalysisPipeline:
             task_type=effective_task,
             run_predictions=effective_run_predictions,
         )
+        _emit_done(
+            "modeling",
+            f"{prediction.get('selected_model', 'n/a')} · status: {prediction.get('status', 'skipped')}",
+        )
+
+        _emit_start("xai", "Computing XAI explanations" if (run_xai and effective_run_predictions) else "Skipping XAI")
         xai = self.run_xai(trained_bundle, prediction, run_xai=run_xai and effective_run_predictions)
+        _emit_done("xai", f"top features: {len(xai.get('top_features', []))}")
         report_mode = str(query_plan.get("report_mode") or "focused_answer_report")
         charts = _report_charts_for_query(
             query_plan=query_plan,
@@ -198,6 +248,12 @@ class AnalysisPipeline:
             + xai.get("warnings", [])
         ))
         automl_alias = self._legacy_automl_alias(prediction)
+        financial_analysis = _financial_dataset_analysis(work)
+        audit_trail = build_audit_trail(
+            business_metrics=business_metrics, eda=eda, correlations=correlations,
+            trends=trends, prediction=prediction, df=work,
+        )
+        certificate = build_certificate(work, audit_trail)
         return {
             "session_id": session_id,
             "filename": filename,
@@ -208,6 +264,7 @@ class AnalysisPipeline:
             "business_metrics": business_metrics,
             "product_analysis": product_analysis,
             "food_analysis": food_analysis,
+            "financial_analysis": financial_analysis,
             "query_plan": query_plan,
             "query_answer": query_answer,
             "kpis": query_answer.get("kpis") or _default_kpis(business_metrics),
@@ -218,6 +275,8 @@ class AnalysisPipeline:
             "outliers": outliers,
             "target_suggestions": target_suggestions,
             "prediction": prediction,
+            "audit_trail": audit_trail,
+            "certificate": certificate,
             "automl": automl_alias,
             "xai": xai,
             "charts": charts,
@@ -471,13 +530,7 @@ def _prediction_request(
 
 
 def _default_kpis(business_metrics: dict[str, Any]) -> list[dict[str, Any]]:
-    return [
-        {"label": "Total Sales", "value": business_metrics.get("total_revenue")},
-        {"label": "Total Quantity", "value": business_metrics.get("total_quantity")},
-        {"label": "Total Profit", "value": business_metrics.get("total_profit")},
-        {"label": "Gross Margin", "value": None if business_metrics.get("gross_margin") is None else f"{business_metrics.get('gross_margin')}%"},
-        {"label": "Transactions", "value": business_metrics.get("transaction_count")},
-    ]
+    return build_kpi_cards(business_metrics)
 
 
 def _report_charts_for_query(
@@ -531,6 +584,130 @@ def _first_existing_column(df: pd.DataFrame, candidates: tuple[str, ...]) -> str
         if match:
             return match
     return None
+
+
+def _financial_dataset_analysis(df: pd.DataFrame) -> dict[str, Any]:
+    """Detect and compute company-year financial metrics if dataset looks financial.
+
+    Returns an empty dict for non-financial datasets so callers can check
+    ``result.get("is_financial")`` safely.
+    """
+    cols_lower = {c.lower().strip(): c for c in df.columns}
+
+    year_col = next(
+        (cols_lower[k] for k in ("year", "fiscal year", "fiscal_year", "period") if k in cols_lower),
+        None,
+    )
+    entity_col = next(
+        (cols_lower[k] for k in ("company", "entity", "organization", "firm") if k in cols_lower),
+        None,
+    )
+    if not year_col or not entity_col:
+        return {}
+
+    def _find(*candidates: str) -> str | None:
+        for c in candidates:
+            if c.lower() in cols_lower:
+                return cols_lower[c.lower()]
+        return None
+
+    revenue_col = _find("total revenue", "revenue", "net revenue", "sales")
+    income_col = _find("net income", "net profit", "profit after tax")
+    assets_col = _find("total assets", "assets")
+    liabilities_col = _find("total liabilities", "liabilities")
+    cashflow_col = _find(
+        "cash flow from operating activities",
+        "operating cash flow",
+        "cash flow from operations",
+    )
+
+    if not revenue_col:
+        return {}
+
+    entities = sorted(df[entity_col].dropna().astype(str).unique())
+    years_raw = sorted(df[year_col].dropna().unique())
+
+    def _to_year_str(y: Any) -> str:
+        try:
+            fval = float(y)
+            return str(int(fval)) if fval == int(fval) else str(y)
+        except (TypeError, ValueError):
+            return str(y)
+
+    years = [_to_year_str(y) for y in years_raw]
+
+    revenue_by_year: list[dict[str, Any]] = []
+    for yr_raw, yr in zip(years_raw, years):
+        mask = df[year_col] == yr_raw
+        rev = float(df.loc[mask, revenue_col].sum())
+        income = float(df.loc[mask, income_col].sum()) if income_col else None
+        cf = float(df.loc[mask, cashflow_col].sum()) if cashflow_col else None
+        revenue_by_year.append({"year": yr, "total_revenue": rev, "total_net_income": income, "total_cashflow": cf})
+
+    company_metrics: list[dict[str, Any]] = []
+    for entity in entities:
+        mask = df[entity_col].astype(str) == entity
+        ent = df[mask]
+        row: dict[str, Any] = {"entity": entity}
+        row["total_revenue"] = float(ent[revenue_col].sum())
+        if income_col:
+            row["total_net_income"] = float(ent[income_col].sum())
+            if row["total_revenue"]:
+                row["profit_margin"] = round(row["total_net_income"] / row["total_revenue"] * 100, 2)
+        if assets_col:
+            row["total_assets"] = float(ent[assets_col].sum())
+        if liabilities_col:
+            row["total_liabilities"] = float(ent[liabilities_col].sum())
+            if assets_col and row.get("total_assets"):
+                row["liability_ratio"] = round(row["total_liabilities"] / row["total_assets"] * 100, 2)
+        if cashflow_col:
+            row["total_cashflow"] = float(ent[cashflow_col].sum())
+        if len(years_raw) >= 2:
+            first_rev = float(ent.loc[ent[year_col] == years_raw[0], revenue_col].sum())
+            last_rev = float(ent.loc[ent[year_col] == years_raw[-1], revenue_col].sum())
+            if first_rev:
+                row["revenue_growth_pct"] = round((last_rev - first_rev) / abs(first_rev) * 100, 2)
+        company_metrics.append(row)
+
+    company_metrics.sort(key=lambda x: x.get("total_revenue", 0), reverse=True)
+
+    grouped_data: list[dict[str, Any]] = []
+    for yr_raw, yr in zip(years_raw, years):
+        for entity in entities:
+            mask = (df[entity_col].astype(str) == entity) & (df[year_col] == yr_raw)
+            rev = float(df.loc[mask, revenue_col].sum())
+            grouped_data.append({"company": entity, "year": yr, "revenue": rev})
+
+    total_revenue = float(df[revenue_col].sum())
+    total_net_income = float(df[income_col].sum()) if income_col else None
+    total_cashflow = float(df[cashflow_col].sum()) if cashflow_col else None
+
+    revenue_growth_pct: float | None = None
+    if len(revenue_by_year) >= 2:
+        first_rev = revenue_by_year[0]["total_revenue"]
+        last_rev = revenue_by_year[-1]["total_revenue"]
+        if first_rev:
+            revenue_growth_pct = round((last_rev - first_rev) / abs(first_rev) * 100, 2)
+
+    return {
+        "is_financial": True,
+        "year_column": year_col,
+        "entity_column": entity_col,
+        "revenue_column": revenue_col,
+        "income_column": income_col,
+        "assets_column": assets_col,
+        "liabilities_column": liabilities_col,
+        "cashflow_column": cashflow_col,
+        "entities": entities,
+        "years": years,
+        "company_metrics": company_metrics,
+        "revenue_by_year": revenue_by_year,
+        "grouped_revenue_data": grouped_data,
+        "total_revenue_all": total_revenue,
+        "total_net_income_all": total_net_income,
+        "total_cashflow_all": total_cashflow,
+        "revenue_growth_pct": revenue_growth_pct,
+    }
 
 
 __all__ = ["AnalysisPipeline", "create_session_id", "persist_dataframe_for_session"]

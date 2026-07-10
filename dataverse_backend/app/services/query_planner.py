@@ -81,7 +81,7 @@ class QueryPlanner:
             dimensions.append("date" if "month" not in dimensions else "month")
         if any(word in q for word in ["product", "item", "sku"]):
             dimensions.append("product")
-        if any(word in q for word in ["category", "department", "segment"]):
+        if any(word in q for word in ["categor", "department", "segment"]):
             dimensions.append("category")
         if any(word in q for word in ["customer", "client", "buyer"]):
             dimensions.append("customer")
@@ -110,6 +110,25 @@ class QueryPlanner:
             return QueryPlan(intent="anomaly", metric="revenue", dimensions=dimensions)
         if any(word in q for word in ["expense", "cost", "spending"]):
             return QueryPlan(intent="expense_analysis", metric="expense", dimensions=dimensions or ["category"])
+
+        # Dimension breakdown routing — a question that names a dimension (with or without
+        # a superlative) should rank by that dimension. This runs before the generic profit
+        # summary so "most profitable category" ranks categories instead of returning a total.
+        metric_for_dim = (
+            "profit" if any(word in q for word in ["profit", "margin", "profitable"]) else
+            "quantity" if any(word in q for word in ["quantity", "units", "qty"]) or "sold" in q else
+            "revenue"
+        )
+        if "product" in dimensions:
+            return QueryPlan(intent="top_product", metric=("quantity" if metric_for_dim == "quantity" else "revenue"),
+                             dimensions=["product"], report_mode="focused_answer_report")
+        if "category" in dimensions:
+            return QueryPlan(intent="category_performance", metric=metric_for_dim, dimensions=["category"], report_mode="focused_answer_report")
+        if "region" in dimensions:
+            return QueryPlan(intent="region_performance", metric=metric_for_dim, dimensions=["region"], report_mode="focused_answer_report")
+        if "customer" in dimensions:
+            return QueryPlan(intent="customer_analysis", metric=metric_for_dim, dimensions=["customer"], report_mode="focused_answer_report")
+
         if any(word in q for word in ["profit", "margin"]):
             return QueryPlan(intent="profit_summary", metric="profit", dimensions=dimensions, report_mode="focused_answer_report")
         if any(word in q for word in ["customer", "client", "buyer"]):

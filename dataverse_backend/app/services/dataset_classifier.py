@@ -111,6 +111,8 @@ def classify_dataset(
         add("finance", 0.18, "transaction_date")
     if any(token in finance_names for token in ["expense", "income", "account", "debit", "credit"]):
         add("finance", 0.28, "finance_terms")
+    if any(token in finance_names for token in ["revenue", "assets", "liabilities", "cash flow", "profit", "margin", "leverage"]):
+        add("finance", 0.35, "finance_statement_terms")
     if "sales_amount" in role_set and "transaction_date" in role_set and "product" not in role_set:
         add("finance", 0.08, "amount_with_transaction_date")
 

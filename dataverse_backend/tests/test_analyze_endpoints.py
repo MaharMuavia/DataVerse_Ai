@@ -239,7 +239,8 @@ def test_ai_khata_report_analysis_uses_extracted_business_summary():
     assert report["trends"]["business_revenue_by_month"] == [{"period": "2026-05", "sales_revenue": 7000}]
     assert report["prediction"]["status"] == "skipped"
     assert "fewer than 30 rows" in report["prediction"]["reason"]
-    assert "sales Rs 7000" in report["executive_summary"]
+    # The extracted business summary flows into the (deterministic) narration.
+    assert "Total Sales: 7000" in report["executive_summary"]
 
 
 def test_upload_charts_contain_normalized_keys():

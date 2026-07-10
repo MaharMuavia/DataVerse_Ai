@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from dataverse_backend.app.main import app
-from dataverse_backend.app.services.session_service import session_service
-from dataverse_backend.app.services.supabase_client import LocalPersistence
+from app.main import app
+from app.services.session_service import session_service
+from app.services.supabase_client import LocalPersistence
 
 
 def _csv_bytes() -> bytes:
@@ -270,4 +270,6 @@ def test_total_sales_message_returns_focused_answer_without_report(tmp_path, mon
     assert body["report"] is None
     assert body["xai"] is None
     assert body["kpis"]
-    assert body["charts"] == []
+    # Focused answers are now visual: the total-sales intent surfaces its charts
+    # (sales by month / category / region) even without generating a full report.
+    assert body["charts"]
