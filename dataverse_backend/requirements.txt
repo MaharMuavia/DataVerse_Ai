@@ -22,3 +22,4 @@ anthropic
 jinja2
 PyJWT
 pypdf
+email-validator
