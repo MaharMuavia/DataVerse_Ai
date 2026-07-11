@@ -78,7 +78,9 @@ type AuthApiResponse = {
 async function authRequest(path: string, body?: Record<string, unknown>): Promise<AuthApiResponse> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    // ngrok-skip-browser-warning: ngrok's free tier intercepts browser
+    // requests with an HTML warning page unless this header is present.
+    headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' },
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {

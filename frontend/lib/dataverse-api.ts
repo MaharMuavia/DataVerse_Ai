@@ -52,6 +52,9 @@ function getWorkspaceUserId() {
 
 function withWorkspaceHeaders(init?: RequestInit): RequestInit {
   const headers = new Headers(init?.headers);
+  // ngrok's free tier serves an HTML warning page to browser requests unless
+  // this header is present; harmless when the backend isn't behind ngrok.
+  headers.set('ngrok-skip-browser-warning', '1');
   // A verified JWT is the real identity; the workspace id is a legacy/anonymous
   // fallback used only when the user hasn't authenticated.
   const token = getAuthToken();
