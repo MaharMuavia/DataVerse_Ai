@@ -1,0 +1,60 @@
+name: Deploy backend to Hugging Face Space
+
+# Pushes dataverse_backend/ (plus a generated Space README) to a Hugging Face
+# Docker Space. One-time setup:
+#   1. Create a Docker Space at https://huggingface.co/new-space (CPU basic, free).
+#   2. Create a WRITE token at https://huggingface.co/settings/tokens.
+#   3. In this GitHub repo: Settings -> Secrets and variables -> Actions:
+#        - secret   HF_TOKEN    = the write token
+#        - variable HF_SPACE_ID = <username>/<space-name>  (e.g. mahar/dataverse-ai-backend)
+#   4. In the Space: Settings -> Variables and secrets, add the backend env vars
+#      (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY,
+#       SUPABASE_JWT_SECRET, SECRET_KEY, ENVIRONMENT=production,
+#       CORS_ORIGINS, CORS_ORIGIN_REGEX, optional ANTHROPIC_API_KEY).
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["dataverse_backend/**", ".github/workflows/deploy-hf-space.yml"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: vars.HF_SPACE_ID != ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assemble Space contents
+        run: |
+          mkdir space
+          cp -r dataverse_backend/* space/
+          rm -rf space/tests space/__pycache__
+          cat > space/README.md <<'EOF'
+          ---
+          title: DataVerse AI Backend
+          emoji: "\U0001F4CA"
+          colorFrom: blue
+          colorTo: indigo
+          sdk: docker
+          app_port: 7860
+          pinned: false
+          ---
+
+          FastAPI backend for DataVerse AI. Deployed automatically from
+          https://github.com/MaharMuavia/DataVerse_Ai — do not edit here.
+          EOF
+
+      - name: Push to Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_ID: ${{ vars.HF_SPACE_ID }}
+        run: |
+          cd space
+          git init -b main
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add -A
+          git commit -m "Deploy ${GITHUB_SHA::8}"
+          git push --force "https://user:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_ID}" main

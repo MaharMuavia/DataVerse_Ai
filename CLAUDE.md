@@ -108,8 +108,11 @@ pickled — see `session_store.py` `_read_pickle_compat` / numpy alias shims for
 cross-version pickle loading). DB (`DATABASE_URL`, SQLAlchemy) is not required.
 
 Deployment: Vercel hosts only `frontend/` (project Root Directory = `frontend`); the
-FastAPI backend deploys to Render via the root `render.yaml` blueprint. The frontend
-finds the backend through `NEXT_PUBLIC_DATAVERSE_API_URL` (build-time, set in Vercel).
+FastAPI backend deploys to a Hugging Face Docker Space via
+`.github/workflows/deploy-hf-space.yml` (mirrors `dataverse_backend/` on main pushes;
+needs `HF_TOKEN` secret + `HF_SPACE_ID` repo variable; backend env vars live in the
+Space's settings). The frontend finds the backend through
+`NEXT_PUBLIC_DATAVERSE_API_URL` (build-time, set in Vercel).
 
 ### API surface
 
