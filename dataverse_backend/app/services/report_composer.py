@@ -54,6 +54,49 @@ def _fingerprint(text: Any) -> str:
     return " ".join(cleaned.split())
 
 
+_TREND_VERBS_UP = r"rose|increased|grew|climbed|moved up|went up|gained"
+_TREND_VERBS_DOWN = r"fell|declined|dropped|decreased|moved down|went down|shrank"
+_TREND_PATTERN = re.compile(
+    rf"(?P<metric>[\w][\w /-]*?)\s+(?P<verb>{_TREND_VERBS_UP}|{_TREND_VERBS_DOWN})\s+"
+    r"(?:by\s+)?(?P<pct>\d+(?:\.\d+)?)\s*%",
+    re.IGNORECASE,
+)
+
+
+def semantic_fingerprint(text: Any) -> str:
+    """Fingerprint that collapses paraphrases of the same trend fact.
+
+    "Revenue increased 15.5% over the observed period", "revenue rose 15.5%
+    across the period" and "Revenue grew 15.5% across the tracked period" all
+    map to the same key, so the report can state the fact only once.
+    """
+    match = _TREND_PATTERN.search(str(text))
+    if match:
+        verb = match.group("verb").lower()
+        direction = "up" if re.fullmatch(_TREND_VERBS_UP, verb, re.IGNORECASE) else "down"
+        metric = _fingerprint(match.group("metric"))
+        pct = round(float(match.group("pct")), 1)
+        return f"trendfact::{metric}::{direction}::{pct}"
+    return _fingerprint(text)
+
+
+def variability_phrase(volatility: Any, mean: Any) -> str:
+    """Qualitative variability label — raw volatility floats never reach prose."""
+    try:
+        vol = float(volatility)
+        avg = abs(float(mean))
+    except (TypeError, ValueError):
+        return ""
+    if not avg or vol < 0:
+        return ""
+    cv = vol / avg
+    if cv < 0.15:
+        return "with low variability"
+    if cv < 0.4:
+        return "with moderate variability"
+    return "with high variability"
+
+
 @dataclass
 class ScoredInsight:
     text: str
@@ -76,7 +119,7 @@ class ReportMemory:
         text = (text or "").strip()
         if not text:
             return False
-        fp = _fingerprint(text)
+        fp = semantic_fingerprint(text)
         if not fp or fp in self.rendered_insights:
             return False
         self.rendered_insights.add(fp)
@@ -85,7 +128,7 @@ class ReportMemory:
 
     def claim_insight(self, text: str) -> bool:
         """Reserve an insight fingerprint without ranking it (for section bodies)."""
-        fp = _fingerprint(text)
+        fp = semantic_fingerprint(text)
         if not fp or fp in self.rendered_insights:
             return False
         self.rendered_insights.add(fp)
@@ -327,9 +370,11 @@ class ReportComposer:
             )
 
         if prediction.get("status") == "complete":
+            # Executive summaries stay jargon-free; the model name and task type
+            # belong in the Explainable AI section, not here.
             memory.add_insight(
-                f"A {prediction.get('selected_model')} model was trained for {prediction.get('target_column')} "
-                f"({prediction.get('task_type')}), enabling forward-looking estimates.",
+                f"Forward-looking estimates are available for {prediction.get('target_column')}, "
+                "with the key drivers explained at the end of this report.",
                 score=5.5,
                 category="model",
             )
@@ -1090,24 +1135,45 @@ class ReportComposer:
             # The verb must agree with the period change; the fitted slope can
             # disagree with first-vs-last change and previously produced
             # contradictions like "moved up (change -3.4%)".
+            variability = variability_phrase(item.get("volatility"), item.get("mean"))
+            suffix = f" {variability}." if variability else "."
             if pct is not None:
                 verb = "rose" if pct > 0 else ("fell" if pct < 0 else "held steady")
-                line = (
-                    f"{item.get('value_column')} {verb} {abs(round(pct, 1))}% across the period "
-                    f"(volatility {item.get('volatility')})."
-                )
+                line = f"{item.get('value_column')} {verb} {abs(round(pct, 1))}% across the period{suffix}"
             else:
-                line = (
-                    f"{item.get('value_column')} moved {item.get('direction')} "
-                    f"(volatility {item.get('volatility')})."
-                )
+                line = f"{item.get('value_column')} moved {item.get('direction')}{suffix}"
             if not memory.claim_insight(line):
-                continue
+                # The headline trend was already told (e.g. in the executive
+                # summary). Add detail instead of restating it: the observed
+                # range and variability are new information.
+                chart_values = [
+                    _num(p.get("value"))
+                    for p in (item.get("chart_data") or [])
+                    if isinstance(p, dict) and p.get("value") is not None
+                ]
+                candidates = [v for v in (item.get("first_value"), item.get("last_value")) if v is not None]
+                candidates.extend(chart_values)
+                if len(candidates) < 2:
+                    continue
+                lo, hi = min(candidates), max(candidates)
+                freq_word = {"D": "Daily", "W": "Weekly", "M": "Monthly"}.get(
+                    str(item.get("aggregation_level") or ""), "Per-period"
+                )
+                detail = (
+                    f"{freq_word} average {item.get('value_column')} ranged "
+                    f"from {_fmt(lo)} to {_fmt(hi)}"
+                )
+                line = f"{detail} {variability}." if variability else f"{detail}."
+                if not memory.claim_insight(line):
+                    continue
             anomalies = item.get("anomaly_points") or []
             if anomalies:
                 line += f" {len(anomalies)} anomaly point(s) flagged."
             lines.append(line)
-        if not lines and len(revenue_by_month) >= 2:
+        # Fallback only when no trend series was computed at all — if the trend
+        # facts were already claimed by an earlier section, restating monthly
+        # endpoints here would read as a contradiction of the headline.
+        if not lines and not series and len(revenue_by_month) >= 2:
             first = revenue_by_month[0].get("revenue", 0)
             last = revenue_by_month[-1].get("revenue", 0)
             lines.append(f"Monthly revenue moved from {_fmt(first)} to {_fmt(last)} across {len(revenue_by_month)} periods.")
@@ -1352,16 +1418,17 @@ class ReportComposer:
             slope = item.get("slope")
             last = item.get("last_value")
             if slope is not None and last is not None:
-                projected = round(_num(last) + _num(slope) * 3, 2)
-                lines.append(
-                    f"If the current {item.get('direction')} trend in {item.get('value_column')} holds, "
-                    f"the next-period projection is ~{_fmt(projected)} (linear extrapolation)."
+                # One period ahead, and the trend word derives from the same
+                # slope as the number so the sentence can never contradict itself.
+                projected = round(_num(last) + _num(slope), 2)
+                trend_word = "upward" if _num(slope) > 0 else "downward" if _num(slope) < 0 else "flat"
+                period_noun = {"D": "day", "W": "week", "M": "month"}.get(
+                    str(item.get("aggregation_level") or ""), "period"
                 )
-        if prediction.get("status") == "complete":
-            lines.append(
-                f"A trained {prediction.get('selected_model')} model is available to score new "
-                f"{prediction.get('target_column')} records."
-            )
+                lines.append(
+                    f"If the current {trend_word} trend in {item.get('value_column')} holds, "
+                    f"the next {period_noun} would average about {_fmt(projected)} (straight-line projection)."
+                )
         return {"lines": lines} if lines else None
 
     # -------------------------------------------------------------- recommendations (sales)
@@ -1577,8 +1644,9 @@ class ReportComposer:
             if memory.seen_chart(fp):
                 continue
             enriched = dict(chart)
-            enriched["explanation"] = _chart_explanation(chart)
-            enriched["takeaway"] = _chart_takeaway(chart)
+            enriched["title"] = _honest_chart_title(enriched)
+            enriched["explanation"] = _chart_explanation(enriched)
+            enriched["takeaway"] = _chart_takeaway(enriched)
             composed.append(enriched)
         return composed[:10]
 
@@ -2017,23 +2085,49 @@ def _chart_fingerprint(chart: dict[str, Any]) -> str:
     return _fingerprint(f"{chart.get('type')}|{chart.get('title')}|{x}|{y}|{series}")
 
 
+def _pretty_key(key: Any) -> str:
+    return str(key or "").replace("_", " ").strip()
+
+
+def _honest_chart_title(chart: dict[str, Any]) -> str:
+    """Make "Top N ..." titles match the number of items actually plotted."""
+    title = str(chart.get("title") or "")
+    data = chart.get("data")
+    if not isinstance(data, list) or not data:
+        return title
+    match = re.match(r"^(top)\s+(\d+)\b(.*)$", title, re.IGNORECASE)
+    if match and int(match.group(2)) != len(data):
+        return f"{match.group(1)} {len(data)}{match.group(3)}"
+    return title
+
+
 def _chart_explanation(chart: dict[str, Any]) -> str:
+    """One data-specific sentence per chart — never generic chart-type boilerplate."""
     ctype = str(chart.get("type", "")).lower()
-    title = chart.get("title", "this chart")
-    explanations = {
-        "line": f"{title} plots how the metric changes over time so trends and inflection points are visible.",
-        "bar": f"{title} compares values across categories to surface the largest and smallest contributors.",
-        "grouped_bar": f"{title} compares each category across multiple series for direct side-by-side analysis.",
-        "histogram": f"{title} shows how values are distributed, revealing skew, spread, and common ranges.",
-        "pie": f"{title} breaks the total into proportional shares.",
-        "donut": f"{title} breaks the total into proportional shares.",
-        "scatter": f"{title} plots two numeric variables to reveal correlation and clustering patterns.",
-        "heatmap": f"{title} visualizes the correlation strength between numeric columns.",
-        "feature_importance": f"{title} ranks which inputs most influence the model's predictions.",
-        "confusion_matrix": f"{title} compares predicted versus actual classes to expose error patterns.",
-        "boxplot": f"{title} highlights the spread and outlier bounds of each numeric column.",
-    }
-    return explanations.get(ctype, f"{title} visualizes the underlying data for quick interpretation.")
+    data = [row for row in (chart.get("data") or []) if isinstance(row, dict)]
+    x = chart.get("x_key") or chart.get("x")
+    y = chart.get("y_key") or chart.get("y")
+    n = len(data)
+    x_label = _pretty_key(x)
+    y_label = _pretty_key(y)
+    if ctype == "line" and data and x and y:
+        first = data[0].get(x)
+        last = data[-1].get(x)
+        return f"Tracks {y_label} across {n} periods, {first} to {last}."
+    if ctype in {"bar", "pie", "donut"} and data and x and y:
+        total = sum(_num(row.get(y)) for row in data)
+        return f"Compares {y_label} across {n} {x_label} groups (combined {_fmt(total)})."
+    if ctype == "grouped_bar" and data and x and y:
+        return f"Compares {y_label} by {x_label} side-by-side across series."
+    if ctype == "scatter" and x and y:
+        return f"Plots {x_label} against {y_label} for {n} records."
+    if ctype == "histogram" and x:
+        return f"Distribution of {x_label} across {n} ranges."
+    if ctype == "feature_importance":
+        return f"Ranks the {n} inputs that most influence predictions."
+    if ctype == "confusion_matrix":
+        return "Predicted versus actual classes."
+    return ""
 
 
 def _chart_takeaway(chart: dict[str, Any]) -> str:
@@ -2054,8 +2148,13 @@ def _chart_takeaway(chart: dict[str, Any]) -> str:
         last = _num(rows[-1].get(y))
         if first:
             pct = round((last - first) / abs(first) * 100, 1)
-            direction = "up" if pct > 0 else "down" if pct < 0 else "flat"
-            return f"Key takeaway: the series moved {direction} {abs(pct)}% from start to end."
+            # "charted" scopes the statement to this view, so it can never read
+            # as a contradiction of the overall headline trend.
+            if pct > 0:
+                return f"Key takeaway: the charted series ended {abs(pct)}% higher than it started."
+            if pct < 0:
+                return f"Key takeaway: the charted series ended {abs(pct)}% lower than it started."
+            return "Key takeaway: the charted series ended where it started."
     if ctype == "grouped_bar" and x and y:
         ranked = sorted(rows, key=lambda row: _num(row.get(y)), reverse=True)
         if ranked:

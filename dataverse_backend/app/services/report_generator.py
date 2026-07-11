@@ -13,7 +13,7 @@ from jinja2 import Template
 from ..core.config import settings
 from .data_quality import validate_chart_spec
 from .llm_provider import LLMProvider
-from .report_composer import ReportComposer
+from .report_composer import ReportComposer, semantic_fingerprint
 
 
 # Professional light-theme palette (item 10).
@@ -495,7 +495,22 @@ class ReportGenerator:
                 ("Outliers (IQR)", f"{outlier_total}"),
             ]
         }
-        warnings_list = [_humanize_warning(w) for w in (facts.get("warnings") or [])]
+        # Only warnings about the DATA reach the reader. Pipeline internals
+        # (skip-notes, SHAP/counterfactual chatter, exception names) describe
+        # how the analysis ran, not a problem with the dataset.
+        data_topic = re.compile(
+            r"missing|duplicate|outlier|cardinality|constant|too few|small dataset|"
+            r"no numeric|no target",
+            re.IGNORECASE,
+        )
+        internal = re.compile(
+            r"skip|shap|fallback|traceback|exception|\b\w+error\b|perturb", re.IGNORECASE
+        )
+        warnings_list = [
+            humanized
+            for humanized in (_humanize_warning(w) for w in (facts.get("warnings") or []))
+            if data_topic.search(humanized) and not internal.search(humanized)
+        ]
         if int(row_count or 0) < 30:
             warnings_list.append(
                 f"Small dataset: only {row_count} rows — treat findings as directional, not predictive."
@@ -654,8 +669,9 @@ class ReportGenerator:
         relationship, monthly trend) computed straight from the facts. Anything that
         duplicates an executive bullet is dropped.
         """
-        def _norm(value: Any) -> str:
-            return re.sub(r"[^a-z0-9]+", " ", str(value).lower()).strip()
+        # semantic_fingerprint collapses paraphrases of the same trend fact
+        # ("increased 15.5%" vs "grew 15.5%"), not just identical wording.
+        _norm = semantic_fingerprint
 
         seen = {_norm(b) for b in exec_bullets}
         wanted = ("Trend Analysis", "Correlation Analysis", "Category Analysis", "Forecasting")
@@ -759,37 +775,40 @@ class ReportGenerator:
         return actions
 
     def _xai_section(self, facts: dict[str, Any], xai_output: dict[str, Any] | None) -> dict[str, Any]:
-        """Explainable AI section: the top-5 outcome drivers in plain language."""
+        """Explainable AI section: the top outcome drivers in plain language.
+
+        One-hot encoded dummies (e.g. Date_2024-04-15) are grouped back to their
+        source column, so the reader sees "Date (specific dates)" once with the
+        drivers' combined weight instead of five near-identical technical rows.
+        """
         prediction = facts.get("prediction") or {}
         xai_info = xai_output or facts.get("xai") or {}
         importances = xai_info.get("global_feature_importance") or []
 
         if prediction.get("status") == "complete" and importances:
-            ranked = sorted(
-                (f for f in importances if f.get("feature") is not None),
-                key=lambda f: abs(_num(f.get("importance"))),
-                reverse=True,
-            )[:5]
-            total = sum(abs(_num(f.get("importance"))) for f in importances) or 1.0
+            grouped = self._group_importances_by_source_column(importances, facts)
+            total = sum(share for _, share, _ in grouped) or 1.0
             bullets: list[str] = []
-            for rank, f in enumerate(ranked, start=1):
-                share = abs(_num(f.get("importance"))) / total * 100
+            for rank, (label, share, dummy_count) in enumerate(grouped[:5], start=1):
+                pct = share / total * 100
                 if rank == 1:
                     descriptor = "the strongest driver"
-                elif share >= 15:
+                elif pct >= 15:
                     descriptor = "a major factor"
-                elif share >= 5:
+                elif pct >= 5:
                     descriptor = "a moderate factor"
                 else:
                     descriptor = "a minor factor"
-                bullets.append(
-                    f"{f.get('feature')} is {descriptor}, shaping roughly {round(share)}% of the predicted outcome."
-                )
-            intro = xai_info.get("plain_english_explanation")
-            body: dict[str, Any] = {"bullets": bullets}
-            if intro:
-                body["lines"] = [str(intro)]
-            return {"title": "Explainable AI", "body": body}
+                if dummy_count > 1:
+                    bullets.append(
+                        f"{label} is {descriptor}: {dummy_count} specific {label.lower()} values together "
+                        f"shape roughly {round(pct)}% of the predicted outcome."
+                    )
+                else:
+                    bullets.append(
+                        f"{label} is {descriptor}, shaping roughly {round(pct)}% of the predicted outcome."
+                    )
+            return {"title": "Explainable AI", "body": {"bullets": bullets}}
 
         reason = prediction.get("reason") or "the dataset did not meet the requirements for automated prediction"
         explanation = (
@@ -798,6 +817,48 @@ class ReportGenerator:
             "will rank the top factors influencing that outcome."
         )
         return {"title": "Explainable AI", "body": {"lines": [explanation]}}
+
+    @staticmethod
+    def _group_importances_by_source_column(
+        importances: list[dict[str, Any]], facts: dict[str, Any]
+    ) -> list[tuple[str, float, int]]:
+        """Collapse one-hot dummy features back onto their source column.
+
+        Returns (display_label, combined_importance, dummy_count) sorted by
+        combined importance. A feature named "Date_2024-04-15" groups under
+        "Date" when "Date" (case-insensitive) is a known dataset column.
+        """
+        quality = facts.get("data_quality") or {}
+        known_columns = {
+            str(col).lower(): str(col)
+            for key in ("numeric_columns", "categorical_columns", "date_columns", "text_columns")
+            for col in (quality.get(key) or [])
+        }
+        groups: dict[str, tuple[float, int]] = {}
+        order: list[str] = []
+        for item in importances:
+            feature = item.get("feature")
+            if feature is None:
+                continue
+            name = str(feature)
+            share = abs(_num(item.get("importance")))
+            label = name
+            prefix = name.split("_", 1)[0]
+            if "_" in name and prefix.lower() in known_columns:
+                label = known_columns[prefix.lower()]
+                is_dummy = True
+            else:
+                is_dummy = False
+            current_share, current_count = groups.get(label, (0.0, 0))
+            groups[label] = (current_share + share, current_count + (1 if is_dummy else 0))
+            if label not in order:
+                order.append(label)
+        ranked = [
+            (label, groups[label][0], max(groups[label][1], 1))
+            for label in order
+        ]
+        ranked.sort(key=lambda entry: entry[1], reverse=True)
+        return ranked
 
     def _dedupe_sections(self, sections: list[dict[str, Any]]) -> None:
         """Drop any bullet/line that already appeared in an earlier section.
@@ -808,7 +869,7 @@ class ReportGenerator:
 
         def _fp(value: Any) -> str:
             text = re.sub(r"<[^>]+>", " ", str(value))
-            return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+            return semantic_fingerprint(text)
 
         for section in sections:
             body = section.get("body")
@@ -1176,7 +1237,25 @@ class ReportGenerator:
 
         def _render_pdf_section(section: dict[str, Any]) -> None:
             story.append(Paragraph(html.escape(str(section["title"])), styles["Heading2"]))
-            paragraphs = _section_plaintext(section.get("body"))
+            body = section.get("body")
+            # KPI-style items render as a horizontal card row, not prose lines.
+            if isinstance(body, dict) and body.get("items"):
+                items = body["items"][:6]
+                labels = [str(it.get("label", "")) for it in items]
+                values = [str(it.get("value", "")) for it in items]
+                story.append(Table([labels, values], hAlign="LEFT", style=TableStyle([
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#EFF6FF")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#2563EB")),
+                    ("FONTSIZE", (0, 0), (-1, 0), 7 if compact else 8),
+                    ("FONTSIZE", (0, 1), (-1, 1), 10 if compact else 12),
+                    ("FONTNAME", (0, 1), (-1, 1), "Helvetica-Bold"),
+                    ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#E2E8F0")),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("PADDING", (0, 0), (-1, -1), 5 if compact == 0 else 3),
+                ])))
+                story.append(Spacer(1, gap_small))
+                body = {k: v for k, v in body.items() if k != "items"}
+            paragraphs = _section_plaintext(body)
             cap = essential_paragraphs if str(section.get("title")) in essential_titles else max_paragraphs
             if cap is not None:
                 paragraphs = paragraphs[:cap]
@@ -1272,7 +1351,7 @@ def _section_plaintext(body: Any) -> list[str]:
     if not isinstance(body, dict):
         return [str(body)]
     out.extend(f"{label}: {value}" for label, value in (body.get("fields", []) or []))
-    out.extend(str(item) for item in body.get("bullets", []))
+    out.extend(f"• {item}" for item in body.get("bullets", []))
     out.extend(str(item) for item in body.get("lines", []))
     for block in body.get("blocks", []):
         out.append(f"{block.get('label', '')}: {block.get('text', '')}")
@@ -1375,7 +1454,22 @@ def _line_svg(chart: dict[str, Any]) -> str:
         color = PALETTE[idx % len(PALETTE)]
         paths.append(f'<polyline points="{" ".join(points)}" fill="none" stroke="{color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>')
         legend.append(f'<circle cx="{38 + idx * 88}" cy="202" r="4" fill="{color}"/><text x="{46 + idx * 88}" y="206" font-size="9" fill="#475569">{html.escape(_truncate(name, 12))}</text>')
-    return f'<svg viewBox="0 0 {width} {height}" role="img"><line x1="34" y1="174" x2="430" y2="174" stroke="#cbd5e1"/><line x1="34" y1="30" x2="34" y2="174" stroke="#cbd5e1"/>{"".join(paths)}{"".join(legend)}</svg>'
+    # Axis context: min/max value labels on the y-axis, first/middle/last period
+    # labels on the x-axis — a trend line without a scale is not evidence.
+    axis_labels: list[str] = []
+    axis_labels.append(f'<text x="30" y="177" font-size="8" fill="#64748b" text-anchor="end">{html.escape(_fmt(min_value))}</text>')
+    axis_labels.append(f'<text x="30" y="35" font-size="8" fill="#64748b" text-anchor="end">{html.escape(_fmt(max_value))}</text>')
+    x_rows = sorted((row for row in data if isinstance(row, dict)), key=lambda row: str(row.get(x_key)))
+    if x_rows and x_key:
+        tick_indices = sorted({0, len(x_rows) // 2, len(x_rows) - 1})
+        for tick in tick_indices:
+            tick_x = 36 + (tick / max(1, len(x_rows) - 1)) * (width - 70)
+            anchor = "start" if tick == 0 else ("end" if tick == len(x_rows) - 1 else "middle")
+            label = _truncate(_fmt(x_rows[tick].get(x_key)), 12)
+            axis_labels.append(
+                f'<text x="{tick_x:.1f}" y="188" font-size="8" fill="#64748b" text-anchor="{anchor}">{html.escape(label)}</text>'
+            )
+    return f'<svg viewBox="0 0 {width} {height}" role="img"><line x1="34" y1="174" x2="430" y2="174" stroke="#cbd5e1"/><line x1="34" y1="30" x2="34" y2="174" stroke="#cbd5e1"/>{"".join(paths)}{"".join(axis_labels)}{"".join(legend)}</svg>'
 
 
 def _donut_svg(chart: dict[str, Any], *, donut: bool) -> str:
@@ -1560,11 +1654,12 @@ def _reportlab_chart_drawing(chart: dict[str, Any]) -> Any | None:
         values = [_num(row.get(y_key)) for row in rows]
         if len(values) < 2:
             return None
-        drawing = Drawing(460, 170)
+        drawing = Drawing(460, 175)
         drawing.add(Line(35, 25, 430, 25, strokeColor=colors.HexColor("#cbd5e1")))
         drawing.add(Line(35, 25, 35, 145, strokeColor=colors.HexColor("#cbd5e1")))
         min_value = min(values)
-        span = max(max(values) - min_value, 1)
+        max_value = max(values)
+        span = max(max_value - min_value, 1)
         points = []
         for index, value in enumerate(values):
             x = 40 + (index / max(1, len(values) - 1)) * 370
@@ -1573,6 +1668,14 @@ def _reportlab_chart_drawing(chart: dict[str, Any]) -> Any | None:
         drawing.add(PolyLine(points, strokeColor=colors.HexColor("#3b82f6"), strokeWidth=2.5))
         for index in range(0, len(points), 2):
             drawing.add(Circle(points[index], points[index + 1], 2.8, fillColor=colors.HexColor("#8b5cf6"), strokeColor=None))
+        # Axis context: y-axis min/max and x-axis first/last period labels.
+        axis_color = colors.HexColor("#64748b")
+        drawing.add(String(32, 23, _fmt(min_value), fontSize=7, fillColor=axis_color, textAnchor="end"))
+        drawing.add(String(32, 140, _fmt(max_value), fontSize=7, fillColor=axis_color, textAnchor="end"))
+        first_label = _truncate(_fmt(rows[0].get(x_key)), 12)
+        last_label = _truncate(_fmt(rows[-1].get(x_key)), 12)
+        drawing.add(String(40, 13, first_label, fontSize=7, fillColor=axis_color))
+        drawing.add(String(410, 13, last_label, fontSize=7, fillColor=axis_color, textAnchor="end"))
         return drawing
     rows = [row for row in data if isinstance(row, dict)][:8]
     values = [abs(_num(row.get(y_key))) for row in rows]
