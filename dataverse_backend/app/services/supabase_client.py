@@ -1,6 +1,7 @@
 """Server-side Supabase REST and Storage client with local fallback support."""
 from __future__ import annotations
 
+import asyncio
 import json
 import mimetypes
 import shutil
@@ -102,8 +103,18 @@ class SupabaseClient:
         return signed if str(signed).startswith("http") else f"{self.url}/storage/v1{signed}"
 
     async def _request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.request(method, url, **kwargs)
+        # Retry connect-phase failures only: the request was never sent, so a
+        # retry is safe even for non-idempotent methods.
+        attempts = 3
+        for attempt in range(1, attempts + 1):
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.request(method, url, **kwargs)
+                break
+            except (httpx.ConnectError, httpx.ConnectTimeout):
+                if attempt == attempts:
+                    raise
+                await asyncio.sleep(0.5 * attempt)
         response.raise_for_status()
         return response
 

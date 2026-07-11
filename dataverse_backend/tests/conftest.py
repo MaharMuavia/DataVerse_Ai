@@ -24,10 +24,13 @@ os.environ["OPENAI_API_KEY"] = ""
 os.environ["GEMINI_API_KEY"] = ""
 os.environ["RATE_LIMIT_PER_MINUTE"] = "100000"
 
-# Mock Supabase credentials for tests
+# Mock Supabase credentials for tests (override any developer .env values,
+# including SUPABASE_JWT_SECRET — a real secret would make auth_service try
+# to verify the mock tokens locally instead of via the mocked Auth API)
 os.environ["SUPABASE_URL"] = "https://mock.supabase.co"
 os.environ["SUPABASE_ANON_KEY"] = "mock_anon"
 os.environ["SUPABASE_SERVICE_ROLE_KEY"] = "mock_service"
+os.environ["SUPABASE_JWT_SECRET"] = ""
 
 from app.main import app  # noqa: E402
 
