@@ -14,6 +14,7 @@ from ..core.config import settings
 from .agent_loop import AgentLoop
 from .analysis_pipeline import AnalysisPipeline
 from .data_quality import json_safe, normalize_chart_specs
+from .domain_guard import ensure_retail_domain
 from .root_cause import investigate as investigate_root_cause, is_why_question
 from .quality_doctor import diagnose as diagnose_quality, apply_fixes as apply_quality_fixes
 from .certificate import verify_certificate
@@ -153,10 +154,22 @@ class SessionService:
         df = parse_uploaded_dataframe(filename, content)
         progress_bus.complete_stage(session_id, "parse", f"{len(df):,} rows × {len(df.columns)} cols")
 
-        dataset_id = str(uuid.uuid4())
         # PureWindowsPath treats both / and \ as separators, so traversal
         # components are stripped regardless of the host platform.
         safe_name = PureWindowsPath(filename).name or "dataset.csv"
+
+        # The semantic map runs before anything is persisted: a dataset outside
+        # the supported retail domain is refused without leaving stored rows.
+        progress_bus.start_stage(session_id, "semantic_map", "Building semantic map")
+        semantic_map = SemanticMapper().map_dataframe(df, filename=safe_name)
+        progress_bus.complete_stage(
+            session_id,
+            "semantic_map",
+            f"Detected: {semantic_map.get('dataset_type', 'generic_tabular')}",
+        )
+        ensure_retail_domain(semantic_map)
+
+        dataset_id = str(uuid.uuid4())
         file_type = safe_name.rsplit(".", 1)[-1].lower() if "." in safe_name else "csv"
         storage_path = f"{session_id}/{dataset_id}/{safe_name}"
         local_path = persist_dataframe_for_dataset(session_id, dataset_id, df, filename=safe_name)
@@ -167,14 +180,6 @@ class SessionService:
         progress_bus.start_stage(session_id, "profile", "Profiling columns")
         profile = AnalysisPipeline().profile_dataset(df)
         progress_bus.complete_stage(session_id, "profile")
-
-        progress_bus.start_stage(session_id, "semantic_map", "Building semantic map")
-        semantic_map = SemanticMapper().map_dataframe(df, filename=safe_name)
-        progress_bus.complete_stage(
-            session_id,
-            "semantic_map",
-            f"Detected: {semantic_map.get('dataset_type', 'generic_tabular')}",
-        )
         profile["semantic_map"] = semantic_map
         semantic_type = semantic_map.get("dataset_type")
         if semantic_type and profile.get("dataset_type") in {None, "generic", "generic_tabular"}:

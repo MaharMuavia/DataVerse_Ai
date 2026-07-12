@@ -23,6 +23,9 @@ os.environ["INTENT_LLM_PROVIDER"] = "deterministic"
 os.environ["OPENAI_API_KEY"] = ""
 os.environ["GEMINI_API_KEY"] = ""
 os.environ["RATE_LIMIT_PER_MINUTE"] = "100000"
+# Legacy tests exercise non-retail datasets; the retail-domain gate is enabled
+# explicitly in tests/test_domain_guard.py.
+os.environ["RETAIL_ONLY_UPLOADS"] = "false"
 
 # Mock Supabase credentials for tests (override any developer .env values,
 # including SUPABASE_JWT_SECRET — a real secret would make auth_service try

@@ -85,6 +85,9 @@ class Settings(BaseSettings):
     DEEPANALYZE_ALLOW_FALLBACK: bool = True
 
     MAX_UPLOAD_SIZE_MB: int = 50
+    # Refuse uploads whose semantic dataset type is outside the retail/mart
+    # commerce family (see services/domain_guard.py). Tests disable this.
+    RETAIL_ONLY_UPLOADS: bool = True
     USE_LLM_NARRATION: bool = True
     LLM_PROVIDER: str = "auto"
     REPORT_NARRATOR_TIMEOUT_SECONDS: int = 20
