@@ -78,8 +78,9 @@ def test_trending_product_report_uses_computed_product_charts():
     report = AnalysisPipeline().run_full_analysis(df, query="make a report of trending products in the form charts", run_predictions=False, run_xai=False)
 
     titles = [chart["title"] for chart in report["charts"]]
-    assert "Top 10 Products by Revenue" in titles
-    assert "Top 10 Products by Quantity" in titles
+    # Titles state the number of products actually plotted (2 in this fixture).
+    assert "Top 2 Products by Revenue" in titles
+    assert "Top 2 Products by Quantity" in titles
     assert "Monthly Revenue Trend for Top Products" in titles
     assert "Revenue Share" in titles
     assert report["product_analysis"]["top_products_by_revenue"][0] == {"product": "Oil", "revenue": 1300}

@@ -221,14 +221,14 @@ def compute_product_trends(
     region_performance = _rank_dimension(df, region_col, revenue_series, "region", "revenue", 10)
 
     if top_revenue:
-        charts.append({"type": "bar", "title": "Top 10 Products by Revenue", "x_key": "product", "y_key": "revenue", "data": top_revenue})
+        charts.append({"type": "bar", "title": f"Top {len(top_revenue)} Products by Revenue", "x_key": "product", "y_key": "revenue", "data": top_revenue})
         tables.append({"title": "Top Products by Revenue", "columns": ["product", "revenue"], "rows": top_revenue})
         leader = top_revenue[0]
         insights.append(f"{leader['product']} is the top revenue product with {leader['revenue']}.")
         recommendations.append(f"Protect availability and merchandising for {leader['product']}, the current revenue leader.")
 
     if top_quantity:
-        charts.append({"type": "bar", "title": "Top 10 Products by Quantity", "x_key": "product", "y_key": "quantity", "data": top_quantity})
+        charts.append({"type": "bar", "title": f"Top {len(top_quantity)} Products by Quantity", "x_key": "product", "y_key": "quantity", "data": top_quantity})
         tables.append({"title": "Top Products by Quantity", "columns": ["product", "quantity"], "rows": top_quantity})
 
     trend_rows, growth_rows = _product_monthly_trends(df, date_col, product_col, revenue_series, top_revenue)

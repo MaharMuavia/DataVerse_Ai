@@ -54,8 +54,9 @@ def explain_model(bundle: TrainedModelBundle | None, prediction: dict[str, Any],
         warnings.append(f"SHAP unavailable or failed; used feature importance fallback ({type(exc).__name__}).")
 
     top_features = [item["feature"] for item in global_importance[:5]]
+    # Reader-facing text stays plain-language; the technique lives in "method".
     explanation = (
-        f"Method used: {method}. The model is primarily influenced by " + ", ".join(top_features) + "."
+        "The model's predictions are shaped most by " + ", ".join(top_features) + "."
         if top_features
         else "XAI could not be generated because the model did not expose valid feature importance."
     )
@@ -99,8 +100,7 @@ def _fallback(importance: list[dict[str, Any]], warnings: list[str], reason: str
         "top_features": top_features,
         "local_explanations": [],
         "plain_english_explanation": (
-            "Method used: feature importance fallback. Top features: "
-            + ", ".join(top_features)
+            "The model's predictions are shaped most by " + ", ".join(top_features) + "."
             if top_features
             else skipped_message
         ),

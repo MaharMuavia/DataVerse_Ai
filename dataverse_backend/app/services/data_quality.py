@@ -235,6 +235,7 @@ def compute_trends(df: pd.DataFrame) -> dict[str, Any]:
                 "slope": round(slope, 6),
                 "direction": "up" if slope > 0 else "down" if slope < 0 else "flat",
                 "volatility": round(volatility, 6),
+                "mean": round(float(np.mean(values)), 6),
                 "anomaly_points": anomaly_points,
                 "chart_data": [{"date": str(idx.date()), "value": round(float(value), 6)} for idx, value in grouped.tail(100).items()],
             }
