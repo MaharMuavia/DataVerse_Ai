@@ -31,6 +31,12 @@ if (Test-BackendHealthy) {
     $env:ENVIRONMENT = "production"
     $env:CORS_ORIGINS = "https://data-verse-ai-liard.vercel.app,http://localhost:3000,http://127.0.0.1:3000"
     $env:CORS_ORIGIN_REGEX = "^https://data-verse-[a-z0-9]+-mahar-muavias-projects\.vercel\.app$"
+    # DeepAnalyze via local Ollama is the preferred reasoning engine; the
+    # provider chain falls back to other keys / deterministic mode when the
+    # model server is not running, so this can never break the demo.
+    $env:LLM_PROVIDER = "deepanalyze"
+    $env:DEEPANALYZE_LOCAL_BASE_URL = "http://localhost:11434/v1"
+    $env:DEEPANALYZE_MODEL = "hf.co/mattritchey/DeepAnalyze-8B-Q4_K_M-GGUF"
     Start-Process -FilePath $python `
         -ArgumentList "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000" `
         -WorkingDirectory (Join-Path $repo "dataverse_backend") -WindowStyle Minimized
