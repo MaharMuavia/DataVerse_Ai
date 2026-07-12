@@ -28,7 +28,10 @@ async def upload_dataset_compat(
         raise HTTPException(status_code=400, detail="Only CSV and Excel files are supported")
 
     session = await session_service.create_session(title=f"Dataset: {filename}", user_id=dataverse_user)
-    dataset = await session_service.upload_dataset(session["id"], filename, contents)
+    try:
+        dataset = await session_service.upload_dataset(session["id"], filename, contents)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     column_names = [
         str(column.get("name", ""))
         for column in dataset.get("columns", [])
