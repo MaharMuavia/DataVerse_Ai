@@ -1,0 +1,164 @@
+
+===== SLIDE 1 =====
+Computing and Technology Department, IQRA University Islamabad - H9 Campus - Pakistan
+                              DataVerse AI
+         Agentic Business Intelligence for Retail Mart Data Analysis
+Presented By: 
+Muhammad Muavia (37766)
+Hasnain Ali (37721)
+M. Shahan Subhani (37655)
+                               Supervisor: Mam Tayyaba Shehzad
+                      Iqra University, Islamabad Campus - Fall 2025
+
+===== SLIDE 2 =====
+Table of Content
+2
+ INTRODUCTION
+PROBLEM STATEMENT 
+OBJECTIVES  
+RESEARCH QUESTIONS
+LITERATURE REVIEW
+DATASET & TOOLS
+  PROPOSED METHODOLOGY 
+  EXPERIMENTAL RESULTS
+  CONTRIBUTION & FUTURE WORK
+  REFERENCES
+
+===== SLIDE 3 =====
+ Introduction
+3
+
+===== SLIDE 4 =====
+Problem Statement
+4
+
+===== SLIDE 5 =====
+Proposed Solution
+5
+
+===== SLIDE 6 =====
+Key Features
+6
+• CSV / Excel upload with retail-domain validation
+• Two-agent architecture: DatasetAgent + AnalystAgent
+• Natural language query support
+• Automated profiling, quality scan, and EDA
+• Verified insights: receipts + SHA-256 reproducibility certificate
+• Explainable AI: SHAP with deterministic fallback + counterfactuals
+• Supabase authentication, PostgreSQL persistence, and storage
+• 2-page executive report generation (HTML / PDF)
+
+===== SLIDE 7 =====
+Why a Two-Agent System?
+7
+Single Monolithic System 
+• Difficult to scale
+• Hard to debug and maintain
+Two-Agent System (DatasetAgent + AnalystAgent)• Single responsibility per agent• Deterministic pipeline: numbers are computed, never generated
+
+===== SLIDE 8 =====
+8
+
+===== SLIDE 9 =====
+Frontend Architecture & User Experience 
+9
+
+===== SLIDE 10 =====
+Models & Intelligence - 3 Core Modules
+10
+
+===== SLIDE 11 =====
+1. Statistical & ML Models
+
+===== SLIDE 12 =====
+2. AI / LLM Models:
+
+===== SLIDE 13 =====
+3. Agent Orchestration Logic
+13
+It ensures smooth, controlled, and reliable execution across the system.
+
+===== SLIDE 14 =====
+Technology Stack
+14
+Frontend (The Interface) | Backend (The Brain) | Data & Infra (The Memory)
+• Next.js 15 (React 19) | • FastAPI + Uvicorn | • Supabase PostgreSQL
+• Tailwind CSS v4 | • Two-Agent Pipeline | • Supabase Auth + Storage
+• Custom SVG charts | • Pandas / scikit-learn / SHAP | • Local session cache
+• Supabase Auth (JWT) | • LLM layer (DeepAnalyze) | • ngrok tunnel (backend)
+• Vercel Hosting | • pytest (207) + GitHub CI | • Docker support
+
+===== SLIDE 15 =====
+Sample Dataset Testing
+• retail_mart_processed_v1.csv: 35,000 rows × 21 columns • Live 10,000-row upload test on the deployed site
+• Dataset upload & retail-domain validation• Profiling and data-quality scan• Exploratory Data Analysis (EDA)• Business KPIs & chart generation• Prediction + Explainable AI• HTML / PDF report generation
+15
+Dataset
+Tests Performed:
+
+===== SLIDE 16 =====
+Testing Results
+16
+Metrics:
+• Total Sales: $2,248,662.62  • Total Profit: $336,938.93
+• Quantity Sold: 69,546  • Profit Margin: 14.98%
+• Best: Region 2 · Category 1 · Store 27
+• No missing values or duplicates
+Performance:
+• Parse 10,000 rows in 94 ms · profile in 281 ms
+• Full analysis with ML + XAI in under a minute
+• 207 automated backend tests passing
+Live proof: deployed site analyzing the 35,000-row dataset (KPIs match this slide).
+
+===== SLIDE 17 =====
+Business Insights (EDA)
+6
+• Total Sales $2,248,662.62 and Total Profit $336,938.93 (14.98% margin)
+• 69,546 units sold across 35,000 clean transactions (0 missing, 0 duplicates)
+• Region 2 is the strongest market: $1.28M sales across 19,905 orders
+• Category 1 leads on both sales and profit ($964K sales, $144K profit)
+• Store 27 is the top performing store by total sales
+• Online slightly beats offline: $1.13M vs $1.12M in sales
+• Discount vs profit correlation is only -0.0739: discounting does not drive profit
+
+===== SLIDE 18 =====
+Live Deployment & Verification
+6
+• Frontend: Next.js 15 on Vercel (data-verse-ai-liard.vercel.app)
+• Backend: FastAPI reached through an ngrok secure tunnel
+• Data layer: Supabase Auth (JWT), PostgreSQL, and Storage
+• Verified end to end: sign up, upload, analyze, and download report
+• Live 10,000-row upload parsed in 94 ms and profiled in 281 ms
+• 207 automated backend tests passing via GitHub Actions CI
+• Docker images provided for both frontend and backend
+Live proof: reproducibility certificate and 76 verified numbers on the deployed site.
+
+===== SLIDE 19 =====
+What Makes DataVerse Different
+6
+• Retail-domain guard detects and refuses non-retail datasets before storage
+• Every number is computed by Pandas and scikit-learn, never invented by an LLM
+• Verifiable receipts: Show the math on any KPI in one click
+• SHA-256 reproducibility certificate seals and re-verifies each analysis
+• Two-agent pipeline: DatasetAgent validates, AnalystAgent analyzes
+• Explainable AI: SHAP with deterministic fallback plus counterfactuals
+• DeepAnalyze-8B supported as the preferred agentic reasoning engine
+
+===== SLIDE 20 =====
+Final Conclusion
+17
+What We Achieved
+• Built and deployed a live analytics platform (Vercel + FastAPI)• Eliminated manual data analysis for retail mart data• Enabled natural language-based, verifiable insights• Integrated ML, explainable AI, and Supabase workflows• Automated 2-page executive report generation
+
+===== SLIDE 21 =====
+References:
+18
+[1]	V. V. Meduri, A. Quamar, C. Lei, V. Efthymiou, and F. Ozcan, “BIREC: Guided Data Analysis for Conversational Business Intelligence,” arXiv, arXiv:2105.00467, May 2021. Accessed: Dec. 15, 2025. [Online]. Available: http://arxiv.org/abs/2105.00467
+[2]	J. Lian et al., “ChatBI: Towards Natural Language to Complex Business Intelligence SQL,” arXiv, arXiv:2405.00527, May 2024. Accessed: Dec. 15, 2025. [Online]. Available: http://arxiv.org/abs/2405.00527
+[3]	E. Cambria, L. Malandri, F. Mercorio, N. Nobani, and A. Seveso, “XAI meets LLMs: A Survey of the Relation between Explainable AI and Large Language Models,” arXiv, arXiv:2407.15248, July 2024. Accessed: Dec. 15, 2025. [Online]. Available: http://arxiv.org/abs/2407.15248
+[4]	“Survey on Explainable AI: From Approaches, Limitations and Applications Aspects | HumanCentric Intelligent Systems.” Accessed: Dec. 15, 2025. [Online]. Available: https://link.springer.com/article/10.1007/s4423002300038y
+[5]	L. Shi, Z. Tang, N. Zhang, X. Zhang, and Z. Yang, “A Survey on Employing Large Language Models for Text-to-SQL Tasks,” ACM Comput. Surv., vol. 58, no. 2, pp. 1-37, Jan. 2026, doi: 10.1145/3737873.
+
+===== SLIDE 22 =====
+19
+THANK YOU

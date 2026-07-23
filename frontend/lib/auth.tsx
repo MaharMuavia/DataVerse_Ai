@@ -3,10 +3,9 @@
 /**
  * Real authentication for DataVerse AI.
  *
- * Sign up / log in / continue-as-guest call the backend auth API, which returns
- * a signed JWT. The token is stored in localStorage and sent as a Bearer header
- * on every API request (see dataverse-api.ts), so the server can enforce
- * per-user data ownership. The stored session is derived from the verified user.
+ * Signup requires confirmation through Supabase's email link. Authenticated
+ * access tokens are stored and sent as Bearer headers so the server can enforce
+ * per-user data ownership.
  */
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
@@ -14,11 +13,12 @@ import { API_BASE_URL } from './apiConfig';
 
 const STORAGE_KEY = 'dataverse.session';
 const TOKEN_KEY = 'dataverse.token';
+const REFRESH_TOKEN_KEY = 'dataverse.refreshToken';
+const ALLOW_ANONYMOUS_WORKSPACE = process.env.NODE_ENV !== 'production';
 
 export type AuthSession = {
   name: string;
   email: string | null;
-  guest: boolean;
   createdAt: string;
 };
 
@@ -28,8 +28,8 @@ type AuthContextValue = {
   session: AuthSession | null;
   loading: boolean;
   signIn: (input: Credentials) => Promise<AuthSession>;
-  signUp: (input: Credentials & { name: string }) => Promise<AuthSession>;
-  continueAsGuest: () => Promise<AuthSession>;
+  signUp: (input: Credentials & { name: string }) => Promise<{ email: string }>;
+  resendSignupConfirmation: (email: string) => Promise<void>;
   signOut: () => void;
 };
 
@@ -72,10 +72,28 @@ export const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test
 
 type AuthApiResponse = {
   token: string;
+  refresh_token?: string | null;
+  expires_in?: number | null;
   user: { id: string; email: string | null; name: string; guest: boolean };
 };
 
-async function authRequest(path: string, body?: Record<string, unknown>): Promise<AuthApiResponse> {
+const createAnonymousSession = (): AuthSession => ({
+  name: 'Guest',
+  email: null,
+  createdAt: new Date().toISOString(),
+});
+
+const persistRefreshToken = (token: string | null) => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (token) window.localStorage.setItem(REFRESH_TOKEN_KEY, token);
+    else window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+  } catch {
+    /* storage may be unavailable */
+  }
+};
+
+async function authRequest<T>(path: string, body?: Record<string, unknown>): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
     // ngrok-skip-browser-warning: ngrok's free tier intercepts browser
@@ -92,25 +110,19 @@ async function authRequest(path: string, body?: Record<string, unknown>): Promis
     }
     throw new Error(detail);
   }
-  return (await res.json()) as AuthApiResponse;
+  return (await res.json()) as T;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSession(readSession());
-    setLoading(false);
-  }, []);
-
   const commit = useCallback((response: AuthApiResponse): AuthSession => {
     persistToken(response.token);
+    if (response.refresh_token) persistRefreshToken(response.refresh_token);
     const next: AuthSession = {
       name: response.user.name,
       email: response.user.email,
-      guest: response.user.guest,
       createdAt: new Date().toISOString(),
     };
     writeSession(next);
@@ -118,27 +130,78 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return next;
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    const restore = async () => {
+      const storedSession = readSession();
+      const token = window.localStorage.getItem(TOKEN_KEY);
+      const refreshToken = window.localStorage.getItem(REFRESH_TOKEN_KEY);
+      if (!token) {
+        if (storedSession) {
+          if (!cancelled) setSession(storedSession);
+          if (!cancelled) setLoading(false);
+          return;
+        }
+        if (ALLOW_ANONYMOUS_WORKSPACE) {
+          const anonymousSession = createAnonymousSession();
+          writeSession(anonymousSession);
+          if (!cancelled) setSession(anonymousSession);
+          if (!cancelled) setLoading(false);
+          return;
+        }
+        if (!cancelled) setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}`, 'ngrok-skip-browser-warning': '1' },
+        });
+        if (response.ok) {
+          if (!cancelled) setSession(storedSession);
+          return;
+        }
+        if (!refreshToken) throw new Error('Session expired');
+        const refreshed = await authRequest<AuthApiResponse>('/auth/refresh', { refresh_token: refreshToken });
+        if (!cancelled) commit(refreshed);
+      } catch {
+        persistToken(null);
+        persistRefreshToken(null);
+        writeSession(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void restore();
+    return () => { cancelled = true; };
+  }, [commit]);
+
   const signIn = useCallback<AuthContextValue['signIn']>(async ({ email, password }) => {
-    return commit(await authRequest('/auth/login', { email: email.trim(), password }));
+    return commit(await authRequest<AuthApiResponse>('/auth/login', { email: email.trim(), password }));
   }, [commit]);
 
   const signUp = useCallback<AuthContextValue['signUp']>(async ({ name, email, password }) => {
-    return commit(await authRequest('/auth/signup', { name: name.trim(), email: email.trim(), password }));
-  }, [commit]);
+    return authRequest<{ email: string }>('/auth/signup', {
+      name: name.trim(),
+      email: email.trim(),
+      password,
+    });
+  }, []);
 
-  const continueAsGuest = useCallback<AuthContextValue['continueAsGuest']>(async () => {
-    return commit(await authRequest('/auth/guest'));
-  }, [commit]);
+  const resendSignupConfirmation = useCallback<AuthContextValue['resendSignupConfirmation']>(async (email) => {
+    await authRequest<{ sent: boolean }>('/auth/resend-signup', { email: email.trim() });
+  }, []);
 
   const signOut = useCallback(() => {
     persistToken(null);
+    persistRefreshToken(null);
     writeSession(null);
     setSession(null);
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ session, loading, signIn, signUp, continueAsGuest, signOut }),
-    [session, loading, signIn, signUp, continueAsGuest, signOut],
+    () => ({ session, loading, signIn, signUp, resendSignupConfirmation, signOut }),
+    [session, loading, signIn, signUp, resendSignupConfirmation, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

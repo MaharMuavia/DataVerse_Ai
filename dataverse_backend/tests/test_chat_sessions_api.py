@@ -71,6 +71,37 @@ def test_session_upload_analysis_report_local_fallback(tmp_path, monkeypatch):
     assert all(run["output"].get("steps") for run in runs.json())
 
 
+def test_report_storage_outage_does_not_fail_analysis(tmp_path, monkeypatch):
+    monkeypatch.setattr(session_service, "local", LocalPersistence(tmp_path / "chat_store"))
+
+    async def unavailable_storage(*args, **kwargs):
+        import httpx
+
+        raise httpx.ConnectError("Supabase unavailable")
+
+    monkeypatch.setattr(session_service.supabase, "upload_bytes", unavailable_storage)
+
+    client = TestClient(app)
+    session_id = client.post("/api/sessions", json={"title": "New Chat"}).json()["session_id"]
+    uploaded = client.post(
+        f"/api/sessions/{session_id}/datasets/upload?auto_analyze=false",
+        files={"file": ("outage_sales.csv", _csv_bytes(), "text/csv")},
+    )
+    dataset_id = uploaded.json()["dataset_id"]
+
+    response = client.post(
+        f"/api/sessions/{session_id}/analyze",
+        json={"dataset_id": dataset_id, "user_prompt": "Summarize sales", "run_xai": False, "generate_report": True},
+    )
+
+    assert response.status_code == 200
+    report = response.json()["report"]
+    assert report["html_url"].endswith("format=html")
+    assert report["pdf_url"].endswith("format=pdf")
+    assert client.get(f"/api/reports/{report['report_id']}/download?format=html").status_code == 200
+    assert client.get(f"/api/reports/{report['report_id']}/download?format=pdf").status_code == 200
+
+
 def test_session_upload_profiles_only_by_default(tmp_path, monkeypatch):
     monkeypatch.setattr(session_service.supabase, "url", "")
     monkeypatch.setattr(session_service.supabase, "service_role_key", None)

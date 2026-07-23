@@ -70,7 +70,7 @@ export function HeroUpload({
           {greeting()}{userName ? `, ${userName}` : ''}
         </h1>
         <p className="mx-auto mt-2.5 max-w-xl text-[15px] leading-relaxed text-[#64748B]">
-          Upload a dataset and ask anything — DataVerse analyzes it like a data analyst, and proves every number.
+          Upload a dataset and ask anything. DataVerse analyzes it like a data analyst and proves every number.
         </p>
       </div>
 

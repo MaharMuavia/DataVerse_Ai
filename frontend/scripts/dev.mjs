@@ -55,7 +55,14 @@ export function createDevPlan({
   const repoRoot = path.resolve(frontendDir, '..');
   const apiUrl = normalizeUrl(env.NEXT_PUBLIC_DATAVERSE_API_URL);
   const apiOrigin = apiOriginFor(apiUrl);
-  const nextBin = path.join(frontendDir, 'node_modules', 'next', 'dist', 'bin', 'next');
+  const nextBinaryPaths = [
+    path.join(frontendDir, 'node_modules', 'next', 'dist', 'bin', 'next'),
+    path.join(repoRoot, 'node_modules', 'next', 'dist', 'bin', 'next'),
+  ];
+
+  // npm workspaces may hoist Next to the repository root, while standalone
+  // frontend installs keep it beside this package.
+  const nextBin = nextBinaryPaths.find(existsSync) || nextBinaryPaths[0];
 
   return {
     apiUrl,
@@ -85,6 +92,11 @@ export function createDevPlan({
       args: [
         nextBin,
         'dev',
+        '--experimental-https',
+        '--experimental-https-key',
+        path.join(frontendDir, 'certificates', 'localhost-key.pem'),
+        '--experimental-https-cert',
+        path.join(frontendDir, 'certificates', 'localhost.pem'),
         '--hostname',
         env.NEXT_FRONTEND_HOST || DEFAULT_FRONTEND_HOST,
         '--port',
@@ -210,10 +222,12 @@ async function main() {
   const plan = createDevPlan();
   const env = {
     ...process.env,
-    NEXT_PUBLIC_DATAVERSE_API_URL: plan.apiUrl,
+    // Keep browser API calls on the secure frontend origin. Next proxies these
+    // paths to the local HTTP-only FastAPI process server-side.
+    NEXT_PUBLIC_DATAVERSE_API_URL: '/backend/api',
   };
 
-  console.log(`[dev] Frontend API URL: ${plan.apiUrl}`);
+  console.log('[dev] Frontend API URL: /backend/api (secure same-origin proxy)');
 
   let backendProcess;
   let backendAlreadyRunning = await isPortOpen(plan.backendTarget.host, plan.backendTarget.port);
@@ -262,7 +276,7 @@ async function main() {
     }
   }
 
-  console.log(`[dev] Starting Next.js frontend on http://${frontendHost}:${frontendPort}`);
+  console.log(`[dev] Starting Next.js frontend on https://${frontendHost}:${frontendPort}`);
   const frontendProcess = startProcess('frontend', plan.frontend, env);
 
   const shutdown = (signal) => {

@@ -17,6 +17,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 DATASET_PATH = ROOT / "data" / "retail_mart_processed_v1.csv"
 OUTPUT_DIR = ROOT / "outputs"
+MARKDOWN_OUTPUT_DIR = ROOT / "docs" / "markdown" / "08_generated_notes" / "chapter_6_7"
 FIGURE_DIR = ROOT / "report" / "chapter_outputs"
 
 os.environ.setdefault("USE_LLM_NARRATION", "false")
@@ -646,6 +647,7 @@ def run_project_flow(dataset_bytes: bytes) -> dict[str, Any]:
 
 def write_outputs() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    MARKDOWN_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     FIGURE_DIR.mkdir(parents=True, exist_ok=True)
     dataset_bytes = DATASET_PATH.read_bytes()
     df = pd.read_csv(DATASET_PATH)
@@ -836,7 +838,7 @@ Discount/profit Pearson correlation: `{business["discount_profit_corr"]:.4f}`
 ## Top Store Performance
 {markdown_table(store_rows)}
 """
-    (OUTPUT_DIR / "chapter_6_tables.md").write_text(tables_6, encoding="utf-8")
+    (MARKDOWN_OUTPUT_DIR / "chapter_6_tables.md").write_text(tables_6, encoding="utf-8")
 
     api = project_flow.get("api_test") or {}
     pipeline = project_flow.get("pipeline_test") or {}
@@ -903,8 +905,8 @@ Discount/profit Pearson correlation: `{business["discount_profit_corr"]:.4f}`
 
 ## Report Generation Results
 {markdown_table([
-        {"Output": "Chapter 6 Markdown", "Status": "Generated", "Path": "outputs/chapter_6_data_collection_analysis.md"},
-        {"Output": "Chapter 7 Markdown", "Status": "Generated", "Path": "outputs/chapter_7_results_discussion.md"},
+        {"Output": "Chapter 6 Markdown", "Status": "Generated", "Path": "docs/markdown/08_generated_notes/chapter_6_7/chapter_6_data_collection_analysis.md"},
+        {"Output": "Chapter 7 Markdown", "Status": "Generated", "Path": "docs/markdown/08_generated_notes/chapter_6_7/chapter_7_results_discussion.md"},
         {"Output": "HTML report export", "Status": "Passed" if api.get("html_url_present") or report_test.get("html_generated") else "Failed", "Path": str(api.get("html_url_present"))},
         {"Output": "PDF report export", "Status": "Passed" if api.get("pdf_url_present") or report_test.get("pdf_generated") else "Failed", "Path": str(api.get("pdf_url_present"))},
     ])}
@@ -928,18 +930,18 @@ Discount/profit Pearson correlation: `{business["discount_profit_corr"]:.4f}`
 ## Supabase and Docker Results
 {markdown_table([
         {"Area": "Supabase usage", "Status": "Used optionally", "Evidence": "dataverse_backend/app/services/supabase_client.py"},
-        {"Area": "SUPABASE_URL", "Status": "Present in examples; not found with value in checked local env status", "Evidence": "outputs/chapter_6_7_evidence_log.md"},
+        {"Area": "SUPABASE_URL", "Status": "Present in examples; not found with value in checked local env status", "Evidence": "docs/markdown/08_generated_notes/chapter_6_7/chapter_6_7_evidence_log.md"},
         {"Area": "Service role key frontend exposure", "Status": "Protected by backend-only client", "Evidence": "supabase_client.py comment and backend service use"},
         {"Area": "Dockerfile backend", "Status": "Present", "Evidence": "dataverse_backend/Dockerfile"},
         {"Area": "Dockerfile frontend", "Status": "Present", "Evidence": "frontend/Dockerfile"},
         {"Area": "docker-compose", "Status": "Present", "Evidence": "docker-compose.yml"},
-        {"Area": "Container build", "Status": "Checked separately in evidence log if Docker command is available", "Evidence": "outputs/chapter_6_7_evidence_log.md"},
+        {"Area": "Container build", "Status": "Checked separately in evidence log if Docker command is available", "Evidence": "docs/markdown/08_generated_notes/chapter_6_7/chapter_6_7_evidence_log.md"},
     ])}
 
 ## Manual Analysis vs DataVerse AI
 {markdown_table(comparison_rows)}
 """
-    (OUTPUT_DIR / "chapter_7_tables.md").write_text(tables_7, encoding="utf-8")
+    (MARKDOWN_OUTPUT_DIR / "chapter_7_tables.md").write_text(tables_7, encoding="utf-8")
 
     best_region = business["best_region"]
     best_category = business["best_category"]
@@ -1035,19 +1037,19 @@ Region `{best_region["region"]}` is the strongest region by sales with `{money(b
 
 Figure 6.3: Sales by Category
 
-![Sales by Category](../{chart_paths["sales_by_category"]})
+![Sales by Category](../../../../{chart_paths["sales_by_category"]})
 
 Figure 6.4: Sales by Region
 
-![Sales by Region](../{chart_paths["sales_by_region"]})
+![Sales by Region](../../../../{chart_paths["sales_by_region"]})
 
 Figure 6.5: Profit by Category
 
-![Profit by Category](../{chart_paths["profit_by_category"]})
+![Profit by Category](../../../../{chart_paths["profit_by_category"]})
 
 Figure 6.6: Monthly Sales Trend
 
-![Monthly Sales Trend](../{chart_paths["monthly_sales_trend"]})
+![Monthly Sales Trend](../../../../{chart_paths["monthly_sales_trend"]})
 
 The time-series window runs from January 2023 through January 2025. The January 2025 value is based on only 42 rows, so it should be treated as a partial-period point rather than a full-month decline.
 
@@ -1067,21 +1069,21 @@ Customer type analysis shows that encoded customer type `{business["best_custome
 
 Figure 6.7: Customer Type Distribution
 
-![Customer Type Distribution](../{chart_paths["customer_type"]})
+![Customer Type Distribution](../../../../{chart_paths["customer_type"]})
 
 Figure 6.8: Payment Method Distribution
 
-![Payment Method Distribution](../{chart_paths["payment_method"]})
+![Payment Method Distribution](../../../../{chart_paths["payment_method"]})
 
 Figure 6.9: Online vs Offline Sales
 
-![Online vs Offline Sales](../{chart_paths["online_offline"]})
+![Online vs Offline Sales](../../../../{chart_paths["online_offline"]})
 
 The discount/profit Pearson correlation is `{business["discount_profit_corr"]:.4f}`. This indicates a weak negative relationship in this dataset, meaning higher discounts are associated with slightly lower profit at the row level.
 
 Figure 6.10: Discount vs Profit Scatter Chart
 
-![Discount vs Profit](../{chart_paths["discount_profit_scatter"]})
+![Discount vs Profit](../../../../{chart_paths["discount_profit_scatter"]})
 
 {markdown_table(customer_rows)}
 
@@ -1105,7 +1107,7 @@ The analysis used Python, Pandas, Matplotlib, FastAPI, Next.js, and the implemen
 
 This chapter confirmed that the retail mart dataset is complete, structured, and suitable for business analysis. It contains no missing values and no duplicate rows. The dataset supports sales, profit, quantity, discount, customer, payment, channel, store, and time-based analysis. DataVerse AI provides a working upload, profiling, semantic mapping, analysis, charting, and report generation flow for the dataset.
 """
-    (OUTPUT_DIR / "chapter_6_data_collection_analysis.md").write_text(chapter_6, encoding="utf-8")
+    (MARKDOWN_OUTPUT_DIR / "chapter_6_data_collection_analysis.md").write_text(chapter_6, encoding="utf-8")
 
     chapter_7 = f"""# Chapter 7: Results & Discussion
 
@@ -1202,7 +1204,7 @@ The current system limitation is that Supabase is optional and local fallback is
 
 Chapter 7 confirms that DataVerse AI can load the retail mart dataset, profile it, compute business KPIs, generate charts, create report outputs, and expose results through frontend/backend integration. The dataset shows strong quality and useful retail performance signals. The generated Chapter 6 and Chapter 7 artifacts are suitable for FYP reporting, with missing or environment-dependent items clearly marked in the evidence log.
 """
-    (OUTPUT_DIR / "chapter_7_results_discussion.md").write_text(chapter_7, encoding="utf-8")
+    (MARKDOWN_OUTPUT_DIR / "chapter_7_results_discussion.md").write_text(chapter_7, encoding="utf-8")
 
     figures_md = f"""# Chapter 6/7 Figures List
 
@@ -1221,7 +1223,7 @@ Chapter 7 confirms that DataVerse AI can load the retail mart dataset, profile i
 | Figure 6.9 | How do online and offline sales compare? | Comparison bar | online_order, total_sales | Channel sales comparison |
 | Figure 6.10 | Do discounts relate to profit? | Relationship scatter | discount, profit | Weak negative discount-profit relationship |
 """
-    (OUTPUT_DIR / "chapter_6_7_figures_list.md").write_text(figures_md, encoding="utf-8")
+    (MARKDOWN_OUTPUT_DIR / "chapter_6_7_figures_list.md").write_text(figures_md, encoding="utf-8")
 
     verification_commands = [
         run_command([sys.executable, "-m", "pytest", "-q", "dataverse_backend/tests"], timeout=180),
@@ -1251,8 +1253,8 @@ Chapter 7 confirms that DataVerse AI can load the retail mart dataset, profile i
         {"Evidence Type": "API", "Item": "POST /api/sessions/{session_id}/datasets/upload", "Result": str(api.get("upload", "Not run"))},
         {"Evidence Type": "API", "Item": "POST /api/sessions/{session_id}/analyze", "Result": str(api.get("analyze", "Not run"))},
         {"Evidence Type": "Report", "Item": "HTML/PDF generation", "Result": f"HTML={report_test.get('html_generated')}; PDF={report_test.get('pdf_generated')}"},
-        {"Evidence Type": "Output", "Item": "outputs/chapter_6_data_collection_analysis.md", "Result": "Generated"},
-        {"Evidence Type": "Output", "Item": "outputs/chapter_7_results_discussion.md", "Result": "Generated"},
+        {"Evidence Type": "Output", "Item": "docs/markdown/08_generated_notes/chapter_6_7/chapter_6_data_collection_analysis.md", "Result": "Generated"},
+        {"Evidence Type": "Output", "Item": "docs/markdown/08_generated_notes/chapter_6_7/chapter_7_results_discussion.md", "Result": "Generated"},
     ]
     evidence_md = f"""# Chapter 6/7 Evidence Log
 
@@ -1288,12 +1290,12 @@ Values are intentionally redacted. This table only records whether variables exi
 
 ## Output Files Generated
 {markdown_table([
-        {"Path": "outputs/chapter_6_data_collection_analysis.md", "Status": "Generated"},
-        {"Path": "outputs/chapter_7_results_discussion.md", "Status": "Generated"},
-        {"Path": "outputs/chapter_6_tables.md", "Status": "Generated"},
-        {"Path": "outputs/chapter_7_tables.md", "Status": "Generated"},
-        {"Path": "outputs/chapter_6_7_figures_list.md", "Status": "Generated"},
-        {"Path": "outputs/chapter_6_7_evidence_log.md", "Status": "Generated"},
+        {"Path": "docs/markdown/08_generated_notes/chapter_6_7/chapter_6_data_collection_analysis.md", "Status": "Generated"},
+        {"Path": "docs/markdown/08_generated_notes/chapter_6_7/chapter_7_results_discussion.md", "Status": "Generated"},
+        {"Path": "docs/markdown/08_generated_notes/chapter_6_7/chapter_6_tables.md", "Status": "Generated"},
+        {"Path": "docs/markdown/08_generated_notes/chapter_6_7/chapter_7_tables.md", "Status": "Generated"},
+        {"Path": "docs/markdown/08_generated_notes/chapter_6_7/chapter_6_7_figures_list.md", "Status": "Generated"},
+        {"Path": "docs/markdown/08_generated_notes/chapter_6_7/chapter_6_7_evidence_log.md", "Status": "Generated"},
         {"Path": "report/chapter_outputs/*.png", "Status": "Generated"},
     ])}
 
@@ -1306,12 +1308,12 @@ Values are intentionally redacted. This table only records whether variables exi
         {"Item": "Browser screenshot of frontend upload flow", "Status": "Manual screenshot recommended", "Recommended Addition": "Start backend/frontend, upload dataset in UI, screenshot upload success and generated report cards."},
     ])}
 """
-    (OUTPUT_DIR / "chapter_6_7_evidence_log.md").write_text(evidence_md, encoding="utf-8")
+    (MARKDOWN_OUTPUT_DIR / "chapter_6_7_evidence_log.md").write_text(evidence_md, encoding="utf-8")
 
     summary = {
-        "chapter_6_generated": (OUTPUT_DIR / "chapter_6_data_collection_analysis.md").exists(),
-        "chapter_7_generated": (OUTPUT_DIR / "chapter_7_results_discussion.md").exists(),
-        "tables_generated": (OUTPUT_DIR / "chapter_6_tables.md").exists() and (OUTPUT_DIR / "chapter_7_tables.md").exists(),
+        "chapter_6_generated": (MARKDOWN_OUTPUT_DIR / "chapter_6_data_collection_analysis.md").exists(),
+        "chapter_7_generated": (MARKDOWN_OUTPUT_DIR / "chapter_7_results_discussion.md").exists(),
+        "tables_generated": (MARKDOWN_OUTPUT_DIR / "chapter_6_tables.md").exists() and (MARKDOWN_OUTPUT_DIR / "chapter_7_tables.md").exists(),
         "figures_generated": len(list(FIGURE_DIR.glob("*.png"))) >= 8,
         "dataset_analyzed": True,
         "backend_checked": bool(api),

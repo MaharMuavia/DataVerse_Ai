@@ -1,6 +1,6 @@
 """Report-polish invariants: business-readable prose, no repetition, honest visuals.
 
-These tests pin the fixes from docs/superpowers/specs/2026-07-12-report-quality-design.md:
+These tests pin the fixes from docs/markdown/02_architecture_and_design/REPORT_QUALITY_DESIGN.md:
 no internal jargon reaches the reader, the same trend fact is never restated in
 different words, XAI groups one-hot dummies by source column, chart titles match
 the data, and charts carry axis context.

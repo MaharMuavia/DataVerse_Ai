@@ -1,0 +1,2971 @@
+{
+  "summary": {
+    "audited_files": 310,
+    "audited_bytes": 29197390,
+    "audited_text_lines": 109782,
+    "tracked_files": 196,
+    "local_generated_untracked_files": 114,
+    "excluded_files": 76415,
+    "excluded_bytes": 3387590828,
+    "physical_files_accounted_for": 76725,
+    "categories": {
+      "Project governance and root configuration": 11,
+      "Frontend application": 54,
+      "Backend API and application": 78,
+      "Backend automated tests": 34,
+      "Data, trained models, and ML evidence": 9,
+      "Supabase database and storage": 3,
+      "Development, QA, and document automation": 12,
+      "Project documentation and academic material": 61,
+      "Generated reports, figures, logs, and screenshots": 43,
+      "Repository automation metadata": 5
+    },
+    "extensions": {
+      "no extension": 8,
+      "example": 3,
+      "local": 1,
+      "md": 60,
+      "yml": 4,
+      "json": 13,
+      "log": 12,
+      "tsx": 27,
+      "css": 1,
+      "svg": 1,
+      "mjs": 5,
+      "ts": 9,
+      "tsbuildinfo": 1,
+      "py": 112,
+      "stackdump": 1,
+      "txt": 4,
+      "csv": 5,
+      "pkl": 3,
+      "sql": 3,
+      "ps1": 3,
+      "cmd": 1,
+      "docx": 6,
+      "png": 17,
+      "pdf": 9,
+      "pptx": 1
+    }
+  },
+  "excluded_directories": [
+    {
+      "path": ".git",
+      "files": 1411,
+      "bytes": 295637117,
+      "reason": "Git object database and repository internals; represented by source-control status instead of file contents."
+    },
+    {
+      "path": ".playwright-cli",
+      "files": 37,
+      "bytes": 112518,
+      "reason": "Volatile browser-automation traces; summarized as QA evidence."
+    },
+    {
+      "path": ".playwright-mcp",
+      "files": 8,
+      "bytes": 40362,
+      "reason": "Volatile browser-automation state; summarized as QA evidence."
+    },
+    {
+      "path": ".pytest_cache",
+      "files": 6,
+      "bytes": 21895,
+      "reason": "Generated pytest cache; not project source."
+    },
+    {
+      "path": ".venv",
+      "files": 33056,
+      "bytes": 1391347475,
+      "reason": "Installed Python runtime and third-party packages; represented by requirement manifests and audited installed versions."
+    },
+    {
+      "path": ".vercel",
+      "files": 2,
+      "bytes": 638,
+      "reason": "Local deployment-tool metadata; deployment configuration is documented from source files."
+    },
+    {
+      "path": "dataverse_backend/.pytest_cache",
+      "files": 6,
+      "bytes": 18196,
+      "reason": "Generated pytest cache; not project source."
+    },
+    {
+      "path": "dataverse_backend/app/__pycache__",
+      "files": 2,
+      "bytes": 7822,
+      "reason": "Generated Python bytecode cache; not project source."
+    },
+    {
+      "path": "dataverse_backend/app/agents/__pycache__",
+      "files": 5,
+      "bytes": 87906,
+      "reason": "Generated Python bytecode cache; not project source."
+    },
+    {
+      "path": "dataverse_backend/app/api/__pycache__",
+      "files": 10,
+      "bytes": 57442,
+      "reason": "Generated Python bytecode cache; not project source."
+    },
+    {
+      "path": "dataverse_backend/app/core/__pycache__",
+      "files": 6,
+      "bytes": 14170,
+      "reason": "Generated Python bytecode cache; not project source."
+    },
+    {
+      "path": "dataverse_backend/app/db/__pycache__",
+      "files": 1,
+      "bytes": 250,
+      "reason": "Generated Python bytecode cache; not project source."
+    },
+    {
+      "path": "dataverse_backend/app/services/__pycache__",
+      "files": 45,
+      "bytes": 816314,
+      "reason": "Generated Python bytecode cache; not project source."
+    },
+    {
+      "path": "dataverse_backend/session_storage",
+      "files": 8461,
+      "bytes": 153956889,
+      "reason": "Runtime user/session data; excluded to protect private uploaded data and avoid treating mutable state as source."
+    },
+    {
+      "path": "dataverse_backend/tests/__pycache__",
+      "files": 79,
+      "bytes": 1218521,
+      "reason": "Generated Python bytecode cache; not project source."
+    },
+    {
+      "path": "frontend/.next",
+      "files": 147,
+      "bytes": 391982287,
+      "reason": "Generated Next.js build cache and compiled output; represented by the production-build result."
+    },
+    {
+      "path": "frontend/certificates",
+      "files": 2,
+      "bytes": 3343,
+      "reason": "Local HTTPS certificate/key material; presence is documented but file details and contents are withheld."
+    },
+    {
+      "path": "node_modules",
+      "files": 26636,
+      "bytes": 872424932,
+      "reason": "Installed JavaScript third-party packages; represented by package manifests and lockfiles."
+    },
+    {
+      "path": "scripts/__pycache__",
+      "files": 5,
+      "bytes": 223886,
+      "reason": "Generated Python bytecode cache; not project source."
+    },
+    {
+      "path": "session_storage",
+      "files": 5931,
+      "bytes": 190323739,
+      "reason": "Runtime user/session data; excluded to protect private uploaded data and avoid treating mutable state as source."
+    },
+    {
+      "path": "tmp",
+      "files": 559,
+      "bytes": 89295126,
+      "reason": "Temporary render, conversion, and verification files; not deliverable project source."
+    }
+  ],
+  "files": [
+    {
+      "path": ".env",
+      "category": "Project governance and root configuration",
+      "type": "no extension",
+      "bytes": 143,
+      "lines": "withheld",
+      "source_control": "Local/generated/untracked",
+      "role": "Local secret-bearing environment configuration; presence only, contents withheld."
+    },
+    {
+      "path": ".env.example",
+      "category": "Project governance and root configuration",
+      "type": "example",
+      "bytes": 5068,
+      "lines": 148,
+      "source_control": "Tracked",
+      "role": "Environment-variable template without credential values."
+    },
+    {
+      "path": ".env.local",
+      "category": "Project governance and root configuration",
+      "type": "local",
+      "bytes": 1292,
+      "lines": "withheld",
+      "source_control": "Local/generated/untracked",
+      "role": "Local secret-bearing environment configuration; presence only, contents withheld."
+    },
+    {
+      "path": ".gitignore",
+      "category": "Project governance and root configuration",
+      "type": "no extension",
+      "bytes": 695,
+      "lines": 60,
+      "source_control": "Tracked",
+      "role": "Source-control exclusion rules."
+    },
+    {
+      "path": "AGENTS.md",
+      "category": "Project governance and root configuration",
+      "type": "md",
+      "bytes": 12594,
+      "lines": 610,
+      "source_control": "Tracked",
+      "role": "Repository operating, quality, security, testing, and delivery instructions."
+    },
+    {
+      "path": "CLAUDE.md",
+      "category": "Project governance and root configuration",
+      "type": "md",
+      "bytes": 8062,
+      "lines": 147,
+      "source_control": "Tracked",
+      "role": "Additional repository development guidance."
+    },
+    {
+      "path": "docker-compose.yml",
+      "category": "Project governance and root configuration",
+      "type": "yml",
+      "bytes": 989,
+      "lines": 34,
+      "source_control": "Tracked",
+      "role": "Local multi-container frontend/backend orchestration."
+    },
+    {
+      "path": "LICENSE",
+      "category": "Project governance and root configuration",
+      "type": "no extension",
+      "bytes": 1093,
+      "lines": 21,
+      "source_control": "Tracked",
+      "role": "Software license terms."
+    },
+    {
+      "path": "package-lock.json",
+      "category": "Project governance and root configuration",
+      "type": "json",
+      "bytes": 296536,
+      "lines": 8175,
+      "source_control": "Tracked",
+      "role": "Workspace JavaScript scripts/dependency manifest or exact lockfile."
+    },
+    {
+      "path": "package.json",
+      "category": "Project governance and root configuration",
+      "type": "json",
+      "bytes": 421,
+      "lines": 15,
+      "source_control": "Tracked",
+      "role": "Workspace JavaScript scripts/dependency manifest or exact lockfile."
+    },
+    {
+      "path": "README.md",
+      "category": "Project governance and root configuration",
+      "type": "md",
+      "bytes": 11341,
+      "lines": 275,
+      "source_control": "Tracked",
+      "role": "Top-level project overview, setup, architecture, and usage guide."
+    },
+    {
+      "path": "frontend/.codex-dev.err.log",
+      "category": "Frontend application",
+      "type": "log",
+      "bytes": 0,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Project file (log): .codex dev.err."
+    },
+    {
+      "path": "frontend/.codex-dev.out.log",
+      "category": "Frontend application",
+      "type": "log",
+      "bytes": 0,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Project file (log): .codex dev.out."
+    },
+    {
+      "path": "frontend/.env.example",
+      "category": "Frontend application",
+      "type": "example",
+      "bytes": 102,
+      "lines": 2,
+      "source_control": "Tracked",
+      "role": "Environment-variable template without credential values."
+    },
+    {
+      "path": "frontend/.eslintrc.json",
+      "category": "Frontend application",
+      "type": "json",
+      "bytes": 24,
+      "lines": 3,
+      "source_control": "Tracked",
+      "role": "Project file (json): .eslintrc."
+    },
+    {
+      "path": "frontend/.gitignore",
+      "category": "Frontend application",
+      "type": "no extension",
+      "bytes": 80,
+      "lines": 9,
+      "source_control": "Tracked",
+      "role": "Source-control exclusion rules."
+    },
+    {
+      "path": "frontend/app/about/page.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 5699,
+      "lines": 124,
+      "source_control": "Tracked",
+      "role": "Next.js App Router page for /about."
+    },
+    {
+      "path": "frontend/app/dashboard/page.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 922,
+      "lines": 31,
+      "source_control": "Tracked",
+      "role": "Next.js App Router page for /dashboard."
+    },
+    {
+      "path": "frontend/app/features/page.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 6593,
+      "lines": 138,
+      "source_control": "Tracked",
+      "role": "Next.js App Router page for /features."
+    },
+    {
+      "path": "frontend/app/globals.css",
+      "category": "Frontend application",
+      "type": "css",
+      "bytes": 2063,
+      "lines": 70,
+      "source_control": "Tracked",
+      "role": "Global frontend design tokens, layout, and component styling."
+    },
+    {
+      "path": "frontend/app/icon.svg",
+      "category": "Frontend application",
+      "type": "svg",
+      "bytes": 429,
+      "lines": 6,
+      "source_control": "Tracked",
+      "role": "Project file (svg): icon."
+    },
+    {
+      "path": "frontend/app/layout.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 776,
+      "lines": 23,
+      "source_control": "Tracked",
+      "role": "Global Next.js application layout and metadata."
+    },
+    {
+      "path": "frontend/app/login/page.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 3818,
+      "lines": 100,
+      "source_control": "Tracked",
+      "role": "Next.js App Router page for /login."
+    },
+    {
+      "path": "frontend/app/page.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 13332,
+      "lines": 256,
+      "source_control": "Tracked",
+      "role": "Next.js App Router page for /."
+    },
+    {
+      "path": "frontend/app/signup/page.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 5946,
+      "lines": 146,
+      "source_control": "Tracked",
+      "role": "Next.js App Router page for /signup."
+    },
+    {
+      "path": "frontend/components/dashboard/AgentTracePanel.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 2913,
+      "lines": 63,
+      "source_control": "Tracked",
+      "role": "Dashboard user-interface component: AgentTracePanel."
+    },
+    {
+      "path": "frontend/components/dashboard/CertificateCard.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 3865,
+      "lines": 80,
+      "source_control": "Tracked",
+      "role": "Dashboard user-interface component: CertificateCard."
+    },
+    {
+      "path": "frontend/components/dashboard/Composer.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 2189,
+      "lines": 64,
+      "source_control": "Tracked",
+      "role": "Dashboard user-interface component: Composer."
+    },
+    {
+      "path": "frontend/components/dashboard/ConversationThread.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 2195,
+      "lines": 56,
+      "source_control": "Tracked",
+      "role": "Dashboard user-interface component: ConversationThread."
+    },
+    {
+      "path": "frontend/components/dashboard/DashboardApp.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 80288,
+      "lines": 1746,
+      "source_control": "Tracked",
+      "role": "Dashboard user-interface component: DashboardApp."
+    },
+    {
+      "path": "frontend/components/dashboard/GlassCard.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 495,
+      "lines": 10,
+      "source_control": "Tracked",
+      "role": "Dashboard user-interface component: GlassCard."
+    },
+    {
+      "path": "frontend/components/dashboard/HeroUpload.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 6701,
+      "lines": 154,
+      "source_control": "Tracked",
+      "role": "Dashboard user-interface component: HeroUpload."
+    },
+    {
+      "path": "frontend/components/dashboard/KpiCard.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 2234,
+      "lines": 59,
+      "source_control": "Tracked",
+      "role": "Dashboard user-interface component: KpiCard."
+    },
+    {
+      "path": "frontend/components/dashboard/ProvenanceReceipt.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 1918,
+      "lines": 45,
+      "source_control": "Tracked",
+      "role": "Dashboard user-interface component: ProvenanceReceipt."
+    },
+    {
+      "path": "frontend/components/dashboard/QualityDoctorPanel.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 3807,
+      "lines": 92,
+      "source_control": "Tracked",
+      "role": "Dashboard user-interface component: QualityDoctorPanel."
+    },
+    {
+      "path": "frontend/components/dashboard/RootCausePanel.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 6351,
+      "lines": 136,
+      "source_control": "Tracked",
+      "role": "Dashboard user-interface component: RootCausePanel."
+    },
+    {
+      "path": "frontend/components/dashboard/VerificationPanel.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 4257,
+      "lines": 102,
+      "source_control": "Tracked",
+      "role": "Dashboard user-interface component: VerificationPanel."
+    },
+    {
+      "path": "frontend/components/dashboard/WhatIfPanel.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 5274,
+      "lines": 112,
+      "source_control": "Tracked",
+      "role": "Dashboard user-interface component: WhatIfPanel."
+    },
+    {
+      "path": "frontend/components/DropZone.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 6194,
+      "lines": 169,
+      "source_control": "Tracked",
+      "role": "Project file (tsx): DropZone."
+    },
+    {
+      "path": "frontend/components/site/AuthShell.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 3182,
+      "lines": 71,
+      "source_control": "Tracked",
+      "role": "Public/authentication site component: AuthShell."
+    },
+    {
+      "path": "frontend/components/site/MarketingShell.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 484,
+      "lines": 14,
+      "source_control": "Tracked",
+      "role": "Public/authentication site component: MarketingShell."
+    },
+    {
+      "path": "frontend/components/site/SiteFooter.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 2889,
+      "lines": 58,
+      "source_control": "Tracked",
+      "role": "Public/authentication site component: SiteFooter."
+    },
+    {
+      "path": "frontend/components/site/SiteHeader.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 5583,
+      "lines": 147,
+      "source_control": "Tracked",
+      "role": "Public/authentication site component: SiteHeader."
+    },
+    {
+      "path": "frontend/components/ThinkingTrace.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 4638,
+      "lines": 132,
+      "source_control": "Tracked",
+      "role": "Project file (tsx): ThinkingTrace."
+    },
+    {
+      "path": "frontend/Dockerfile",
+      "category": "Frontend application",
+      "type": "no extension",
+      "bytes": 744,
+      "lines": 36,
+      "source_control": "Tracked",
+      "role": "Container build definition for frontend."
+    },
+    {
+      "path": "frontend/eslint.config.mjs",
+      "category": "Frontend application",
+      "type": "mjs",
+      "bytes": 314,
+      "lines": 11,
+      "source_control": "Tracked",
+      "role": "Project file (mjs): eslint.config."
+    },
+    {
+      "path": "frontend/hooks/use-mobile.ts",
+      "category": "Frontend application",
+      "type": "ts",
+      "bytes": 629,
+      "lines": 20,
+      "source_control": "Tracked",
+      "role": "Reusable React hook: use mobile."
+    },
+    {
+      "path": "frontend/lib/apiConfig.ts",
+      "category": "Frontend application",
+      "type": "ts",
+      "bytes": 1182,
+      "lines": 32,
+      "source_control": "Tracked",
+      "role": "Frontend client utility or contract: apiConfig."
+    },
+    {
+      "path": "frontend/lib/auth.tsx",
+      "category": "Frontend application",
+      "type": "tsx",
+      "bytes": 6404,
+      "lines": 197,
+      "source_control": "Tracked",
+      "role": "Frontend client utility or contract: auth."
+    },
+    {
+      "path": "frontend/lib/dashboard-format.ts",
+      "category": "Frontend application",
+      "type": "ts",
+      "bytes": 481,
+      "lines": 10,
+      "source_control": "Tracked",
+      "role": "Frontend client utility or contract: dashboard format."
+    },
+    {
+      "path": "frontend/lib/dataverse-api.contract.ts",
+      "category": "Frontend application",
+      "type": "ts",
+      "bytes": 685,
+      "lines": 24,
+      "source_control": "Tracked",
+      "role": "Frontend client utility or contract: dataverse api.contract."
+    },
+    {
+      "path": "frontend/lib/dataverse-api.ts",
+      "category": "Frontend application",
+      "type": "ts",
+      "bytes": 24067,
+      "lines": 796,
+      "source_control": "Tracked",
+      "role": "Frontend client utility or contract: dataverse api."
+    },
+    {
+      "path": "frontend/lib/utils.ts",
+      "category": "Frontend application",
+      "type": "ts",
+      "bytes": 166,
+      "lines": 6,
+      "source_control": "Tracked",
+      "role": "Frontend client utility or contract: utils."
+    },
+    {
+      "path": "frontend/lib/verified-report.ts",
+      "category": "Frontend application",
+      "type": "ts",
+      "bytes": 6245,
+      "lines": 108,
+      "source_control": "Tracked",
+      "role": "Frontend client utility or contract: verified report."
+    },
+    {
+      "path": "frontend/metadata.json",
+      "category": "Frontend application",
+      "type": "json",
+      "bytes": 139,
+      "lines": 6,
+      "source_control": "Tracked",
+      "role": "Project file (json): metadata."
+    },
+    {
+      "path": "frontend/next-env.d.ts",
+      "category": "Frontend application",
+      "type": "ts",
+      "bytes": 262,
+      "lines": 6,
+      "source_control": "Tracked",
+      "role": "Project file (ts): next env.d."
+    },
+    {
+      "path": "frontend/next.config.ts",
+      "category": "Frontend application",
+      "type": "ts",
+      "bytes": 1188,
+      "lines": 49,
+      "source_control": "Tracked",
+      "role": "Project file (ts): next.config."
+    },
+    {
+      "path": "frontend/package-lock.json",
+      "category": "Frontend application",
+      "type": "json",
+      "bytes": 293995,
+      "lines": 8096,
+      "source_control": "Tracked",
+      "role": "Frontend JavaScript scripts/dependency manifest or exact lockfile."
+    },
+    {
+      "path": "frontend/package.json",
+      "category": "Frontend application",
+      "type": "json",
+      "bytes": 1066,
+      "lines": 42,
+      "source_control": "Tracked",
+      "role": "Frontend JavaScript scripts/dependency manifest or exact lockfile."
+    },
+    {
+      "path": "frontend/postcss.config.mjs",
+      "category": "Frontend application",
+      "type": "mjs",
+      "bytes": 168,
+      "lines": 9,
+      "source_control": "Tracked",
+      "role": "Project file (mjs): postcss.config."
+    },
+    {
+      "path": "frontend/scripts/api-client.test.mjs",
+      "category": "Frontend application",
+      "type": "mjs",
+      "bytes": 3375,
+      "lines": 81,
+      "source_control": "Tracked",
+      "role": "Frontend development or contract-test script: api client.test."
+    },
+    {
+      "path": "frontend/scripts/dev.mjs",
+      "category": "Frontend application",
+      "type": "mjs",
+      "bytes": 9767,
+      "lines": 306,
+      "source_control": "Tracked",
+      "role": "Frontend development or contract-test script: dev."
+    },
+    {
+      "path": "frontend/scripts/dev.test.mjs",
+      "category": "Frontend application",
+      "type": "mjs",
+      "bytes": 3514,
+      "lines": 99,
+      "source_control": "Tracked",
+      "role": "Frontend development or contract-test script: dev.test."
+    },
+    {
+      "path": "frontend/tsconfig.json",
+      "category": "Frontend application",
+      "type": "json",
+      "bytes": 618,
+      "lines": 28,
+      "source_control": "Tracked",
+      "role": "Project file (json): tsconfig."
+    },
+    {
+      "path": "frontend/tsconfig.tsbuildinfo",
+      "category": "Frontend application",
+      "type": "tsbuildinfo",
+      "bytes": 96250,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Project file (tsbuildinfo): tsconfig."
+    },
+    {
+      "path": "dataverse_backend/.dockerignore",
+      "category": "Backend API and application",
+      "type": "no extension",
+      "bytes": 182,
+      "lines": "",
+      "source_control": "Tracked",
+      "role": "Project file (no extension): .dockerignore."
+    },
+    {
+      "path": "dataverse_backend/.env",
+      "category": "Backend API and application",
+      "type": "no extension",
+      "bytes": 1704,
+      "lines": "withheld",
+      "source_control": "Local/generated/untracked",
+      "role": "Local secret-bearing environment configuration; presence only, contents withheld."
+    },
+    {
+      "path": "dataverse_backend/.env.example",
+      "category": "Backend API and application",
+      "type": "example",
+      "bytes": 1408,
+      "lines": 54,
+      "source_control": "Tracked",
+      "role": "Environment-variable template without credential values."
+    },
+    {
+      "path": "dataverse_backend/app/__init__.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 0,
+      "lines": 0,
+      "source_control": "Tracked",
+      "role": "Project file (py):   init  ."
+    },
+    {
+      "path": "dataverse_backend/app/agents/__init__.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 23,
+      "lines": 1,
+      "source_control": "Tracked",
+      "role": "Agent orchestration or analysis module:   init  ."
+    },
+    {
+      "path": "dataverse_backend/app/agents/analyst_agent.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 3834,
+      "lines": 80,
+      "source_control": "Tracked",
+      "role": "Agent orchestration or analysis module: analyst agent."
+    },
+    {
+      "path": "dataverse_backend/app/agents/data_analysis_prediction_agent.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 57268,
+      "lines": 1402,
+      "source_control": "Tracked",
+      "role": "Agent orchestration or analysis module: data analysis prediction agent."
+    },
+    {
+      "path": "dataverse_backend/app/agents/data_understanding_agent.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 11669,
+      "lines": 276,
+      "source_control": "Tracked",
+      "role": "Agent orchestration or analysis module: data understanding agent."
+    },
+    {
+      "path": "dataverse_backend/app/agents/dataset_agent.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 2797,
+      "lines": 71,
+      "source_control": "Tracked",
+      "role": "Agent orchestration or analysis module: dataset agent."
+    },
+    {
+      "path": "dataverse_backend/app/api/__init__.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 25,
+      "lines": 1,
+      "source_control": "Tracked",
+      "role": "FastAPI request, route, schema, or upload module:   init  ."
+    },
+    {
+      "path": "dataverse_backend/app/api/analyze_routes.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 3458,
+      "lines": 93,
+      "source_control": "Tracked",
+      "role": "FastAPI request, route, schema, or upload module: analyze routes."
+    },
+    {
+      "path": "dataverse_backend/app/api/auth_routes.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 2462,
+      "lines": 77,
+      "source_control": "Tracked",
+      "role": "FastAPI request, route, schema, or upload module: auth routes."
+    },
+    {
+      "path": "dataverse_backend/app/api/dataset_session_routes.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 4621,
+      "lines": 120,
+      "source_control": "Tracked",
+      "role": "FastAPI request, route, schema, or upload module: dataset session routes."
+    },
+    {
+      "path": "dataverse_backend/app/api/report_routes.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 1880,
+      "lines": 46,
+      "source_control": "Tracked",
+      "role": "FastAPI request, route, schema, or upload module: report routes."
+    },
+    {
+      "path": "dataverse_backend/app/api/routes.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 2260,
+      "lines": 64,
+      "source_control": "Tracked",
+      "role": "FastAPI request, route, schema, or upload module: routes."
+    },
+    {
+      "path": "dataverse_backend/app/api/schemas.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 5138,
+      "lines": 193,
+      "source_control": "Tracked",
+      "role": "FastAPI request, route, schema, or upload module: schemas."
+    },
+    {
+      "path": "dataverse_backend/app/api/session_routes.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 10655,
+      "lines": 240,
+      "source_control": "Tracked",
+      "role": "FastAPI request, route, schema, or upload module: session routes."
+    },
+    {
+      "path": "dataverse_backend/app/api/storage_routes.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 604,
+      "lines": 22,
+      "source_control": "Tracked",
+      "role": "FastAPI request, route, schema, or upload module: storage routes."
+    },
+    {
+      "path": "dataverse_backend/app/api/upload_parsing.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 5998,
+      "lines": 172,
+      "source_control": "Tracked",
+      "role": "FastAPI request, route, schema, or upload module: upload parsing."
+    },
+    {
+      "path": "dataverse_backend/app/core/__init__.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 0,
+      "lines": 0,
+      "source_control": "Tracked",
+      "role": "Backend infrastructure/core module:   init  ."
+    },
+    {
+      "path": "dataverse_backend/app/core/config.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 5856,
+      "lines": 157,
+      "source_control": "Tracked",
+      "role": "Backend infrastructure/core module: config."
+    },
+    {
+      "path": "dataverse_backend/app/core/exceptions.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 733,
+      "lines": 24,
+      "source_control": "Tracked",
+      "role": "Backend infrastructure/core module: exceptions."
+    },
+    {
+      "path": "dataverse_backend/app/core/logger.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 1972,
+      "lines": 61,
+      "source_control": "Tracked",
+      "role": "Backend infrastructure/core module: logger."
+    },
+    {
+      "path": "dataverse_backend/app/core/middleware.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 844,
+      "lines": 25,
+      "source_control": "Tracked",
+      "role": "Backend infrastructure/core module: middleware."
+    },
+    {
+      "path": "dataverse_backend/app/core/storage.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 911,
+      "lines": 34,
+      "source_control": "Tracked",
+      "role": "Backend infrastructure/core module: storage."
+    },
+    {
+      "path": "dataverse_backend/app/db/__init__.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 110,
+      "lines": 4,
+      "source_control": "Tracked",
+      "role": "Project file (py):   init  ."
+    },
+    {
+      "path": "dataverse_backend/app/main.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 6302,
+      "lines": 150,
+      "source_control": "Tracked",
+      "role": "Project file (py): main."
+    },
+    {
+      "path": "dataverse_backend/app/services/__init__.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 71,
+      "lines": 1,
+      "source_control": "Tracked",
+      "role": "Backend service module:   init  ."
+    },
+    {
+      "path": "dataverse_backend/app/services/agent.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 24792,
+      "lines": 481,
+      "source_control": "Tracked",
+      "role": "Backend service module: agent."
+    },
+    {
+      "path": "dataverse_backend/app/services/agent_loop.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 12660,
+      "lines": 272,
+      "source_control": "Tracked",
+      "role": "Backend service module: agent loop."
+    },
+    {
+      "path": "dataverse_backend/app/services/ai_khata.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 7918,
+      "lines": 186,
+      "source_control": "Tracked",
+      "role": "Backend service module: ai khata."
+    },
+    {
+      "path": "dataverse_backend/app/services/ai_khata_tools.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 9898,
+      "lines": 183,
+      "source_control": "Tracked",
+      "role": "Backend service module: ai khata tools."
+    },
+    {
+      "path": "dataverse_backend/app/services/analysis_pipeline.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 32185,
+      "lines": 713,
+      "source_control": "Tracked",
+      "role": "Backend service module: analysis pipeline."
+    },
+    {
+      "path": "dataverse_backend/app/services/analysis_planner.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 9798,
+      "lines": 190,
+      "source_control": "Tracked",
+      "role": "Backend service module: analysis planner."
+    },
+    {
+      "path": "dataverse_backend/app/services/analytics_tools.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 8896,
+      "lines": 177,
+      "source_control": "Tracked",
+      "role": "Backend service module: analytics tools."
+    },
+    {
+      "path": "dataverse_backend/app/services/audit.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 5310,
+      "lines": 129,
+      "source_control": "Tracked",
+      "role": "Backend service module: audit."
+    },
+    {
+      "path": "dataverse_backend/app/services/auth_service.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 10828,
+      "lines": 272,
+      "source_control": "Tracked",
+      "role": "Backend service module: auth service."
+    },
+    {
+      "path": "dataverse_backend/app/services/business_leads_tools.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 9201,
+      "lines": 189,
+      "source_control": "Tracked",
+      "role": "Backend service module: business leads tools."
+    },
+    {
+      "path": "dataverse_backend/app/services/business_metrics.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 38202,
+      "lines": 705,
+      "source_control": "Tracked",
+      "role": "Backend service module: business metrics."
+    },
+    {
+      "path": "dataverse_backend/app/services/certificate.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 3382,
+      "lines": 84,
+      "source_control": "Tracked",
+      "role": "Backend service module: certificate."
+    },
+    {
+      "path": "dataverse_backend/app/services/counterfactual.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 6811,
+      "lines": 162,
+      "source_control": "Tracked",
+      "role": "Backend service module: counterfactual."
+    },
+    {
+      "path": "dataverse_backend/app/services/data_loader.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 518,
+      "lines": 17,
+      "source_control": "Tracked",
+      "role": "Backend service module: data loader."
+    },
+    {
+      "path": "dataverse_backend/app/services/data_profiler.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 21513,
+      "lines": 498,
+      "source_control": "Tracked",
+      "role": "Backend service module: data profiler."
+    },
+    {
+      "path": "dataverse_backend/app/services/data_quality.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 19704,
+      "lines": 466,
+      "source_control": "Tracked",
+      "role": "Backend service module: data quality."
+    },
+    {
+      "path": "dataverse_backend/app/services/dataset_classifier.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 5772,
+      "lines": 144,
+      "source_control": "Tracked",
+      "role": "Backend service module: dataset classifier."
+    },
+    {
+      "path": "dataverse_backend/app/services/deepanalyze_client.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 2588,
+      "lines": 63,
+      "source_control": "Tracked",
+      "role": "Backend service module: deepanalyze client."
+    },
+    {
+      "path": "dataverse_backend/app/services/domain_guard.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 1848,
+      "lines": 49,
+      "source_control": "Tracked",
+      "role": "Backend service module: domain guard."
+    },
+    {
+      "path": "dataverse_backend/app/services/health_checker.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 5942,
+      "lines": 134,
+      "source_control": "Tracked",
+      "role": "Backend service module: health checker."
+    },
+    {
+      "path": "dataverse_backend/app/services/intent_router.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 6876,
+      "lines": 112,
+      "source_control": "Tracked",
+      "role": "Backend service module: intent router."
+    },
+    {
+      "path": "dataverse_backend/app/services/llm_provider.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 6811,
+      "lines": 144,
+      "source_control": "Tracked",
+      "role": "Backend service module: llm provider."
+    },
+    {
+      "path": "dataverse_backend/app/services/llm_service.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 4176,
+      "lines": 101,
+      "source_control": "Tracked",
+      "role": "Backend service module: llm service."
+    },
+    {
+      "path": "dataverse_backend/app/services/modeling.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 14779,
+      "lines": 312,
+      "source_control": "Tracked",
+      "role": "Backend service module: modeling."
+    },
+    {
+      "path": "dataverse_backend/app/services/progress_bus.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 4429,
+      "lines": 119,
+      "source_control": "Tracked",
+      "role": "Backend service module: progress bus."
+    },
+    {
+      "path": "dataverse_backend/app/services/provenance.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 5109,
+      "lines": 177,
+      "source_control": "Tracked",
+      "role": "Backend service module: provenance."
+    },
+    {
+      "path": "dataverse_backend/app/services/quality_doctor.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 6790,
+      "lines": 167,
+      "source_control": "Tracked",
+      "role": "Backend service module: quality doctor."
+    },
+    {
+      "path": "dataverse_backend/app/services/query_planner.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 12564,
+      "lines": 241,
+      "source_control": "Tracked",
+      "role": "Backend service module: query planner."
+    },
+    {
+      "path": "dataverse_backend/app/services/rate_limiter.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 747,
+      "lines": 27,
+      "source_control": "Tracked",
+      "role": "Backend service module: rate limiter."
+    },
+    {
+      "path": "dataverse_backend/app/services/recommendation_engine.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 2693,
+      "lines": 67,
+      "source_control": "Tracked",
+      "role": "Backend service module: recommendation engine."
+    },
+    {
+      "path": "dataverse_backend/app/services/report_composer.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 101511,
+      "lines": 2246,
+      "source_control": "Tracked",
+      "role": "Backend service module: report composer."
+    },
+    {
+      "path": "dataverse_backend/app/services/report_generator.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 93193,
+      "lines": 1941,
+      "source_control": "Tracked",
+      "role": "Backend service module: report generator."
+    },
+    {
+      "path": "dataverse_backend/app/services/report_narrator.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 21053,
+      "lines": 339,
+      "source_control": "Tracked",
+      "role": "Backend service module: report narrator."
+    },
+    {
+      "path": "dataverse_backend/app/services/response_builder.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 1878,
+      "lines": 45,
+      "source_control": "Tracked",
+      "role": "Backend service module: response builder."
+    },
+    {
+      "path": "dataverse_backend/app/services/root_cause.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 16763,
+      "lines": 401,
+      "source_control": "Tracked",
+      "role": "Backend service module: root cause."
+    },
+    {
+      "path": "dataverse_backend/app/services/sales_tools.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 6008,
+      "lines": 123,
+      "source_control": "Tracked",
+      "role": "Backend service module: sales tools."
+    },
+    {
+      "path": "dataverse_backend/app/services/semantic_mapper.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 18903,
+      "lines": 407,
+      "source_control": "Tracked",
+      "role": "Backend service module: semantic mapper."
+    },
+    {
+      "path": "dataverse_backend/app/services/session_service.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 43286,
+      "lines": 892,
+      "source_control": "Tracked",
+      "role": "Backend service module: session service."
+    },
+    {
+      "path": "dataverse_backend/app/services/session_store.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 10501,
+      "lines": 296,
+      "source_control": "Tracked",
+      "role": "Backend service module: session store."
+    },
+    {
+      "path": "dataverse_backend/app/services/supabase_client.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 7269,
+      "lines": 183,
+      "source_control": "Tracked",
+      "role": "Backend service module: supabase client."
+    },
+    {
+      "path": "dataverse_backend/app/services/target_inference.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 7183,
+      "lines": 177,
+      "source_control": "Tracked",
+      "role": "Backend service module: target inference."
+    },
+    {
+      "path": "dataverse_backend/app/services/title_generator.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 3997,
+      "lines": 98,
+      "source_control": "Tracked",
+      "role": "Backend service module: title generator."
+    },
+    {
+      "path": "dataverse_backend/app/services/whatif.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 2632,
+      "lines": 63,
+      "source_control": "Tracked",
+      "role": "Backend service module: whatif."
+    },
+    {
+      "path": "dataverse_backend/app/services/xai.py",
+      "category": "Backend API and application",
+      "type": "py",
+      "bytes": 5366,
+      "lines": 108,
+      "source_control": "Tracked",
+      "role": "Backend service module: xai."
+    },
+    {
+      "path": "dataverse_backend/Dockerfile",
+      "category": "Backend API and application",
+      "type": "no extension",
+      "bytes": 1034,
+      "lines": 36,
+      "source_control": "Tracked",
+      "role": "Container build definition for dataverse_backend."
+    },
+    {
+      "path": "dataverse_backend/grep.exe.stackdump",
+      "category": "Backend API and application",
+      "type": "stackdump",
+      "bytes": 1927,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Project file (stackdump): grep.exe."
+    },
+    {
+      "path": "dataverse_backend/logs/dataverse_backend.log",
+      "category": "Backend API and application",
+      "type": "log",
+      "bytes": 551801,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Project file (log): dataverse backend."
+    },
+    {
+      "path": "dataverse_backend/requirements-full.txt",
+      "category": "Backend API and application",
+      "type": "txt",
+      "bytes": 528,
+      "lines": 31,
+      "source_control": "Tracked",
+      "role": "Python dependency manifest for the indicated runtime profile."
+    },
+    {
+      "path": "dataverse_backend/requirements-mvp.txt",
+      "category": "Backend API and application",
+      "type": "txt",
+      "bytes": 295,
+      "lines": 26,
+      "source_control": "Tracked",
+      "role": "Python dependency manifest for the indicated runtime profile."
+    },
+    {
+      "path": "dataverse_backend/requirements.txt",
+      "category": "Backend API and application",
+      "type": "txt",
+      "bytes": 293,
+      "lines": 26,
+      "source_control": "Tracked",
+      "role": "Python dependency manifest for the indicated runtime profile."
+    },
+    {
+      "path": "dataverse_backend/tests/__init__.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 22,
+      "lines": 1,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage:   init  ."
+    },
+    {
+      "path": "dataverse_backend/tests/conftest.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 11575,
+      "lines": 272,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: conftest."
+    },
+    {
+      "path": "dataverse_backend/tests/test_agent_loop.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 5770,
+      "lines": 136,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: agent loop."
+    },
+    {
+      "path": "dataverse_backend/tests/test_agentic_analytics.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 14736,
+      "lines": 350,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: agentic analytics."
+    },
+    {
+      "path": "dataverse_backend/tests/test_analyze_endpoints.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 9621,
+      "lines": 258,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: analyze endpoints."
+    },
+    {
+      "path": "dataverse_backend/tests/test_ask.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 1802,
+      "lines": 57,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: ask."
+    },
+    {
+      "path": "dataverse_backend/tests/test_audit.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 3984,
+      "lines": 100,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: audit."
+    },
+    {
+      "path": "dataverse_backend/tests/test_auth_security.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 8250,
+      "lines": 202,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: auth security."
+    },
+    {
+      "path": "dataverse_backend/tests/test_certificate.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 3137,
+      "lines": 81,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: certificate."
+    },
+    {
+      "path": "dataverse_backend/tests/test_chat_answer.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 1748,
+      "lines": 50,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: chat answer."
+    },
+    {
+      "path": "dataverse_backend/tests/test_chat_sessions_api.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 12399,
+      "lines": 275,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: chat sessions api."
+    },
+    {
+      "path": "dataverse_backend/tests/test_compact_report.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 8052,
+      "lines": 213,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: compact report."
+    },
+    {
+      "path": "dataverse_backend/tests/test_counterfactual.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 4248,
+      "lines": 102,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: counterfactual."
+    },
+    {
+      "path": "dataverse_backend/tests/test_deepanalyze_provider.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 2818,
+      "lines": 68,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: deepanalyze provider."
+    },
+    {
+      "path": "dataverse_backend/tests/test_delete.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 623,
+      "lines": 19,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: delete."
+    },
+    {
+      "path": "dataverse_backend/tests/test_domain_guard.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 3669,
+      "lines": 102,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: domain guard."
+    },
+    {
+      "path": "dataverse_backend/tests/test_investigate_route.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 3067,
+      "lines": 80,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: investigate route."
+    },
+    {
+      "path": "dataverse_backend/tests/test_mvp_e2e.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 7810,
+      "lines": 201,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: mvp e2e."
+    },
+    {
+      "path": "dataverse_backend/tests/test_pdf_two_pages.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 3072,
+      "lines": 68,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: pdf two pages."
+    },
+    {
+      "path": "dataverse_backend/tests/test_product_fallback.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 2007,
+      "lines": 43,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: product fallback."
+    },
+    {
+      "path": "dataverse_backend/tests/test_profile.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 644,
+      "lines": 18,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: profile."
+    },
+    {
+      "path": "dataverse_backend/tests/test_provenance.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 4260,
+      "lines": 115,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: provenance."
+    },
+    {
+      "path": "dataverse_backend/tests/test_quality_doctor.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 1873,
+      "lines": 54,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: quality doctor."
+    },
+    {
+      "path": "dataverse_backend/tests/test_query_routing.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 1455,
+      "lines": 34,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: query routing."
+    },
+    {
+      "path": "dataverse_backend/tests/test_report_generator.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 20953,
+      "lines": 391,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: report generator."
+    },
+    {
+      "path": "dataverse_backend/tests/test_report_polish.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 9809,
+      "lines": 244,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: report polish."
+    },
+    {
+      "path": "dataverse_backend/tests/test_report_quality.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 4086,
+      "lines": 89,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: report quality."
+    },
+    {
+      "path": "dataverse_backend/tests/test_report_wording.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 4769,
+      "lines": 105,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: report wording."
+    },
+    {
+      "path": "dataverse_backend/tests/test_response_charts.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 1255,
+      "lines": 31,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: response charts."
+    },
+    {
+      "path": "dataverse_backend/tests/test_root_cause.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 5405,
+      "lines": 128,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: root cause."
+    },
+    {
+      "path": "dataverse_backend/tests/test_security.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 4292,
+      "lines": 126,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: security."
+    },
+    {
+      "path": "dataverse_backend/tests/test_semantic_business_metrics.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 14369,
+      "lines": 309,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: semantic business metrics."
+    },
+    {
+      "path": "dataverse_backend/tests/test_upload.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 1231,
+      "lines": 38,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: upload."
+    },
+    {
+      "path": "dataverse_backend/tests/test_whatif.py",
+      "category": "Backend automated tests",
+      "type": "py",
+      "bytes": 1736,
+      "lines": 46,
+      "source_control": "Tracked",
+      "role": "Automated backend test coverage: whatif."
+    },
+    {
+      "path": "data/retail_mart_processed_v1.csv",
+      "category": "Data, trained models, and ML evidence",
+      "type": "csv",
+      "bytes": 3113988,
+      "lines": 35001,
+      "source_control": "Tracked",
+      "role": "Structured dataset or API test fixture; row/column details are documented in the data section."
+    },
+    {
+      "path": "dataverse_backend/sample_missing_values.csv",
+      "category": "Data, trained models, and ML evidence",
+      "type": "csv",
+      "bytes": 435,
+      "lines": 11,
+      "source_control": "Tracked",
+      "role": "Structured dataset or API test fixture; row/column details are documented in the data section."
+    },
+    {
+      "path": "dataverse_backend/sample_sales.csv",
+      "category": "Data, trained models, and ML evidence",
+      "type": "csv",
+      "bytes": 1644,
+      "lines": 41,
+      "source_control": "Tracked",
+      "role": "Structured dataset or API test fixture; row/column details are documented in the data section."
+    },
+    {
+      "path": "dataverse_backend/sample_small_dataset.csv",
+      "category": "Data, trained models, and ML evidence",
+      "type": "csv",
+      "bytes": 450,
+      "lines": 11,
+      "source_control": "Tracked",
+      "role": "Structured dataset or API test fixture; row/column details are documented in the data section."
+    },
+    {
+      "path": "models/model_metadata.json",
+      "category": "Data, trained models, and ML evidence",
+      "type": "json",
+      "bytes": 5075,
+      "lines": 246,
+      "source_control": "Tracked",
+      "role": "Training metrics, features, estimator, and evaluation metadata for saved models."
+    },
+    {
+      "path": "models/profit_model.pkl",
+      "category": "Data, trained models, and ML evidence",
+      "type": "pkl",
+      "bytes": 2827,
+      "lines": "",
+      "source_control": "Tracked",
+      "role": "Serialized scikit-learn pipeline artifact; metadata and limitations are documented in the model section."
+    },
+    {
+      "path": "models/stockout_flag_model.pkl",
+      "category": "Data, trained models, and ML evidence",
+      "type": "pkl",
+      "bytes": 1642387,
+      "lines": "",
+      "source_control": "Tracked",
+      "role": "Serialized scikit-learn pipeline artifact; metadata and limitations are documented in the model section."
+    },
+    {
+      "path": "models/total_sales_model.pkl",
+      "category": "Data, trained models, and ML evidence",
+      "type": "pkl",
+      "bytes": 2884,
+      "lines": "",
+      "source_control": "Tracked",
+      "role": "Serialized scikit-learn pipeline artifact; metadata and limitations are documented in the model section."
+    },
+    {
+      "path": "scripts/train_retail_mart.py",
+      "category": "Data, trained models, and ML evidence",
+      "type": "py",
+      "bytes": 10767,
+      "lines": 300,
+      "source_control": "Tracked",
+      "role": "Project file (py): train retail mart."
+    },
+    {
+      "path": "dataverse_backend/app/db/migrations/002_chat_sessions_supabase.sql",
+      "category": "Supabase database and storage",
+      "type": "sql",
+      "bytes": 5742,
+      "lines": 140,
+      "source_control": "Tracked",
+      "role": "PostgreSQL/Supabase schema or ordered migration."
+    },
+    {
+      "path": "dataverse_backend/supabase_schema.sql",
+      "category": "Supabase database and storage",
+      "type": "sql",
+      "bytes": 5878,
+      "lines": 108,
+      "source_control": "Tracked",
+      "role": "PostgreSQL/Supabase schema or ordered migration."
+    },
+    {
+      "path": "supabase/migrations/001_dataverse_schema.sql",
+      "category": "Supabase database and storage",
+      "type": "sql",
+      "bytes": 3967,
+      "lines": 94,
+      "source_control": "Tracked",
+      "role": "PostgreSQL/Supabase schema or ordered migration."
+    },
+    {
+      "path": "_build_corrections.py",
+      "category": "Development, QA, and document automation",
+      "type": "py",
+      "bytes": 15851,
+      "lines": 237,
+      "source_control": "Tracked",
+      "role": "Automation utility:  build corrections."
+    },
+    {
+      "path": "_build_deck.py",
+      "category": "Development, QA, and document automation",
+      "type": "py",
+      "bytes": 32819,
+      "lines": 521,
+      "source_control": "Tracked",
+      "role": "Automation utility:  build deck."
+    },
+    {
+      "path": "scripts/build_detailed_technical_report.py",
+      "category": "Development, QA, and document automation",
+      "type": "py",
+      "bytes": 92403,
+      "lines": 1345,
+      "source_control": "Local/generated/untracked",
+      "role": "Automation utility: build detailed technical report."
+    },
+    {
+      "path": "scripts/check_markdown_links.py",
+      "category": "Development, QA, and document automation",
+      "type": "py",
+      "bytes": 2033,
+      "lines": 58,
+      "source_control": "Local/generated/untracked",
+      "role": "Automation utility: check markdown links."
+    },
+    {
+      "path": "scripts/dev-start.ps1",
+      "category": "Development, QA, and document automation",
+      "type": "ps1",
+      "bytes": 689,
+      "lines": 23,
+      "source_control": "Tracked",
+      "role": "Automation utility: dev start."
+    },
+    {
+      "path": "scripts/generate_chapter_6_7_outputs.py",
+      "category": "Development, QA, and document automation",
+      "type": "py",
+      "bytes": 72891,
+      "lines": 1331,
+      "source_control": "Tracked",
+      "role": "Automation utility: generate chapter 6 7 outputs."
+    },
+    {
+      "path": "scripts/project_inventory.py",
+      "category": "Development, QA, and document automation",
+      "type": "py",
+      "bytes": 14739,
+      "lines": 340,
+      "source_control": "Local/generated/untracked",
+      "role": "Automation utility: project inventory."
+    },
+    {
+      "path": "scripts/setup-local-https.ps1",
+      "category": "Development, QA, and document automation",
+      "type": "ps1",
+      "bytes": 3699,
+      "lines": 94,
+      "source_control": "Local/generated/untracked",
+      "role": "Automation utility: setup local https."
+    },
+    {
+      "path": "scripts/smoke_test_analysis.py",
+      "category": "Development, QA, and document automation",
+      "type": "py",
+      "bytes": 2713,
+      "lines": 77,
+      "source_control": "Tracked",
+      "role": "Automation utility: smoke test analysis."
+    },
+    {
+      "path": "scripts/start-live-backend.cmd",
+      "category": "Development, QA, and document automation",
+      "type": "cmd",
+      "bytes": 230,
+      "lines": "",
+      "source_control": "Tracked",
+      "role": "Automation utility: start live backend."
+    },
+    {
+      "path": "scripts/start-live-backend.ps1",
+      "category": "Development, QA, and document automation",
+      "type": "ps1",
+      "bytes": 2794,
+      "lines": 59,
+      "source_control": "Tracked",
+      "role": "Automation utility: start live backend."
+    },
+    {
+      "path": "scripts/update_academic_documents.py",
+      "category": "Development, QA, and document automation",
+      "type": "py",
+      "bytes": 31312,
+      "lines": 648,
+      "source_control": "Local/generated/untracked",
+      "role": "Automation utility: update academic documents."
+    },
+    {
+      "path": "docs/markdown/00_index_and_overview/DOCUMENTATION_INDEX_LEGACY.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 19490,
+      "lines": 585,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI - Documentation Index (Updated)"
+    },
+    {
+      "path": "docs/markdown/00_index_and_overview/PROJECT_DOCUMENTATION_OVERVIEW.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 10963,
+      "lines": 333,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI - AI-Powered Business Intelligence Platform"
+    },
+    {
+      "path": "docs/markdown/00_index_and_overview/REPOSITORY_STRUCTURE_GUIDE.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 4284,
+      "lines": 73,
+      "source_control": "Local/generated/untracked",
+      "role": "Repository Structure Guide"
+    },
+    {
+      "path": "docs/markdown/01_getting_started/QUICK_REFERENCE.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 14016,
+      "lines": 513,
+      "source_control": "Local/generated/untracked",
+      "role": "✨ DataVerse Analytics - Complete Implementation Summary"
+    },
+    {
+      "path": "docs/markdown/01_getting_started/QUICK_START.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 6320,
+      "lines": 260,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI - Quick Reference"
+    },
+    {
+      "path": "docs/markdown/01_getting_started/QUICK_START_V2.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 7798,
+      "lines": 353,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI 2.0 - Quick Start Guide"
+    },
+    {
+      "path": "docs/markdown/01_getting_started/SETUP_GUIDE.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 10671,
+      "lines": 442,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI - Complete Setup Guide"
+    },
+    {
+      "path": "docs/markdown/02_architecture_and_design/AGENTIC_XAI_UPGRADE_DESIGN.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 6822,
+      "lines": 129,
+      "source_control": "Local/generated/untracked",
+      "role": "Agentic + XAI Upgrade — Design"
+    },
+    {
+      "path": "docs/markdown/02_architecture_and_design/ARCHITECTURE.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 10075,
+      "lines": 363,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI Architecture"
+    },
+    {
+      "path": "docs/markdown/02_architecture_and_design/DEEPANALYZE_INTEGRATION.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 3305,
+      "lines": 76,
+      "source_control": "Local/generated/untracked",
+      "role": "DeepAnalyze as DataVerse's agentic engine"
+    },
+    {
+      "path": "docs/markdown/02_architecture_and_design/REPORT_QUALITY_DESIGN.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 2622,
+      "lines": 55,
+      "source_control": "Local/generated/untracked",
+      "role": "Report Quality Improvements — Design"
+    },
+    {
+      "path": "docs/markdown/02_architecture_and_design/VERIFIABLE_ANALYST_CHAT_DESIGN.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 10059,
+      "lines": 201,
+      "source_control": "Local/generated/untracked",
+      "role": "Verifiable Analyst Chat — Design Spec"
+    },
+    {
+      "path": "docs/markdown/02_architecture_and_design/VERIFIABLE_ANALYST_CHAT_IMPLEMENTATION_PLAN.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 38487,
+      "lines": 1015,
+      "source_control": "Local/generated/untracked",
+      "role": "Verifiable Analyst Chat Implementation Plan"
+    },
+    {
+      "path": "docs/markdown/03_implementation_and_services/BACKEND_SERVICE_GUIDE.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 842,
+      "lines": 20,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI Backend"
+    },
+    {
+      "path": "docs/markdown/03_implementation_and_services/FRONTEND_SERVICE_GUIDE.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 1219,
+      "lines": 31,
+      "source_control": "Local/generated/untracked",
+      "role": "Run and deploy your AI Studio app"
+    },
+    {
+      "path": "docs/markdown/03_implementation_and_services/IMPLEMENTATION_COMPLETION_SUMMARY.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 30585,
+      "lines": 821,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI Agentic LLM Core - Implementation Completion Summary"
+    },
+    {
+      "path": "docs/markdown/03_implementation_and_services/IMPLEMENTATION_GUIDE.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 16213,
+      "lines": 593,
+      "source_control": "Local/generated/untracked",
+      "role": "🚀 DataVerse Analytics - Complete Implementation Guide"
+    },
+    {
+      "path": "docs/markdown/03_implementation_and_services/INTEGRATION_GUIDE_PHASE5.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 8080,
+      "lines": 332,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI - Enhancement Integration Guide"
+    },
+    {
+      "path": "docs/markdown/03_implementation_and_services/NEW_TOOLS_REFERENCE.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 7799,
+      "lines": 268,
+      "source_control": "Local/generated/untracked",
+      "role": "New Tools Quick Reference Guide"
+    },
+    {
+      "path": "docs/markdown/03_implementation_and_services/RETAIL_AGENT_GUIDE.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 864,
+      "lines": 40,
+      "source_control": "Local/generated/untracked",
+      "role": "Windows"
+    },
+    {
+      "path": "docs/markdown/04_testing_and_quality/EVALUATION_FRAMEWORK.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 13077,
+      "lines": 428,
+      "source_control": "Local/generated/untracked",
+      "role": "Agentic LLM Evaluation Framework"
+    },
+    {
+      "path": "docs/markdown/04_testing_and_quality/INTEGRATION_TESTING_GUIDE.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 15220,
+      "lines": 514,
+      "source_control": "Local/generated/untracked",
+      "role": "Integration Testing Guide for Agentic LLM Core"
+    },
+    {
+      "path": "docs/markdown/04_testing_and_quality/PHASE_5_FINAL_VALIDATION.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 12085,
+      "lines": 294,
+      "source_control": "Local/generated/untracked",
+      "role": "Phase 5 Final Validation Report"
+    },
+    {
+      "path": "docs/markdown/04_testing_and_quality/PROJECT_EVALUATION_REPORT.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 41859,
+      "lines": 1377,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI - Comprehensive Project Evaluation Report"
+    },
+    {
+      "path": "docs/markdown/05_deployment_and_operations/CLEANUP_REPORT.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 9552,
+      "lines": 294,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI Cleanup Report"
+    },
+    {
+      "path": "docs/markdown/05_deployment_and_operations/DEPLOYMENT_READY.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 12376,
+      "lines": 493,
+      "source_control": "Local/generated/untracked",
+      "role": "🚀 DataVerse AI Platform - Deployment Ready"
+    },
+    {
+      "path": "docs/markdown/05_deployment_and_operations/PRODUCTION_DEPLOYMENT_GUIDE.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 9155,
+      "lines": 414,
+      "source_control": "Local/generated/untracked",
+      "role": "Production Deployment Guide for Agentic LLM"
+    },
+    {
+      "path": "docs/markdown/05_deployment_and_operations/PRODUCTION_READY_RUNBOOK.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 2007,
+      "lines": 49,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse Production Readiness Runbook"
+    },
+    {
+      "path": "docs/markdown/06_project_reports_and_defense/PROJECT_DEFENSE_DOCUMENTATION.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 47056,
+      "lines": 1463,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse Analytics Backend - Project Defense Documentation"
+    },
+    {
+      "path": "docs/markdown/06_project_reports_and_defense/PROJECT_EXPLORATION_SUMMARY.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 20075,
+      "lines": 562,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI - Comprehensive Project Exploration Summary"
+    },
+    {
+      "path": "docs/markdown/06_project_reports_and_defense/PROJECT_REPORT.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 13821,
+      "lines": 484,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI Project Report"
+    },
+    {
+      "path": "docs/markdown/06_project_reports_and_defense/PROJECT_TEACHER_PRESENTATION.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 8124,
+      "lines": 210,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI — Teacher Presentation Document"
+    },
+    {
+      "path": "docs/markdown/06_project_reports_and_defense/RETAIL_AGENT_REPORT.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 2370,
+      "lines": 54,
+      "source_control": "Local/generated/untracked",
+      "role": "Retail Analytics Report"
+    },
+    {
+      "path": "docs/markdown/06_project_reports_and_defense/RETAIL_AGENT_REPORT_PHI3.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 7882,
+      "lines": 87,
+      "source_control": "Local/generated/untracked",
+      "role": "Retail Analytics Report"
+    },
+    {
+      "path": "docs/markdown/06_project_reports_and_defense/TEACHER_EXPLANATION.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 5559,
+      "lines": 177,
+      "source_control": "Local/generated/untracked",
+      "role": "Teacher Explanation for DataVerse AI"
+    },
+    {
+      "path": "docs/markdown/07_completion_and_history/COMPLETION_CERTIFICATE.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 6064,
+      "lines": 187,
+      "source_control": "Local/generated/untracked",
+      "role": "DATAVERSE AI v2.0.0 - FINAL COMPLETION CERTIFICATE"
+    },
+    {
+      "path": "docs/markdown/07_completion_and_history/COMPLETION_PROOF.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 8967,
+      "lines": 278,
+      "source_control": "Local/generated/untracked",
+      "role": "✅ DataVerse AI Phase 5 - FINAL COMPLETION PROOF"
+    },
+    {
+      "path": "docs/markdown/07_completion_and_history/COMPLETION_SUMMARY.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 11632,
+      "lines": 403,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI - Project Completion Summary"
+    },
+    {
+      "path": "docs/markdown/07_completion_and_history/FINAL_COMPLETION_PROOF.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 4798,
+      "lines": 129,
+      "source_control": "Local/generated/untracked",
+      "role": "FINAL PROOF OF COMPLETION - DataVerse AI v2.0.0"
+    },
+    {
+      "path": "docs/markdown/07_completion_and_history/FINAL_STATUS.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 12755,
+      "lines": 439,
+      "source_control": "Local/generated/untracked",
+      "role": "✅ ALL PHASES COMPLETE - FINAL STATUS REPORT"
+    },
+    {
+      "path": "docs/markdown/07_completion_and_history/FINAL_SUMMARY.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 13027,
+      "lines": 521,
+      "source_control": "Local/generated/untracked",
+      "role": "🎉 DataVerse Analytics - COMPLETE & OPERATIONAL"
+    },
+    {
+      "path": "docs/markdown/07_completion_and_history/PHASE_2_COMPLETION.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 18280,
+      "lines": 613,
+      "source_control": "Local/generated/untracked",
+      "role": "🎯 DataVerse Phase 2 - Complete Implementation"
+    },
+    {
+      "path": "docs/markdown/07_completion_and_history/PHASE_5_COMPLETION_SUMMARY.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 10348,
+      "lines": 406,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI - Phase 5 Completion Summary"
+    },
+    {
+      "path": "docs/markdown/07_completion_and_history/PHASE_5_FUNCTIONAL_READINESS.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 8265,
+      "lines": 256,
+      "source_control": "Local/generated/untracked",
+      "role": "Phase 5 Complete - Functional Readiness Report"
+    },
+    {
+      "path": "docs/markdown/07_completion_and_history/PHASE_5_IMPROVEMENTS.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 12331,
+      "lines": 494,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI - Phase 5: Enhanced Features & Modern Frontend"
+    },
+    {
+      "path": "docs/markdown/07_completion_and_history/PHASES_COMPLETION_REPORT.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 14470,
+      "lines": 447,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI Platform - All Phases Completion Report"
+    },
+    {
+      "path": "docs/markdown/07_completion_and_history/SESSION_COMPLETION_PRIORITY1.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 9212,
+      "lines": 276,
+      "source_control": "Local/generated/untracked",
+      "role": "Session Completion Report: All 20 Tools Implemented ✅"
+    },
+    {
+      "path": "docs/markdown/07_completion_and_history/SESSION_PRIORITY2_SUMMARY.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 9413,
+      "lines": 284,
+      "source_control": "Local/generated/untracked",
+      "role": "Priority 2 Testing Framework Enhancement - Session Summary"
+    },
+    {
+      "path": "docs/markdown/07_completion_and_history/STATUS_REPORT.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 15495,
+      "lines": 472,
+      "source_control": "Local/generated/untracked",
+      "role": "🚀 DataVerse Analytics - Status Report"
+    },
+    {
+      "path": "docs/markdown/08_generated_notes/chapter_6_7/chapter_6_7_evidence_log.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 23597,
+      "lines": 222,
+      "source_control": "Local/generated/untracked",
+      "role": "Chapter 6/7 Evidence Log"
+    },
+    {
+      "path": "docs/markdown/08_generated_notes/chapter_6_7/chapter_6_7_figures_list.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 2877,
+      "lines": 27,
+      "source_control": "Local/generated/untracked",
+      "role": "Chapter 6/7 Figures List"
+    },
+    {
+      "path": "docs/markdown/08_generated_notes/chapter_6_7/chapter_6_data_collection_analysis.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 18154,
+      "lines": 300,
+      "source_control": "Local/generated/untracked",
+      "role": "Chapter 6: Data Collection & Analysis"
+    },
+    {
+      "path": "docs/markdown/08_generated_notes/chapter_6_7/chapter_6_tables.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 8266,
+      "lines": 189,
+      "source_control": "Local/generated/untracked",
+      "role": "Chapter 6 Tables"
+    },
+    {
+      "path": "docs/markdown/08_generated_notes/chapter_6_7/chapter_7_results_discussion.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 14541,
+      "lines": 164,
+      "source_control": "Local/generated/untracked",
+      "role": "Chapter 7: Results & Discussion"
+    },
+    {
+      "path": "docs/markdown/08_generated_notes/chapter_6_7/chapter_7_tables.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 7524,
+      "lines": 115,
+      "source_control": "Local/generated/untracked",
+      "role": "Chapter 7 Tables"
+    },
+    {
+      "path": "docs/markdown/08_generated_notes/DATAVERSE_AI_TECHNICAL_REPORT_SOURCE_NOTES.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 2094,
+      "lines": 33,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI technical report source notes"
+    },
+    {
+      "path": "docs/markdown/README.md",
+      "category": "Project documentation and academic material",
+      "type": "md",
+      "bytes": 14283,
+      "lines": 149,
+      "source_control": "Local/generated/untracked",
+      "role": "DataVerse AI Markdown Documentation Library"
+    },
+    {
+      "path": "docs/reports/test_results.txt",
+      "category": "Project documentation and academic material",
+      "type": "txt",
+      "bytes": 12698,
+      "lines": 126,
+      "source_control": "Tracked",
+      "role": "Academic specification or supporting document: test results."
+    },
+    {
+      "path": "docs/specs/DataVerse_Agentic_Specification.docx",
+      "category": "Project documentation and academic material",
+      "type": "docx",
+      "bytes": 25260,
+      "lines": "",
+      "source_control": "Tracked",
+      "role": "Academic specification or supporting document: DataVerse Agentic Specification."
+    },
+    {
+      "path": "docs/specs/DataVerse_Agentic_Specification.tmp.docx",
+      "category": "Project documentation and academic material",
+      "type": "docx",
+      "bytes": 27428,
+      "lines": "",
+      "source_control": "Tracked",
+      "role": "Academic specification or supporting document: DataVerse Agentic Specification.tmp."
+    },
+    {
+      "path": "docs/specs/DataVerse_Agentic_Specification_UPDATED.docx",
+      "category": "Project documentation and academic material",
+      "type": "docx",
+      "bytes": 27428,
+      "lines": "",
+      "source_control": "Tracked",
+      "role": "Academic specification or supporting document: DataVerse Agentic Specification UPDATED."
+    },
+    {
+      "path": "logs/codex-dev-check.err.log",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "log",
+      "bytes": 0,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Development/runtime log artifact; content is not treated as source code."
+    },
+    {
+      "path": "logs/codex-dev-check.out.log",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "log",
+      "bytes": 0,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Development/runtime log artifact; content is not treated as source code."
+    },
+    {
+      "path": "logs/codex-dev-final.err.log",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "log",
+      "bytes": 488,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Development/runtime log artifact; content is not treated as source code."
+    },
+    {
+      "path": "logs/codex-dev-final.out.log",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "log",
+      "bytes": 2441,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Development/runtime log artifact; content is not treated as source code."
+    },
+    {
+      "path": "logs/codex-dev-verify.err.log",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "log",
+      "bytes": 489,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Development/runtime log artifact; content is not treated as source code."
+    },
+    {
+      "path": "logs/codex-dev-verify.out.log",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "log",
+      "bytes": 936,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Development/runtime log artifact; content is not treated as source code."
+    },
+    {
+      "path": "logs/dataverse_backend.log",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "log",
+      "bytes": 241374,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Development/runtime log artifact; content is not treated as source code."
+    },
+    {
+      "path": "logs/demo-dev.err.log",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "log",
+      "bytes": 0,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Development/runtime log artifact; content is not treated as source code."
+    },
+    {
+      "path": "logs/demo-dev.out.log",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "log",
+      "bytes": 0,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Development/runtime log artifact; content is not treated as source code."
+    },
+    {
+      "path": "output/architecture/dataverse-production-architecture.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 93769,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "output/architecture/dataverse-request-data-flow.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 197361,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "output/pdf/DataVerse_AI_Complete_Current_Folder_Audit_2026.docx",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "docx",
+      "bytes": 499194,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated or revised Word deliverable."
+    },
+    {
+      "path": "output/pdf/DataVerse_AI_Complete_Current_Folder_Audit_2026.pdf",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "pdf",
+      "bytes": 1034492,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated or revised PDF deliverable."
+    },
+    {
+      "path": "output/pdf/DataVerse_AI_Complete_Technical_Implementation_Report_2026.docx",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "docx",
+      "bytes": 499194,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated or revised Word deliverable."
+    },
+    {
+      "path": "output/pdf/DataVerse_AI_Complete_Technical_Implementation_Report_2026.pdf",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "pdf",
+      "bytes": 1034492,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated or revised PDF deliverable."
+    },
+    {
+      "path": "output/pdf/DataVerse_AI_Complete_Technical_Implementation_Report_2026_delivery.pdf",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "pdf",
+      "bytes": 799080,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated or revised PDF deliverable."
+    },
+    {
+      "path": "output/pdf/DataVerse_AI_Complete_Technical_Implementation_Report_2026_final.pdf",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "pdf",
+      "bytes": 818315,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated or revised PDF deliverable."
+    },
+    {
+      "path": "output/pdf/DataVerse_AI_Complete_Technical_Implementation_Report_2026_verified.pdf",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "pdf",
+      "bytes": 815957,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated or revised PDF deliverable."
+    },
+    {
+      "path": "output/pdf/DataVerse_AI_Final_Report_Final_2026.pdf",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "pdf",
+      "bytes": 2297061,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated or revised PDF deliverable."
+    },
+    {
+      "path": "output/pdf/DataVerse_AI_Final_Report_Revised_2026.docx",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "docx",
+      "bytes": 2536497,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated or revised Word deliverable."
+    },
+    {
+      "path": "output/pdf/DataVerse_AI_Final_Report_Revised_2026.pdf",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "pdf",
+      "bytes": 2297057,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated or revised PDF deliverable."
+    },
+    {
+      "path": "output/pdf/DataVerse_AI_Final_Report_Revised_2026_Final.pdf",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "pdf",
+      "bytes": 2297061,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated or revised PDF deliverable."
+    },
+    {
+      "path": "output/pdf/DataVerse_AI_Final_Report_Simple_Architecture_2026.pdf",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "pdf",
+      "bytes": 2131108,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated or revised PDF deliverable."
+    },
+    {
+      "path": "output/playwright/latest-dashboard.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 362945,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "output/playwright/latest-features.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 82039,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "output/playwright/latest-landing.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 179864,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "output/playwright/latest-login.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 362945,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "output/playwright/latest-signup.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 366687,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "output/playwright/preview-state.json",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "json",
+      "bytes": 414,
+      "lines": 18,
+      "source_control": "Local/generated/untracked",
+      "role": "Generated machine-readable verification or report metadata."
+    },
+    {
+      "path": "output/slides/FYP_P2_Defense_Revised_2026.pptx",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "pptx",
+      "bytes": 1000890,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated or revised presentation deliverable."
+    },
+    {
+      "path": "output/technical_report/DataVerse_AI_Current_Folder_Audit.json",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "json",
+      "bytes": 99820,
+      "lines": 2944,
+      "source_control": "Local/generated/untracked",
+      "role": "Generated machine-readable verification or report metadata."
+    },
+    {
+      "path": "output/technical_report/DataVerse_AI_Current_Folder_File_Inventory.csv",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "csv",
+      "bytes": 48173,
+      "lines": 308,
+      "source_control": "Local/generated/untracked",
+      "role": "Structured dataset or API test fixture; row/column details are documented in the data section."
+    },
+    {
+      "path": "output/technical_report/saved_model_feature_importance.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 124319,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "output/technical_report/stockout_confusion_matrix.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 100280,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "outputs/chapter_6_7_generation_summary.json",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "json",
+      "bytes": 10960,
+      "lines": 50,
+      "source_control": "Local/generated/untracked",
+      "role": "Generated machine-readable verification or report metadata."
+    },
+    {
+      "path": "report/chapter_outputs/figure_6_10_discount_vs_profit.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 107482,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "report/chapter_outputs/figure_6_3_sales_by_category.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 52992,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "report/chapter_outputs/figure_6_4_sales_by_region.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 50781,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "report/chapter_outputs/figure_6_5_profit_by_category.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 54022,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "report/chapter_outputs/figure_6_6_monthly_sales_trend.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 93795,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "report/chapter_outputs/figure_6_7_customer_type_distribution.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 42174,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "report/chapter_outputs/figure_6_8_payment_method_distribution.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 48671,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": "report/chapter_outputs/figure_6_9_online_vs_offline_sales.png",
+      "category": "Generated reports, figures, logs, and screenshots",
+      "type": "png",
+      "bytes": 50403,
+      "lines": "",
+      "source_control": "Local/generated/untracked",
+      "role": "Generated figure, architecture asset, or UI verification screenshot."
+    },
+    {
+      "path": ".claude/settings.json",
+      "category": "Repository automation metadata",
+      "type": "json",
+      "bytes": 3296,
+      "lines": 52,
+      "source_control": "Tracked",
+      "role": "Repository automation or agent configuration: settings."
+    },
+    {
+      "path": ".claude/settings.local.json",
+      "category": "Repository automation metadata",
+      "type": "json",
+      "bytes": 25512,
+      "lines": 198,
+      "source_control": "Local/generated/untracked",
+      "role": "Repository automation or agent configuration: settings.local."
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "category": "Repository automation metadata",
+      "type": "yml",
+      "bytes": 655,
+      "lines": 31,
+      "source_control": "Tracked",
+      "role": "Repository automation or agent configuration: ci."
+    },
+    {
+      "path": ".github/workflows/deploy-docker-host.yml",
+      "category": "Repository automation metadata",
+      "type": "yml",
+      "bytes": 1325,
+      "lines": 45,
+      "source_control": "Tracked",
+      "role": "Repository automation or agent configuration: deploy docker host."
+    },
+    {
+      "path": ".github/workflows/deploy-hf-space.yml",
+      "category": "Repository automation metadata",
+      "type": "yml",
+      "bytes": 2197,
+      "lines": 60,
+      "source_control": "Tracked",
+      "role": "Repository automation or agent configuration: deploy hf space."
+    }
+  ]
+}

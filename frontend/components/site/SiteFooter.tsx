@@ -17,7 +17,7 @@ export function SiteFooter() {
             </div>
             <p className="mt-3 text-sm leading-relaxed text-[#64748B]">
               A two-agent dataset analyst. Upload a spreadsheet and get a compact,
-              deterministic business report — metrics, EDA, predictions, and
+              deterministic business report with metrics, EDA, predictions, and
               explainable AI, without the numbers ever being invented.
             </p>
           </div>

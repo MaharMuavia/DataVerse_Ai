@@ -36,6 +36,13 @@ test('createDevPlan wires frontend dev to the local backend by default', () => {
     'dataverse_backend',
   ]);
   assert.equal(plan.frontend.command, 'node.exe');
+  assert.equal(
+    plan.frontend.args[0],
+    path.join(repoRoot, 'node_modules', 'next', 'dist', 'bin', 'next'),
+  );
+  assert.ok(plan.frontend.args.includes('--experimental-https'));
+  assert.ok(plan.frontend.args.includes('--experimental-https-key'));
+  assert.ok(plan.frontend.args.includes('--experimental-https-cert'));
   assert.equal(plan.frontend.args.at(-4), '--hostname');
   assert.equal(plan.frontend.args.at(-3), '127.0.0.1');
   assert.equal(plan.frontend.args.at(-2), '--port');

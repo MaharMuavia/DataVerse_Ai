@@ -7,6 +7,7 @@ from pathlib import Path, PureWindowsPath
 from typing import Any
 from urllib.parse import quote
 
+import httpx
 import pandas as pd
 
 from ..api.upload_parsing import parse_uploaded_dataframe
@@ -63,10 +64,32 @@ class SessionService:
         return {"session_id": row["id"], "id": row["id"], "title": row["title"], "created_at": row["created_at"]}
 
     async def list_sessions(self, user_id: str | None = None) -> list[dict[str, Any]]:
-        query = "select=*&order=updated_at.desc&limit=50"
+        if not self.supabase.configured:
+            rows = self.local.read_table("chat_sessions")
+            if user_id:
+                rows = [row for row in rows if str(row.get("user_id")) == str(user_id)]
+            rows.sort(key=lambda row: row.get("updated_at") or "", reverse=True)
+            messages = self.local.read_table("chat_messages")
+            counts: dict[str, int] = {}
+            for message in messages:
+                session_key = str(message.get("session_id"))
+                counts[session_key] = counts.get(session_key, 0) + 1
+            return [
+                {
+                    "id": row["id"],
+                    "title": row.get("title") or "New Chat",
+                    "active_dataset_id": row.get("active_dataset_id"),
+                    "updated_at": row.get("updated_at"),
+                    "message_count": counts.get(str(row["id"]), 0),
+                }
+                for row in rows
+            ]
+        try:
+            rows = await self.supabase.select("chat_sessions", "select=*&order=updated_at.desc&limit=50")
+        except httpx.HTTPError:
+            rows = self.local.read_table("chat_sessions")
         if user_id:
-            query = f"select=*&user_id=eq.{quote(user_id)}&order=updated_at.desc&limit=50"
-        rows = await self.supabase.select("chat_sessions", query)
+            rows = [row for row in rows if str(row.get("user_id")) == str(user_id)]
         messages = await self._all_rows("chat_messages")
         counts: dict[str, int] = {}
         for message in messages:
@@ -98,6 +121,22 @@ class SessionService:
         return row
 
     async def get_session(self, session_id: str) -> dict[str, Any]:
+        if not self.supabase.configured:
+            session = self.local.read_table("chat_sessions")
+            session_row = next((row for row in session if str(row.get("id")) == str(session_id)), None)
+            if not session_row:
+                raise KeyError("Session not found")
+            messages = [row for row in self.local.read_table("chat_messages") if row.get("session_id") == session_id]
+            datasets = [row for row in self.local.read_table("datasets") if row.get("session_id") == session_id]
+            agent_runs = [row for row in self.local.read_table("agent_runs") if row.get("session_id") == session_id]
+            reports = [row for row in self.local.read_table("reports") if row.get("session_id") == session_id]
+            return {
+                **session_row,
+                "messages": sorted(messages, key=lambda row: row.get("created_at") or ""),
+                "datasets": sorted(datasets, key=lambda row: row.get("created_at") or "", reverse=True),
+                "agent_runs": sorted(agent_runs, key=lambda row: row.get("started_at") or ""),
+                "reports": sorted(reports, key=lambda row: row.get("created_at") or "", reverse=True),
+            }
         session = await self._get_by_id("chat_sessions", session_id)
         if not session:
             raise KeyError("Session not found")
@@ -174,7 +213,11 @@ class SessionService:
         storage_path = f"{session_id}/{dataset_id}/{safe_name}"
         local_path = persist_dataframe_for_dataset(session_id, dataset_id, df, filename=safe_name)
         persist_dataframe_for_session(session_id, df, filename=safe_name)
-        await self.supabase.upload_bytes(settings.SUPABASE_DATASET_BUCKET, storage_path, content)
+        if self.supabase.configured:
+            try:
+                await self.supabase.upload_bytes(settings.SUPABASE_DATASET_BUCKET, storage_path, content)
+            except httpx.HTTPError:
+                pass
         persisted_path = storage_path
 
         progress_bus.start_stage(session_id, "profile", "Profiling columns")
@@ -218,18 +261,34 @@ class SessionService:
         return dataset
 
     async def list_datasets(self, user_id: str | None = None) -> list[dict[str, Any]]:
-        query = "select=*&order=created_at.desc&limit=50"
+        if not self.supabase.configured:
+            rows = self.local.read_table("datasets")
+            if user_id:
+                rows = [row for row in rows if str(row.get("user_id")) == str(user_id)]
+            return sorted(rows, key=lambda row: row.get("created_at") or "", reverse=True)
+        try:
+            rows = await self.supabase.select("datasets", "select=*&order=created_at.desc&limit=50")
+        except httpx.HTTPError:
+            rows = self.local.read_table("datasets")
         if user_id:
-            query = f"select=*&user_id=eq.{quote(user_id)}&order=created_at.desc&limit=50"
-        return await self.supabase.select("datasets", query)
+            rows = [row for row in rows if str(row.get("user_id")) == str(user_id)]
+        return rows
 
     async def list_session_datasets(self, session_id: str) -> list[dict[str, Any]]:
+        if not self.supabase.configured:
+            return [row for row in self.local.read_table("datasets") if row.get("session_id") == session_id]
         return [row for row in await self._all_rows("datasets") if row.get("session_id") == session_id]
 
     async def get_dataset(self, dataset_id: str) -> dict[str, Any] | None:
+        if not self.supabase.configured:
+            return next((row for row in self.local.read_table("datasets") if str(row.get("id")) == str(dataset_id)), None)
         return await self._get_by_id("datasets", dataset_id)
 
     async def delete_dataset(self, dataset_id: str) -> None:
+        if not self.supabase.configured:
+            rows = [row for row in self.local.read_table("datasets") if str(row.get("id")) != str(dataset_id)]
+            self.local.write_table("datasets", rows)
+            return
         await self._delete("datasets", dataset_id)
 
     async def analyze(
@@ -563,10 +622,30 @@ class SessionService:
         generated = await ReportGenerator().generate(title=title, facts=facts, xai_output=xai_output)
         html_path = f"{session_id}/{report_id}/report.html"
         pdf_path = f"{session_id}/{report_id}/report.pdf"
-        await self.supabase.upload_bytes(settings.SUPABASE_REPORT_BUCKET, html_path, str(generated["html"]).encode("utf-8"), "text/html")
-        await self.supabase.upload_bytes(settings.SUPABASE_REPORT_BUCKET, pdf_path, generated["pdf"], "application/pdf")  # type: ignore[arg-type]
-        html_url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, html_path)
-        pdf_url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, pdf_path)
+        html_bytes = str(generated["html"]).encode("utf-8")
+        pdf_bytes = generated["pdf"]
+        html_url: str | None = None
+        pdf_url: str | None = None
+
+        if self.supabase.configured:
+            try:
+                await self.supabase.upload_bytes(settings.SUPABASE_REPORT_BUCKET, html_path, html_bytes, "text/html")
+                await self.supabase.upload_bytes(settings.SUPABASE_REPORT_BUCKET, pdf_path, pdf_bytes, "application/pdf")  # type: ignore[arg-type]
+                html_url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, html_path)
+                pdf_url = await self.supabase.signed_url(settings.SUPABASE_REPORT_BUCKET, pdf_path)
+            except httpx.HTTPError:
+                # Analytics must remain usable when Supabase is configured but
+                # temporarily unreachable (common during local development).
+                self.local.write_bytes(html_path, html_bytes)
+                self.local.write_bytes(pdf_path, pdf_bytes)  # type: ignore[arg-type]
+
+        if not html_url or not pdf_url:
+            if not self.supabase.configured:
+                self.local.write_bytes(html_path, html_bytes)
+                self.local.write_bytes(pdf_path, pdf_bytes)  # type: ignore[arg-type]
+            backend_url = settings.BACKEND_BASE_URL.rstrip("/")
+            html_url = html_url or f"{backend_url}/api/reports/{quote(report_id)}/download?format=html"
+            pdf_url = pdf_url or f"{backend_url}/api/reports/{quote(report_id)}/download?format=pdf"
         now = utc_now_iso()
         report_row = {
             "id": report_id,
@@ -651,6 +730,10 @@ class SessionService:
         metadata = report.get("metadata") or {}
         key = "pdf_path" if fmt == "pdf" else "html_path"
         storage_path = metadata.get(key) or report.get("storage_path")
+        if isinstance(storage_path, str):
+            local_path = self.local.path_for(storage_path)
+            if local_path.is_file():
+                return None, local_path
         if settings.ENVIRONMENT == "test":
             content = getattr(self.supabase, "mock_storage", {}).get(storage_path, b"")
             if not content:
@@ -749,19 +832,45 @@ class SessionService:
         ]
 
     async def _insert(self, table: str, payload: dict[str, Any]) -> dict[str, Any]:
-        return await self.supabase.insert(table, payload)
+        if not self.supabase.configured:
+            return self.local.insert(table, payload)
+        try:
+            return await self.supabase.insert(table, payload)
+        except httpx.HTTPError:
+            return self.local.insert(table, payload)
 
     async def _update(self, table: str, row_id: str, payload: dict[str, Any]) -> dict[str, Any] | None:
-        return await self.supabase.update(table, row_id, payload)
+        if not self.supabase.configured:
+            return self.local.update(table, row_id, payload)
+        try:
+            return await self.supabase.update(table, row_id, payload)
+        except httpx.HTTPError:
+            return self.local.update(table, row_id, payload)
 
     async def _delete(self, table: str, row_id: str) -> None:
-        await self.supabase.delete(table, row_id)
+        if not self.supabase.configured:
+            self.local.delete(table, row_id)
+            return
+        try:
+            await self.supabase.delete(table, row_id)
+        except httpx.HTTPError:
+            self.local.delete(table, row_id)
 
     async def _all_rows(self, table: str) -> list[dict[str, Any]]:
-        return await self.supabase.select(table, "select=*")
+        if not self.supabase.configured:
+            return self.local.read_table(table)
+        try:
+            return await self.supabase.select(table, "select=*")
+        except httpx.HTTPError:
+            return self.local.read_table(table)
 
     async def _get_by_id(self, table: str, row_id: str) -> dict[str, Any] | None:
-        rows = await self.supabase.select(table, f"select=*&id=eq.{quote(row_id)}&limit=1")
+        if not self.supabase.configured:
+            return next((row for row in self.local.read_table(table) if str(row.get("id")) == str(row_id)), None)
+        try:
+            rows = await self.supabase.select(table, f"select=*&id=eq.{quote(row_id)}&limit=1")
+        except httpx.HTTPError:
+            return next((row for row in self.local.read_table(table) if str(row.get("id")) == str(row_id)), None)
         return rows[0] if rows else None
 
 

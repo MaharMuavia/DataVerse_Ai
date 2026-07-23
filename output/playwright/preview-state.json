@@ -1,0 +1,18 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://127.0.0.1:3000",
+      "localStorage": [
+        {
+          "name": "dataverse.session",
+          "value": "{\"name\":\"Alex Analyst\",\"email\":\"alex@example.com\",\"createdAt\":\"2026-07-13T12:00:00.000Z\"}"
+        },
+        {
+          "name": "dataverse.token",
+          "value": "documentation-preview-token"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+- generic [ref=f2e2]:
+  - generic [ref=f2e3]:
+    - link "DataVerse AI" [ref=f2e4] [cursor=pointer]:
+      - /url: /
+    - generic [ref=f2e10]:
+      - heading "Spreadsheets in. Executive reports out." [level=2] [ref=f2e11]
+      - list [ref=f2e12]:
+        - listitem [ref=f2e13]:
+          - generic [ref=f2e17]: Deterministic metrics, EDA, and predictions. The LLM never invents numbers.
+        - listitem [ref=f2e18]:
+          - generic [ref=f2e22]: Explainable AI with SHAP feature importance in every report.
+        - listitem [ref=f2e23]:
+          - generic [ref=f2e27]: Compact 1–2 page reports with no repeated content.
+    - paragraph [ref=f2e28]: Secure accounts powered by Supabase Auth.
+  - generic [ref=f2e33]:
+    - heading "Welcome back" [level=1] [ref=f2e34]
+    - paragraph [ref=f2e35]: Log in to open your analysis workspace.
+    - generic [ref=f2e36]:
+      - generic [ref=f2e37]:
+        - generic [ref=f2e38]:
+          - generic [ref=f2e39]: Email
+          - textbox "you@company.com" [ref=f2e40]
+        - generic [ref=f2e41]:
+          - generic [ref=f2e42]: Password
+          - textbox "••••••••" [ref=f2e43]
+        - button "Log in" [ref=f2e44]
+      - paragraph [ref=f2e47]:
+        - text: New here?
+        - link "Create an account" [ref=f2e48] [cursor=pointer]:
+          - /url: /signup

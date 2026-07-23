@@ -8,7 +8,7 @@ import type { AgentTraceStep } from '@/lib/dataverse-api';
 /**
  * Agent Trace: the plan→act→observe loop the LLM agent ran to answer the
  * question. Thoughts come from the LLM; every observation is a deterministic
- * tool result computed in pandas — the agent plans, it never computes.
+ * tool result computed in pandas. The agent plans, it never computes.
  */
 export function AgentTracePanel({ trace }: { trace: AgentTraceStep[] }) {
   const [openStep, setOpenStep] = useState<number | null>(null);
@@ -24,7 +24,7 @@ export function AgentTracePanel({ trace }: { trace: AgentTraceStep[] }) {
         <div>
           <h3 className="text-sm font-semibold text-[#0F172A]">Agent Investigation</h3>
           <p className="text-[10px] text-[#64748B]">
-            The agent planned {trace.length} tool call{trace.length === 1 ? '' : 's'} — all numbers computed deterministically
+            The agent planned {trace.length} tool call{trace.length === 1 ? '' : 's'}. All numbers were computed deterministically
           </p>
         </div>
       </div>

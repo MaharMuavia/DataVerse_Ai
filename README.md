@@ -28,6 +28,20 @@ DataVerse AI is a clean, production-ready MVP for an AI Data Scientist backend u
 
 The LLM is optional and only used to polish the narration of computed facts. All calculations are deterministic.
 
+## Documentation
+
+All non-root Markdown documentation is organized in numbered categories under [`docs/markdown/`](docs/markdown/README.md). The central index explains what every Markdown file is used for and which documents are current, conditional, generated, or historical.
+
+## Trusted local HTTPS
+
+Run this once on Windows before recording or using the local HTTPS site:
+
+```powershell
+npm run setup:https
+```
+
+This installs a local development certificate authority, creates a certificate for `localhost`, `127.0.0.1`, and `::1`, and enables Firefox to trust the Windows certificate store. Restart Firefox completely after the setup command, then run `npm run dev` and open `https://127.0.0.1:3000`.
+
 ## Two-Agent Architecture
 
 The MVP relies on exactly two agents with a clear division of labor:

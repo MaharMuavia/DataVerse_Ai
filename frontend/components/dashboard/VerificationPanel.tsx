@@ -39,7 +39,7 @@ export function VerificationPanel({ audit }: { audit: AuditEntry[] }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[#64748B]">
-          <ShieldCheck size={13} className="text-emerald-500" /> Verification — {audit.length} numbers verified
+          <ShieldCheck size={13} className="text-emerald-500" /> Verification: {audit.length} numbers verified
         </h3>
         <button
           onClick={download}

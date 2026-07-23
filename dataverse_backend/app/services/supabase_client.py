@@ -105,14 +105,18 @@ class SupabaseClient:
     async def _request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
         # Retry connect-phase failures only: the request was never sent, so a
         # retry is safe even for non-idempotent methods.
-        attempts = 3
+        attempts = 2
+        timeout = httpx.Timeout(30.0, connect=settings.SUPABASE_HEALTH_TIMEOUT_SECONDS)
         for attempt in range(1, attempts + 1):
             try:
-                async with httpx.AsyncClient(timeout=30.0) as client:
+                async with httpx.AsyncClient(timeout=timeout) as client:
                     response = await client.request(method, url, **kwargs)
                 break
             except (httpx.ConnectError, httpx.ConnectTimeout):
                 if attempt == attempts:
+                    # Mark the client unavailable so callers use the local
+                    # persistence fallback instead of retrying every request.
+                    self.url = ""
                     raise
                 await asyncio.sleep(0.5 * attempt)
         response.raise_for_status()
@@ -177,6 +181,14 @@ class LocalPersistence:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(content)
         return str(target)
+
+    def path_for(self, storage_path: str) -> Path:
+        """Resolve a stored path while keeping it inside local persistence."""
+        root = self.root.resolve()
+        target = (root / storage_path).resolve()
+        if target != root and root not in target.parents:
+            raise ValueError("Storage path escapes local persistence")
+        return target
 
 
 supabase_client = SupabaseClient()

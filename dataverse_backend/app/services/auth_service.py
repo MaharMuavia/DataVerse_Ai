@@ -1,12 +1,10 @@
 """Authentication: strictly integrated with Supabase Auth.
 
-Delegates signup, login, guest creation, and token verification to the Supabase Auth REST API.
+Delegates signup, login, refresh, and token validation to the Supabase Auth REST API.
 """
 from __future__ import annotations
 
-import secrets
 import time
-import uuid
 from typing import Any
 
 import httpx
@@ -19,6 +17,50 @@ from ..core.logger import logger
 # In-memory cache for verified tokens to avoid calling Supabase Auth API on every request
 # Maps token -> (user_id, expires_at)
 _TOKEN_CACHE: dict[str, tuple[str, float]] = {}
+
+
+def validate_signup_password(password: str, email: str) -> None:
+    """Apply server-side password rules that cannot be bypassed by the UI."""
+    if len(password) < 12:
+        raise ValueError("Password must be at least 12 characters")
+    if not all((
+        any(char.islower() for char in password),
+        any(char.isupper() for char in password),
+        any(char.isdigit() for char in password),
+        any(not char.isalnum() for char in password),
+    )):
+        raise ValueError("Password must include uppercase, lowercase, a number, and a special character")
+    email_name = email.partition("@")[0].lower()
+    if len(email_name) >= 3 and email_name in password.lower():
+        raise ValueError("Password must not contain your email name")
+
+
+def _auth_response(data: dict[str, Any]) -> dict[str, Any]:
+    """Return the stable auth payload consumed by the frontend."""
+    user_info = data["user"]
+    token = data["access_token"]
+    _TOKEN_CACHE[token] = (user_info["id"], time.time() + 300)
+    return {
+        "token": token,
+        "refresh_token": data.get("refresh_token"),
+        "expires_in": data.get("expires_in"),
+        "user": public_user(user_info),
+    }
+
+
+def _can_verify_locally(token: str) -> bool:
+    """Only legacy HS256 tokens can be checked with SUPABASE_JWT_SECRET.
+
+    Supabase projects can issue asymmetric JWTs (for example ES256). Those
+    tokens must be verified by Supabase rather than rejected as invalid merely
+    because a legacy JWT secret is also configured.
+    """
+    if not settings.SUPABASE_JWT_SECRET:
+        return False
+    try:
+        return jwt.get_unverified_header(token).get("alg") == "HS256"
+    except jwt.PyJWTError:
+        return False
 
 
 def public_user(user_info: dict[str, Any]) -> dict[str, Any]:
@@ -39,51 +81,57 @@ class AuthService:
         pass
 
     async def signup(self, email: str, password: str, name: str | None = None) -> dict[str, Any]:
-        """Sign up a new user using Supabase Auth Admin API (for auto-confirming email) or standard signup."""
+        """Create a Supabase password user and require confirmation by email link."""
         email = email.strip().lower()
-        if len(password) < 8:
-            raise ValueError("Password must be at least 8 characters")
+        validate_signup_password(password, email)
 
-        # We first check if the user exists using the Admin API or direct login to prevent duplicates if possible.
-        # Alternatively, we can use the Admin API to create the user with email_confirm = True
-        # which provides a frictionless signup experience.
         headers = {
-            "apikey": settings.SUPABASE_SERVICE_ROLE_KEY or settings.SUPABASE_ANON_KEY or "",
-            "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY or ''}",
-            "Content-Type": "application/json"
+            "apikey": settings.SUPABASE_ANON_KEY or "",
+            "Content-Type": "application/json",
         }
-        
-        # Use Admin Create User to bypass email confirmation
-        admin_payload = {
+        payload = {
             "email": email,
             "password": password,
-            "email_confirm": True,
-            "user_metadata": {
+            "data": {
                 "name": (name or email.split("@")[0]).strip(),
-                "guest": False
-            }
+                "guest": False,
+            },
         }
-        
+
         async with httpx.AsyncClient(timeout=10.0) as client:
+            redirect_url = f"{settings.FRONTEND_BASE_URL.rstrip('/')}/login?confirmed=true"
             resp = await client.post(
-                f"{settings.SUPABASE_URL}/auth/v1/admin/users",
-                json=admin_payload,
-                headers=headers
+                f"{settings.SUPABASE_URL}/auth/v1/signup",
+                json=payload,
+                headers=headers,
+                params={"redirect_to": redirect_url},
             )
-            
-            if resp.status_code == 400 or resp.status_code == 422:
-                # User might already exist
+            if resp.status_code not in (200, 201):
                 error_data = resp.json()
                 msg = error_data.get("msg", "") or error_data.get("message", "")
-                if "already" in msg.lower() or "registered" in msg.lower() or "exists" in msg.lower():
-                    raise FileExistsError("An account with this email already exists")
                 raise ValueError(msg or "Registration failed")
-            
-            resp.raise_for_status()
-            user_info = resp.json()
 
-        # Login immediately after successful registration to get a session token
-        return await self.login(email, password)
+            data = resp.json()
+            if data.get("access_token"):
+                raise RuntimeError(
+                    "Supabase email confirmation is disabled. Enable Confirm Email before allowing signups."
+                )
+            return {"requires_verification": True, "email": email}
+
+    async def resend_signup_confirmation(self, email: str) -> None:
+        """Ask Supabase to resend an existing signup confirmation link."""
+        headers = {
+            "apikey": settings.SUPABASE_ANON_KEY or "",
+            "Content-Type": "application/json",
+        }
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{settings.SUPABASE_URL}/auth/v1/resend",
+                json={"type": "signup", "email": email.strip().lower()},
+                headers=headers,
+            )
+            if resp.status_code != 200:
+                raise ValueError("Could not resend the confirmation link yet. Please wait and try again")
 
     async def login(self, email: str, password: str) -> dict[str, Any]:
         """Authenticate user credentials against Supabase GoTrue Auth API."""
@@ -105,55 +153,31 @@ class AuthService:
             if resp.status_code != 200:
                 raise PermissionError("Invalid email or password")
             
-            data = resp.json()
-            user_info = data["user"]
-            token = data["access_token"]
-            
-            # Pre-cache this token to avoid token verification lookup
-            _TOKEN_CACHE[token] = (user_info["id"], time.time() + 300)
-            
-            return {
-                "token": token,
-                "user": public_user(user_info)
-            }
+            return _auth_response(resp.json())
 
-    async def guest(self) -> dict[str, Any]:
-        """Create a frictionless auto-confirmed guest user profile in Supabase Auth."""
-        guest_id = str(uuid.uuid4())
-        email = f"guest_{guest_id}@dataverse-guest.local"
-        password = secrets.token_urlsafe(16)
-        
+    async def refresh(self, refresh_token: str) -> dict[str, Any]:
+        """Exchange a Supabase refresh token for a fresh authenticated session."""
+        if not refresh_token.strip():
+            raise PermissionError("Missing refresh token")
         headers = {
-            "apikey": settings.SUPABASE_SERVICE_ROLE_KEY or "",
-            "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY or ''}",
-            "Content-Type": "application/json"
+            "apikey": settings.SUPABASE_ANON_KEY or settings.SUPABASE_SERVICE_ROLE_KEY or "",
+            "Content-Type": "application/json",
         }
-        admin_payload = {
-            "email": email,
-            "password": password,
-            "email_confirm": True,
-            "user_metadata": {
-                "name": "Guest Analyst",
-                "guest": True
-            }
-        }
-
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(
-                f"{settings.SUPABASE_URL}/auth/v1/admin/users",
-                json=admin_payload,
-                headers=headers
+                f"{settings.SUPABASE_URL}/auth/v1/token?grant_type=refresh_token",
+                json={"refresh_token": refresh_token},
+                headers=headers,
             )
-            resp.raise_for_status()
-            user_info = resp.json()
-
-        # Login to get the token
-        return await self.login(email, password)
+            if resp.status_code != 200:
+                raise PermissionError("Session expired. Please sign in again")
+            return _auth_response(resp.json())
 
     async def me(self, token: str) -> dict[str, Any]:
         """Validate token and fetch user details from Supabase Auth API."""
-        # Try local decode first if JWT secret is set
-        if settings.SUPABASE_JWT_SECRET:
+        # Locally verify legacy HS256 tokens only. Newer Supabase signing keys
+        # use asymmetric algorithms and are verified by /auth/v1/user below.
+        if _can_verify_locally(token):
             try:
                 payload = jwt.decode(token, settings.SUPABASE_JWT_SECRET, algorithms=["HS256"], options={"verify_aud": False})
                 if payload and payload.get("sub"):
@@ -164,7 +188,9 @@ class AuthService:
                         "guest": bool(payload.get("user_metadata", {}).get("guest")),
                     }
             except jwt.PyJWTError:
-                raise PermissionError("Invalid or expired token")
+                # The remote endpoint remains the source of truth during key
+                # rotation and avoids false rejections from stale local config.
+                pass
 
         # Fallback to Supabase /user endpoint
         headers = {
@@ -213,7 +239,7 @@ async def resolve_identity(request: Request) -> str | None:
             return user_id
 
     # Fallback to local decoding (if JWT secret exists) or remote verification
-    if settings.SUPABASE_JWT_SECRET:
+    if _can_verify_locally(token):
         try:
             payload = jwt.decode(token, settings.SUPABASE_JWT_SECRET, algorithms=["HS256"], options={"verify_aud": False})
             if payload and payload.get("sub"):

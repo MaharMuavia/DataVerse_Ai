@@ -4,7 +4,7 @@ import { Target, Layers, ShieldCheck, Cpu, ArrowRight, Workflow } from 'lucide-r
 import { MarketingShell } from '@/components/site/MarketingShell';
 
 export const metadata: Metadata = {
-  title: 'About — DataVerse AI',
+  title: 'About | DataVerse AI',
   description: 'How the two-agent dataset analyst works and the principles behind it.',
 };
 
@@ -12,7 +12,7 @@ const PRINCIPLES = [
   {
     icon: ShieldCheck,
     title: 'Deterministic-first',
-    body: 'Any number a user sees is computed with Pandas or scikit-learn. The LLM is optional and only polishes narration — it can never fabricate a metric.',
+    body: 'Any number a user sees is computed with Pandas or scikit-learn. The LLM is optional and only polishes narration. It can never fabricate a metric.',
   },
   {
     icon: Layers,
@@ -34,7 +34,7 @@ const PRINCIPLES = [
 const PIPELINE = [
   ['Upload & validate', 'Secure file handling, CSV/XLSX parsing, header normalisation.'],
   ['Profile & quality', 'Type inference, semantic mapping, missing/duplicate/outlier scan.'],
-  ['Metrics & EDA', 'Business metrics, trends, correlations — all deterministic.'],
+  ['Metrics & EDA', 'Business metrics, trends, and correlations. All deterministic.'],
   ['Predict & explain', 'Optional model + SHAP, gated on enough rows; skipped with a reason otherwise.'],
   ['Compose & render', 'De-duplicated sections assembled into a compact HTML/PDF report.'],
 ];
@@ -57,7 +57,7 @@ export default function AboutPage() {
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-[#475569]">
           DataVerse AI was built around a simple idea: an AI data analyst is only useful
           if its numbers are correct. So every figure is computed deterministically, and
-          the language model is kept on a short leash — it explains results, it never
+          the language model is kept on a short leash. It explains results, it never
           generates them.
         </p>
       </section>

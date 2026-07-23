@@ -30,7 +30,7 @@ export function QualityDoctorPanel({
           <Stethoscope size={13} className="text-violet-500" /> Data Quality Doctor
         </h3>
         <GlassCard className="flex items-center gap-2 border-[#E2E8F0] bg-white p-4 text-sm text-emerald-600">
-          <CheckCircle2 size={16} /> No quality issues detected — your data is clean.
+          <CheckCircle2 size={16} /> No quality issues detected. Your data is clean.
         </GlassCard>
       </div>
     );
@@ -48,7 +48,7 @@ export function QualityDoctorPanel({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[#64748B]">
-          <Stethoscope size={13} className="text-violet-500" /> Data Quality Doctor — {issues.length} issue
+          <Stethoscope size={13} className="text-violet-500" /> Data Quality Doctor: {issues.length} issue
           {issues.length > 1 ? 's' : ''}
         </h3>
         <button

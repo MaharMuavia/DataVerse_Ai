@@ -159,9 +159,9 @@ export function DropZone({ isUploading, uploadStatus, backendStatus, onUpload }:
 }
 
 function formatRecentSize(status: string | null): string {
-  if (!status) return '—';
+  if (!status) return 'N/A';
   const match = status.match(/(\d+(?:\.\d+)?)\s*(B|KB|MB|GB)/i);
-  if (!match) return '—';
+  if (!match) return 'N/A';
   return `${match[1]} ${match[2].toUpperCase()}`;
 }
 

@@ -5,6 +5,7 @@
     "frontend"
   ],
   "scripts": {
+    "setup:https": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-local-https.ps1",
     "dev": "npm --prefix frontend run dev",
     "lint": "npm --prefix frontend run lint",
     "build": "npm --prefix frontend run build",

@@ -64,7 +64,7 @@ export function SiteHeader() {
                   router.push('/');
                 }}
                 className="flex items-center gap-1.5 rounded-xl border border-[#E2E8F0] px-3 py-2 text-sm font-medium text-[#475569] transition-colors hover:bg-[#F1F5F9]"
-                title={session.guest ? 'Guest session' : session.email ?? ''}
+                title={session.email ?? ''}
               >
                 <LogOut size={15} /> Sign out
               </button>

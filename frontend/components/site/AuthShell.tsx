@@ -32,7 +32,7 @@ export function AuthShell({
           <ul className="mt-8 space-y-4 text-white/90">
             <li className="flex items-start gap-3">
               <CheckCircle2 size={20} className="mt-0.5 shrink-0" />
-              <span>Deterministic metrics, EDA, and predictions — the LLM never invents numbers.</span>
+              <span>Deterministic metrics, EDA, and predictions. The LLM never invents numbers.</span>
             </li>
             <li className="flex items-start gap-3">
               <CheckCircle2 size={20} className="mt-0.5 shrink-0" />
@@ -46,7 +46,7 @@ export function AuthShell({
         </div>
 
         <p className="relative flex items-center gap-2 text-sm text-white/70">
-          <ShieldCheck size={16} /> Demo auth — no real account is created.
+          <ShieldCheck size={16} /> Secure accounts powered by Supabase Auth.
         </p>
       </div>
 

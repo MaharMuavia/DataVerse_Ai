@@ -40,7 +40,7 @@ export function WhatIfPanel({
       </h3>
       <GlassCard className="space-y-3 border-[#E2E8F0] bg-white p-4">
         <p className="text-[12px] text-[#475569]">
-          Adjust a numeric lever and recompute the KPIs deterministically — every hypothetical number stays verifiable
+          Adjust a numeric lever and recompute the KPIs deterministically. Every hypothetical number stays verifiable
           with its own receipt.
         </p>
         <div className="flex flex-wrap items-center gap-2">
@@ -93,7 +93,7 @@ export function WhatIfPanel({
                       <td className={`py-1 font-semibold ${up ? 'text-emerald-600' : down ? 'text-red-600' : 'text-[#94A3B8]'}`}>
                         <span className="inline-flex items-center gap-0.5">
                           {up ? <ArrowUpRight size={12} /> : down ? <ArrowDownRight size={12} /> : <Minus size={12} />}
-                          {typeof d.pct === 'number' ? `${d.pct > 0 ? '+' : ''}${d.pct}%` : '—'}
+                          {typeof d.pct === 'number' ? `${d.pct > 0 ? '+' : ''}${d.pct}%` : 'N/A'}
                         </span>
                       </td>
                     </tr>
@@ -102,7 +102,7 @@ export function WhatIfPanel({
               </tbody>
             </table>
             <p className="mt-2 text-[10px] text-emerald-600">
-              Hypothetical KPIs recomputed deterministically on the modified data — each carries its own receipt.
+              Hypothetical KPIs are recomputed deterministically on the modified data. Each carries its own receipt.
             </p>
           </div>
         )}

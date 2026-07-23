@@ -62,6 +62,7 @@ def mock_supabase_and_auth(monkeypatch):
     mock_db: dict[str, list[dict[str, Any]]] = {}
     mock_users: list[dict[str, Any]] = []
     mock_storage: dict[str, bytes] = {}
+    app.state.mock_auth_users = mock_users
 
     from app.services.supabase_client import supabase_client
 
@@ -165,12 +166,35 @@ def mock_supabase_and_auth(monkeypatch):
                     "email": email,
                     "user_metadata": metadata
                 })
+            elif "/signup" in url_str:
+                body = kwargs.get("json") or {}
+                email = body.get("email")
+                password = body.get("password")
+                metadata = body.get("data") or {}
+                if any(u["email"] == email for u in mock_users):
+                    return MockResponse(400, {"msg": "A user with this email already exists"})
+                user_id = str(uuid.uuid4())
+                mock_users.append({
+                    "id": user_id,
+                    "email": email,
+                    "password": password,
+                    "metadata": metadata,
+                    "confirmed": False,
+                })
+                return MockResponse(200, {
+                    "id": user_id,
+                    "email": email,
+                    "user_metadata": metadata,
+                    "identities": [{"id": user_id}],
+                })
+            elif "/resend" in url_str:
+                return MockResponse(200, {})
             elif "/token" in url_str:
                 body = kwargs.get("json") or {}
                 email = body.get("email")
                 password = body.get("password")
                 for u in mock_users:
-                    if u["email"] == email and u["password"] == password:
+                    if u["email"] == email and u["password"] == password and u.get("confirmed"):
                         return MockResponse(200, {
                             "access_token": f"mock-token-{u['id']}",
                             "token_type": "bearer",

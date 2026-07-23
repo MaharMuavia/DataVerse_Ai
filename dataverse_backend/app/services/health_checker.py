@@ -73,8 +73,8 @@ class SystemHealthChecker:
         if supabase_configured:
             # Let's perform a live request to test the connection
             try:
-                # Synchronous request with short timeout so it doesn't block report generation
-                with httpx.Client(timeout=0.8) as client:
+                # Keep the probe bounded, while allowing normal cloud response latency.
+                with httpx.Client(timeout=settings.SUPABASE_HEALTH_TIMEOUT_SECONDS) as client:
                     resp = client.get(
                         f"{str(supabase_url).rstrip('/')}/rest/v1/",
                         headers={"apikey": supabase_key or ""},

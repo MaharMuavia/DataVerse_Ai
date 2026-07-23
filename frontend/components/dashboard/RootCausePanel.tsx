@@ -8,7 +8,7 @@ import type { RootCauseResult } from '@/lib/dataverse-api';
 
 /**
  * Root-Cause Investigator: renders the deterministic multi-step investigation
- * behind a "why did X change?" answer — the trace, the ranked drivers, and the
+ * behind a "why did X change?" answer, including the trace, ranked drivers, and
  * price-vs-volume split. Every step exposes its provenance receipt on demand.
  */
 export function RootCausePanel({ result }: { result: RootCauseResult }) {
@@ -105,7 +105,7 @@ export function RootCausePanel({ result }: { result: RootCauseResult }) {
                   </div>
                   <span className="w-20 text-right font-mono text-[#334155]">{formatNumber(driver.contribution)}</span>
                   <span className="w-14 text-right font-mono text-[#64748B]">
-                    {share === null ? '—' : `${(share * 100).toFixed(0)}%`}
+                    {share === null ? 'N/A' : `${(share * 100).toFixed(0)}%`}
                   </span>
                 </div>
               );

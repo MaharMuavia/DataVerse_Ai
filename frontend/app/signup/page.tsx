@@ -2,17 +2,17 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ArrowRight, UserRound } from 'lucide-react';
+import { ArrowRight, MailCheck } from 'lucide-react';
 import { AuthShell } from '@/components/site/AuthShell';
 import { useAuth, isValidEmail } from '@/lib/auth';
 
 export default function SignupPage() {
-  const router = useRouter();
-  const { signUp, continueAsGuest } = useAuth();
+  const { signUp, resendSignupConfirmation } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [busy, setBusy] = useState(false);
@@ -27,14 +27,20 @@ export default function SignupPage() {
       setError('Enter a valid email address.');
       return;
     }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+    if (password.length < 12) {
+      setError('Password must be at least 12 characters.');
+      return;
+    }
+    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+      setError('Use uppercase, lowercase, a number, and a special character.');
       return;
     }
     setBusy(true);
     try {
-      await signUp({ name, email, password });
-      router.push('/dashboard');
+      const result = await signUp({ name, email, password });
+      setVerificationEmail(result.email);
+      setPassword('');
+      setNotice(`We sent a confirmation link to ${result.email}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create your account.');
     } finally {
@@ -42,13 +48,15 @@ export default function SignupPage() {
     }
   };
 
-  const handleGuest = async () => {
+  const handleResend = async () => {
+    if (!verificationEmail) return;
     setBusy(true);
+    setError(null);
     try {
-      await continueAsGuest();
-      router.push('/dashboard');
+      await resendSignupConfirmation(verificationEmail);
+      setNotice('A new confirmation link was sent.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start a guest session.');
+      setError(err instanceof Error ? err.message : 'Could not resend the confirmation link.');
     } finally {
       setBusy(false);
     }
@@ -56,6 +64,30 @@ export default function SignupPage() {
 
   return (
     <AuthShell title="Create your workspace" subtitle="Sign up to start analysing datasets.">
+      {verificationEmail ? (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
+            <MailCheck className="mb-2" size={22} />
+            Open the email sent to <span className="font-semibold">{verificationEmail}</span> and click the confirmation link. You can then log in securely.
+          </div>
+          {notice && <p className="text-sm text-emerald-700">{notice}</p>}
+          {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={busy}
+            className="w-full text-sm font-semibold text-violet-600 hover:text-violet-700 disabled:opacity-60"
+          >
+            Resend confirmation link
+          </button>
+          <Link
+            href="/login"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:brightness-110"
+          >
+            Go to login <ArrowRight size={16} />
+          </Link>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-1.5 block text-sm font-medium text-[#334155]">Full name</label>
@@ -85,13 +117,13 @@ export default function SignupPage() {
             type="password"
             value={password}
             onChange={(e) => { setPassword(e.target.value); setError(null); }}
-            placeholder="At least 6 characters"
+            placeholder="At least 12 characters"
             className="w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20"
             autoComplete="new-password"
           />
         </div>
 
-        {error && <p className="text-sm text-rose-600">{error}</p>}
+        {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
 
         <button
           type="submit"
@@ -101,18 +133,7 @@ export default function SignupPage() {
           Create account <ArrowRight size={16} />
         </button>
       </form>
-
-      <div className="my-5 flex items-center gap-3 text-xs text-[#94A3B8]">
-        <span className="h-px flex-1 bg-[#E2E8F0]" /> or <span className="h-px flex-1 bg-[#E2E8F0]" />
-      </div>
-
-      <button
-        onClick={handleGuest}
-        disabled={busy}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-semibold text-[#334155] transition-colors hover:bg-[#F1F5F9] disabled:opacity-60"
-      >
-        <UserRound size={16} /> Continue as guest
-      </button>
+      )}
 
       <p className="mt-6 text-center text-sm text-[#64748B]">
         Already have an account?{' '}

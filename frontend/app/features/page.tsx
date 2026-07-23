@@ -7,7 +7,7 @@ import {
 import { MarketingShell } from '@/components/site/MarketingShell';
 
 export const metadata: Metadata = {
-  title: 'Features — DataVerse AI',
+  title: 'Features | DataVerse AI',
   description: 'Deterministic metrics, EDA, predictions, explainable AI, and compact reports.',
 };
 
@@ -25,7 +25,7 @@ const CAPABILITIES = [
   {
     icon: TrendingUp,
     title: 'Business metrics & EDA',
-    body: 'Revenue, margins, top categories/products, trends, and seasonality — all computed deterministically in Pandas.',
+    body: 'Revenue, margins, top categories/products, trends, and seasonality. All are computed deterministically in Pandas.',
   },
   {
     icon: LineChart,
@@ -35,7 +35,7 @@ const CAPABILITIES = [
   {
     icon: Gauge,
     title: 'Prediction & model evaluation',
-    body: 'An optional Ridge / RandomForest model with a real held-out evaluation — R², RMSE, MAE, or accuracy and F1.',
+    body: 'An optional Ridge / RandomForest model with a real held-out evaluation using R², RMSE, MAE, or accuracy and F1.',
   },
   {
     icon: BrainCircuit,
@@ -50,7 +50,7 @@ const CAPABILITIES = [
   {
     icon: FileText,
     title: 'Compact, de-duplicated report',
-    body: 'A 1–2 page HTML/PDF with KPIs, charts, recommendations, and XAI — every fact appears exactly once.',
+    body: 'A 1–2 page HTML/PDF with KPIs, charts, recommendations, and XAI. Every fact appears exactly once.',
   },
 ];
 
@@ -65,7 +65,7 @@ export default function FeaturesPage() {
           Everything you need to understand a dataset
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-lg text-[#475569]">
-          From the first upload to a downloadable executive report — here is what runs
+          From the first upload to a downloadable executive report, here is what runs
           under the hood, all grounded in deterministic computation.
         </p>
       </section>
@@ -89,18 +89,18 @@ export default function FeaturesPage() {
         <div className="mx-auto max-w-5xl px-5 py-16 sm:px-6">
           <div className="mb-10 text-center">
             <h2 className="text-3xl font-bold tracking-tight">What&apos;s inside the report</h2>
-            <p className="mt-3 text-[#64748B]">Concise by design — and free of repeated content.</p>
+            <p className="mt-3 text-[#64748B]">Concise by design and free of repeated content.</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {[
               ['Dataset snapshot', 'Filename, shape, detected type, and the important columns.'],
-              ['Key metrics', 'The headline KPIs — surfaced once, never repeated downstream.'],
+              ['Key metrics', 'The headline KPIs are surfaced once and never repeated downstream.'],
               ['Data quality', 'Quality score, missing values, duplicates, and the top warning.'],
               ['Important insights', 'The highest-signal findings, ranked and de-duplicated.'],
               ['Charts', 'Up to two auto-selected visualisations with takeaways.'],
               ['Model performance evaluation', 'R²/RMSE/MAE or accuracy/F1 with a plain-English read and leakage note.'],
               ['Recommendations', 'At most three concrete, prioritised next steps.'],
-              ['Explainable AI', 'SHAP feature importance — always the final section.'],
+              ['Explainable AI', 'SHAP feature importance always appears in the final section.'],
             ].map(([title, body]) => (
               <div key={title} className="flex items-start gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
                 <Table size={16} className="mt-0.5 shrink-0 text-violet-500" />
@@ -115,7 +115,7 @@ export default function FeaturesPage() {
           <div className="mt-10 flex items-center justify-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/50 px-6 py-5">
             <ShieldCheck size={20} className="shrink-0 text-emerald-500" />
             <p className="text-sm text-[#475569]">
-              Works fully offline in <span className="font-semibold">Mock mode</span> with no API keys —
+              Works fully offline in <span className="font-semibold">Mock mode</span> with no API keys.
               the LLM is optional and only refines wording.
             </p>
           </div>

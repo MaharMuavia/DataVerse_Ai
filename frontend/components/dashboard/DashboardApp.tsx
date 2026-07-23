@@ -493,7 +493,7 @@ const AnalyzeWorkspaceView = ({
     <div className="flex-1 w-full mx-auto px-4 md:px-8 pb-32 pt-24 overflow-y-auto overflow-x-hidden custom-scrollbar bg-[#F8FAFC]">
       <div className="max-w-[1000px] mx-auto space-y-8">
 
-        {/* Header Block — hidden on the empty/home hero for a clean Claude-style start */}
+        {/* Header block hidden on the empty/home hero for a clean Claude-style start */}
         {dataset && (
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -516,7 +516,7 @@ const AnalyzeWorkspaceView = ({
         </div>
         )}
 
-        {/* Empty/home state — Claude-style hero: greeting + upload composer + example chips */}
+        {/* Empty/home state with greeting, upload composer, and example chips */}
         {!dataset && (
           <HeroUpload
             onUpload={onUpload}
@@ -638,7 +638,7 @@ const AnalyzeWorkspaceView = ({
 
             </div>
 
-            {/* Conversation history (prior turns) — the latest turn renders richly below */}
+            {/* Conversation history for prior turns; the latest turn renders richly below */}
             {messages.filter((m) => m.id !== latestAssistant?.id).length > 0 && (
               <ConversationThread messages={messages.filter((m) => m.id !== latestAssistant?.id)} />
             )}
@@ -753,7 +753,7 @@ const AnalyzeWorkspaceView = ({
                       <button
                         onClick={() => {
                           const html = buildVerifiedReportHtml({
-                            title: dataset?.dataset_filename ? `Verified report — ${dataset.dataset_filename}` : undefined,
+                            title: dataset?.dataset_filename ? `Verified report: ${dataset.dataset_filename}` : undefined,
                             answer: latestAssistant.content,
                             kpis: latestAssistant.kpis,
                             audit: latestAssistant.auditTrail,
@@ -993,7 +993,7 @@ const ReportXAIPageView = ({
                     ))}
                   </ul>
                   <p className="text-[10px] text-[#64748B]">
-                    Found by a deterministic single-feature search — the same model and data always produce the same counterfactuals.
+                    Found by a deterministic single-feature search. The same model and data always produce the same counterfactuals.
                   </p>
                 </div>
               );
@@ -1025,7 +1025,7 @@ export function DashboardApp() {
   const [backendStatus, setBackendStatus] = useState<BackendConnectionStatus>('checking');
   const activeRequestRef = useRef(0);
 
-  const userInitials = (session?.name || 'Guest')
+  const userInitials = (session?.name || 'User')
     .split(' ')
     .map((part) => part[0])
     .filter(Boolean)
@@ -1546,7 +1546,7 @@ export function DashboardApp() {
     if (message.kpis?.length) {
       lines.push('', '## KPIs');
       for (const kpi of message.kpis) {
-        lines.push(`- **${kpi.label}**: ${kpi.value ?? '—'}`);
+        lines.push(`- **${kpi.label}**: ${kpi.value ?? 'N/A'}`);
       }
     }
     void navigator.clipboard.writeText(lines.join('\n'));
@@ -1579,10 +1579,10 @@ export function DashboardApp() {
               {userInitials || 'GA'}
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-[#0F172A] tracking-wide truncate">{session?.name || 'Guest Analyst'}</h2>
+              <h2 className="text-sm font-semibold text-[#0F172A] tracking-wide truncate">{session?.name || 'User'}</h2>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[10px] font-medium text-[#64748B] bg-[#E2E8F0] px-2 py-0.5 rounded-full truncate max-w-[160px]">
-                  {session?.guest ? 'Guest Mode' : session?.email || (currentSessionId ? `Session ${currentSessionId.slice(0, 8)}` : 'Signed in')}
+                  {session?.email || (currentSessionId ? `Session ${currentSessionId.slice(0, 8)}` : 'Signed in')}
                 </span>
               </div>
             </div>

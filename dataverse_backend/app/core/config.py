@@ -4,13 +4,20 @@ Uses environment variables for all configurable parameters to ensure 12-factor p
 """
 from __future__ import annotations
 
+from pathlib import Path
 from typing import List, Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+
+
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=BACKEND_DIR / ".env",
+        env_file_encoding="utf-8",
+    )
 
     # App
     APP_NAME: str = "DataVerse AI"
@@ -62,7 +69,9 @@ class Settings(BaseSettings):
     SUPABASE_JWT_SECRET: Optional[str] = None
     SUPABASE_DATASET_BUCKET: str = "dataverse-datasets"
     SUPABASE_REPORT_BUCKET: str = "dataverse-reports"
+    SUPABASE_HEALTH_TIMEOUT_SECONDS: float = 5.0
     BACKEND_BASE_URL: str = "http://localhost:8000"
+    FRONTEND_BASE_URL: str = "https://127.0.0.1:3000"
 
     # DeepSeek for intent parsing (OpenAI-compatible API)
     DEEPSEEK_API_KEY: Optional[str] = None

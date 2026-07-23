@@ -17,7 +17,7 @@ const STEPS = [
   {
     icon: UploadCloud,
     title: 'Upload & ask',
-    body: 'Drop in a CSV or Excel file and ask questions in plain English — total sales, hot products, sales by region, trends, predictions.',
+    body: 'Drop in a CSV or Excel file and ask questions in plain English, including total sales, hot products, sales by region, trends, and predictions.',
   },
   {
     icon: BarChart3,
@@ -41,7 +41,7 @@ const TRUST_STACK = [
   {
     icon: ScrollText,
     title: 'Full audit trail',
-    body: 'Receipts for every statistic, correlation, trend, and model metric — downloadable as one JSON log.',
+    body: 'Receipts for every statistic, correlation, trend, and model metric, downloadable as one JSON log.',
     unique: false,
   },
   {
@@ -53,13 +53,13 @@ const TRUST_STACK = [
   {
     icon: SlidersHorizontal,
     title: 'Verified what-if',
-    body: 'Nudge a lever like “+10% price” and watch KPIs recompute deterministically — each hypothetical keeps its own receipt.',
+    body: 'Nudge a lever like “+10% price” and watch KPIs recompute deterministically. Each hypothetical keeps its own receipt.',
     unique: true,
   },
   {
     icon: Stethoscope,
     title: 'Data Quality Doctor',
-    body: 'Detects duplicates, missing values, and type issues — then applies one-click deterministic fixes with a before/after diff.',
+    body: 'Detects duplicates, missing values, and type issues, then applies one-click deterministic fixes with a before/after diff.',
     unique: false,
   },
   {
@@ -90,7 +90,7 @@ export default function HomePage() {
             , not just states them.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-[#475569]">
-            Chat with any CSV or Excel file — total sales, top products, sales by region,
+            Chat with any CSV or Excel file about total sales, top products, sales by region,
             predictions with explainable AI. Every answer is computed deterministically,
             carries a click-to-verify receipt, and is sealed with a cryptographic
             reproducibility certificate. LLM analysts can hallucinate; DataVerse can’t.
@@ -110,7 +110,7 @@ export default function HomePage() {
               See how it works
             </Link>
           </div>
-          <p className="mt-4 text-xs text-[#94A3B8]">No credit card. Continue as guest from the login page.</p>
+          <p className="mt-4 text-xs text-[#94A3B8]">No credit card. Secure email verification included.</p>
 
           {/* Stats */}
           <div className="mx-auto mt-16 grid max-w-3xl grid-cols-2 gap-4 sm:grid-cols-4">
@@ -180,7 +180,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-5 py-20 sm:px-6">
           <div className="mb-12 text-center">
             <h2 className="text-3xl font-bold tracking-tight">Powered by exactly two agents</h2>
-            <p className="mt-3 text-[#64748B]">No sprawling agent swarm — just clear ownership and deterministic computation.</p>
+            <p className="mt-3 text-[#64748B]">No sprawling agent swarm, just clear ownership and deterministic computation.</p>
           </div>
           <div className="grid gap-6 md:grid-cols-2">
             <div className="rounded-2xl border border-violet-100 bg-violet-50/40 p-7">
@@ -221,7 +221,7 @@ export default function HomePage() {
             <ShieldCheck size={20} className="shrink-0 text-emerald-500" />
             <p className="text-sm text-[#475569]">
               <span className="font-semibold text-[#0F172A]">Deterministic-first guarantee:</span> every metric you see is
-              computed in Pandas / scikit-learn. The LLM only polishes narration — it can never invent a number.
+              computed in Pandas / scikit-learn. The LLM only polishes narration. It can never invent a number.
             </p>
           </div>
         </div>
@@ -246,7 +246,7 @@ export default function HomePage() {
               href="/login"
               className="rounded-2xl border border-white/40 px-7 py-3.5 text-base font-semibold text-white transition-all hover:bg-white/10"
             >
-              Continue as guest
+              Log in
             </Link>
           </div>
         </div>

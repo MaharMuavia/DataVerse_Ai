@@ -5,7 +5,7 @@ import { ShieldCheck, BadgeCheck, Loader2, AlertTriangle, Fingerprint } from 'lu
 import { GlassCard } from './GlassCard';
 import type { VerificationCertificate, VerifyResult } from '@/lib/dataverse-api';
 
-const short = (hash?: string) => (hash ? `${hash.slice(0, 10)}…${hash.slice(-6)}` : '—');
+const short = (hash?: string) => (hash ? `${hash.slice(0, 10)}…${hash.slice(-6)}` : 'N/A');
 
 export function CertificateCard({
   certificate,
@@ -39,7 +39,7 @@ export function CertificateCard({
         <p className="text-[12px] text-[#475569]">
           {certificate.verified_numbers} numbers are cryptographically fingerprinted ({certificate.algorithm}).
           Re-verify to prove they reproduce <span className="font-semibold text-[#334155]">exactly</span> from your raw
-          data — and detect any tampering.
+          data and detect any tampering.
         </p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-2.5">
@@ -68,8 +68,8 @@ export function CertificateCard({
             <span className={`flex items-center gap-1 text-[12px] font-semibold ${result.verified ? 'text-emerald-600' : 'text-red-600'}`}>
               {result.verified ? <BadgeCheck size={14} /> : <AlertTriangle size={14} />}
               {result.verified
-                ? `Reproduced exactly — ${result.verified_numbers}/${result.verified_numbers} numbers match`
-                : `Mismatch — data ${result.data_match ? 'OK' : 'changed'}, results ${result.results_match ? 'OK' : 'changed'}`}
+                ? `Reproduced exactly: ${result.verified_numbers}/${result.verified_numbers} numbers match`
+                : `Mismatch: data ${result.data_match ? 'OK' : 'changed'}, results ${result.results_match ? 'OK' : 'changed'}`}
             </span>
           )}
           {error && <span className="text-[12px] text-red-600">{error}</span>}

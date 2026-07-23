@@ -37,15 +37,32 @@ def _signup(client, email="alice@example.com", password="S3curePass!x", name="Al
     return client.post("/api/auth/signup", json={"email": email, "password": password, "name": name})
 
 
+def _confirm_mock_user(client, email: str) -> None:
+    user = next(user for user in client.app.state.mock_auth_users if user["email"] == email)
+    user["confirmed"] = True
+
+
+def _signup_and_confirm(client, email="alice@example.com", password="S3curePass!x", name="Alice"):
+    signup = _signup(client, email, password, name)
+    assert signup.status_code == 200, signup.text
+    _confirm_mock_user(client, email)
+    return client.post("/api/auth/login", json={"email": email, "password": password})
+
+
 # ---------------------------------------------------------------- auth basics
 
 def test_signup_login_me_roundtrip(iso_client):
     r = _signup(iso_client)
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["token"] and body["user"]["email"] == "alice@example.com"
-    # password (even hashed) never leaks through the API
-    assert "password" not in str(body).lower() or "password_hash" not in body.get("user", {})
+    assert body == {"requires_verification": True, "email": "alice@example.com"}
+
+    pending_login = iso_client.post(
+        "/api/auth/login", json={"email": "alice@example.com", "password": "S3curePass!x"}
+    )
+    assert pending_login.status_code == 401
+
+    _confirm_mock_user(iso_client, "alice@example.com")
 
     login = iso_client.post("/api/auth/login", json={"email": "alice@example.com", "password": "S3curePass!x"})
     assert login.status_code == 200
@@ -56,31 +73,52 @@ def test_signup_login_me_roundtrip(iso_client):
     assert me.json()["email"] == "alice@example.com"
 
 
+def test_me_falls_back_to_supabase_for_non_hs256_token(iso_client, monkeypatch):
+    """A configured legacy secret must not reject newer Supabase token types."""
+    token = _signup_and_confirm(iso_client).json()["token"]
+    monkeypatch.setattr(settings, "SUPABASE_JWT_SECRET", "legacy-secret")
+
+    me = iso_client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert me.status_code == 200
+    assert me.json()["email"] == "alice@example.com"
+
+
 def test_wrong_password_and_bad_token_rejected(iso_client):
-    _signup(iso_client)
+    _signup_and_confirm(iso_client)
     bad = iso_client.post("/api/auth/login", json={"email": "alice@example.com", "password": "wrong"})
     assert bad.status_code == 401
     me = iso_client.get("/api/auth/me", headers={"Authorization": "Bearer not-a-real-token"})
     assert me.status_code == 401
 
 
-def test_guest_gets_verified_identity(iso_client):
-    r = iso_client.post("/api/auth/guest")
-    assert r.status_code == 200
-    body = r.json()
-    assert body["token"] and body["user"]["guest"] is True
+def test_guest_auth_endpoint_is_removed(iso_client):
+    assert iso_client.post("/api/auth/guest").status_code == 404
 
 
 def test_duplicate_signup_rejected(iso_client):
     assert _signup(iso_client).status_code == 200
-    assert _signup(iso_client).status_code == 409
+    assert _signup(iso_client).status_code == 400
+
+
+@pytest.mark.parametrize("password", [
+    "Short1!",
+    "alllowercase1!",
+    "ALLUPPERCASE1!",
+    "NoSpecial1234",
+    "NoNumberHere!",
+    "aliceSecure1!",
+])
+def test_signup_rejects_weak_passwords_server_side(iso_client, password):
+    response = _signup(iso_client, password=password)
+    assert response.status_code == 400
 
 
 # ---------------------------------------------------------------- isolation (IDOR)
 
 def test_users_cannot_access_each_others_sessions(iso_client):
-    token_a = _signup(iso_client, "a@x.com", "PasswordA1!", "A").json()["token"]
-    token_b = _signup(iso_client, "b@x.com", "PasswordB1!", "B").json()["token"]
+    token_a = _signup_and_confirm(iso_client, "a@x.com", "PasswordA1!x", "A").json()["token"]
+    token_b = _signup_and_confirm(iso_client, "b@x.com", "PasswordB1!x", "B").json()["token"]
     auth_a = {"Authorization": f"Bearer {token_a}"}
     auth_b = {"Authorization": f"Bearer {token_b}"}
 

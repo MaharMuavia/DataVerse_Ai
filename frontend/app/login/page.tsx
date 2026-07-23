@@ -1,20 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, UserRound } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { AuthShell } from '@/components/site/AuthShell';
 import { useAuth, isValidEmail } from '@/lib/auth';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, continueAsGuest } = useAuth();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('confirmed') === 'true') {
+      queueMicrotask(() => {
+        if (!cancelled) setNotice('Email confirmed successfully. You can now log in.');
+      });
+      // Remove confirmation tokens and query details from browser history.
+      window.history.replaceState(null, '', '/login');
+    }
+    return () => { cancelled = true; };
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -32,18 +46,6 @@ export default function LoginPage() {
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid email or password.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleGuest = async () => {
-    setBusy(true);
-    try {
-      await continueAsGuest();
-      router.push('/dashboard');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start a guest session.');
     } finally {
       setBusy(false);
     }
@@ -75,7 +77,8 @@ export default function LoginPage() {
           />
         </div>
 
-        {error && <p className="text-sm text-rose-600">{error}</p>}
+        {notice && <p className="text-sm text-emerald-700">{notice}</p>}
+        {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
 
         <button
           type="submit"
@@ -85,18 +88,6 @@ export default function LoginPage() {
           Log in <ArrowRight size={16} />
         </button>
       </form>
-
-      <div className="my-5 flex items-center gap-3 text-xs text-[#94A3B8]">
-        <span className="h-px flex-1 bg-[#E2E8F0]" /> or <span className="h-px flex-1 bg-[#E2E8F0]" />
-      </div>
-
-      <button
-        onClick={handleGuest}
-        disabled={busy}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-semibold text-[#334155] transition-colors hover:bg-[#F1F5F9] disabled:opacity-60"
-      >
-        <UserRound size={16} /> Continue as guest
-      </button>
 
       <p className="mt-6 text-center text-sm text-[#64748B]">
         New here?{' '}

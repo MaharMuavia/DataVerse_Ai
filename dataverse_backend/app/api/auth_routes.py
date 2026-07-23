@@ -1,4 +1,4 @@
-"""Authentication routes: signup, login, guest identity, current user."""
+"""Authentication routes: email-confirmed signup, login, refresh, and current user."""
 from __future__ import annotations
 
 from typing import Any
@@ -22,6 +22,14 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class ResendConfirmationRequest(BaseModel):
+    email: EmailStr
+
+
 @router.post("/auth/signup")
 async def signup(request: SignupRequest) -> dict[str, Any]:
     try:
@@ -30,6 +38,8 @@ async def signup(request: SignupRequest) -> dict[str, Any]:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 @router.post("/auth/login")
@@ -40,9 +50,21 @@ async def login(request: LoginRequest) -> dict[str, Any]:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
-@router.post("/auth/guest")
-async def guest() -> dict[str, Any]:
-    return await auth_service.guest()
+@router.post("/auth/resend-signup")
+async def resend_signup(request: ResendConfirmationRequest) -> dict[str, bool]:
+    try:
+        await auth_service.resend_signup_confirmation(request.email)
+        return {"sent": True}
+    except ValueError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+
+
+@router.post("/auth/refresh")
+async def refresh(request: RefreshRequest) -> dict[str, Any]:
+    try:
+        return await auth_service.refresh(request.refresh_token)
+    except PermissionError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
 @router.get("/auth/me")

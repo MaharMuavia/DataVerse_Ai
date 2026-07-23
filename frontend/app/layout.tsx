@@ -3,7 +3,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/auth';
 
 export const metadata: Metadata = {
-  title: 'DataVerse AI — Two-Agent Dataset Analyst',
+  title: 'DataVerse AI | Two-Agent Dataset Analyst',
   description:
     'Upload a CSV or Excel file and get a compact, deterministic business report with metrics, EDA, predictions, and explainable AI.',
   icons: {

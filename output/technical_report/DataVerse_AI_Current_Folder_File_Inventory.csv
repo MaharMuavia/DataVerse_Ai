@@ -1,0 +1,311 @@
+﻿path,category,type,bytes,lines,source_control,role
+.env,Project governance and root configuration,no extension,143,withheld,Local/generated/untracked,"Local secret-bearing environment configuration; presence only, contents withheld."
+.env.example,Project governance and root configuration,example,5068,148,Tracked,Environment-variable template without credential values.
+.env.local,Project governance and root configuration,local,1292,withheld,Local/generated/untracked,"Local secret-bearing environment configuration; presence only, contents withheld."
+.gitignore,Project governance and root configuration,no extension,695,60,Tracked,Source-control exclusion rules.
+AGENTS.md,Project governance and root configuration,md,12594,610,Tracked,"Repository operating, quality, security, testing, and delivery instructions."
+CLAUDE.md,Project governance and root configuration,md,8062,147,Tracked,Additional repository development guidance.
+docker-compose.yml,Project governance and root configuration,yml,989,34,Tracked,Local multi-container frontend/backend orchestration.
+LICENSE,Project governance and root configuration,no extension,1093,21,Tracked,Software license terms.
+package-lock.json,Project governance and root configuration,json,296536,8175,Tracked,Workspace JavaScript scripts/dependency manifest or exact lockfile.
+package.json,Project governance and root configuration,json,421,15,Tracked,Workspace JavaScript scripts/dependency manifest or exact lockfile.
+README.md,Project governance and root configuration,md,11341,275,Tracked,"Top-level project overview, setup, architecture, and usage guide."
+frontend/.codex-dev.err.log,Frontend application,log,0,,Local/generated/untracked,Project file (log): .codex dev.err.
+frontend/.codex-dev.out.log,Frontend application,log,0,,Local/generated/untracked,Project file (log): .codex dev.out.
+frontend/.env.example,Frontend application,example,102,2,Tracked,Environment-variable template without credential values.
+frontend/.eslintrc.json,Frontend application,json,24,3,Tracked,Project file (json): .eslintrc.
+frontend/.gitignore,Frontend application,no extension,80,9,Tracked,Source-control exclusion rules.
+frontend/app/about/page.tsx,Frontend application,tsx,5699,124,Tracked,Next.js App Router page for /about.
+frontend/app/dashboard/page.tsx,Frontend application,tsx,922,31,Tracked,Next.js App Router page for /dashboard.
+frontend/app/features/page.tsx,Frontend application,tsx,6593,138,Tracked,Next.js App Router page for /features.
+frontend/app/globals.css,Frontend application,css,2063,70,Tracked,"Global frontend design tokens, layout, and component styling."
+frontend/app/icon.svg,Frontend application,svg,429,6,Tracked,Project file (svg): icon.
+frontend/app/layout.tsx,Frontend application,tsx,776,23,Tracked,Global Next.js application layout and metadata.
+frontend/app/login/page.tsx,Frontend application,tsx,3818,100,Tracked,Next.js App Router page for /login.
+frontend/app/page.tsx,Frontend application,tsx,13332,256,Tracked,Next.js App Router page for /.
+frontend/app/signup/page.tsx,Frontend application,tsx,5946,146,Tracked,Next.js App Router page for /signup.
+frontend/components/dashboard/AgentTracePanel.tsx,Frontend application,tsx,2913,63,Tracked,Dashboard user-interface component: AgentTracePanel.
+frontend/components/dashboard/CertificateCard.tsx,Frontend application,tsx,3865,80,Tracked,Dashboard user-interface component: CertificateCard.
+frontend/components/dashboard/Composer.tsx,Frontend application,tsx,2189,64,Tracked,Dashboard user-interface component: Composer.
+frontend/components/dashboard/ConversationThread.tsx,Frontend application,tsx,2195,56,Tracked,Dashboard user-interface component: ConversationThread.
+frontend/components/dashboard/DashboardApp.tsx,Frontend application,tsx,80288,1746,Tracked,Dashboard user-interface component: DashboardApp.
+frontend/components/dashboard/GlassCard.tsx,Frontend application,tsx,495,10,Tracked,Dashboard user-interface component: GlassCard.
+frontend/components/dashboard/HeroUpload.tsx,Frontend application,tsx,6701,154,Tracked,Dashboard user-interface component: HeroUpload.
+frontend/components/dashboard/KpiCard.tsx,Frontend application,tsx,2234,59,Tracked,Dashboard user-interface component: KpiCard.
+frontend/components/dashboard/ProvenanceReceipt.tsx,Frontend application,tsx,1918,45,Tracked,Dashboard user-interface component: ProvenanceReceipt.
+frontend/components/dashboard/QualityDoctorPanel.tsx,Frontend application,tsx,3807,92,Tracked,Dashboard user-interface component: QualityDoctorPanel.
+frontend/components/dashboard/RootCausePanel.tsx,Frontend application,tsx,6351,136,Tracked,Dashboard user-interface component: RootCausePanel.
+frontend/components/dashboard/VerificationPanel.tsx,Frontend application,tsx,4257,102,Tracked,Dashboard user-interface component: VerificationPanel.
+frontend/components/dashboard/WhatIfPanel.tsx,Frontend application,tsx,5274,112,Tracked,Dashboard user-interface component: WhatIfPanel.
+frontend/components/DropZone.tsx,Frontend application,tsx,6194,169,Tracked,Project file (tsx): DropZone.
+frontend/components/site/AuthShell.tsx,Frontend application,tsx,3182,71,Tracked,Public/authentication site component: AuthShell.
+frontend/components/site/MarketingShell.tsx,Frontend application,tsx,484,14,Tracked,Public/authentication site component: MarketingShell.
+frontend/components/site/SiteFooter.tsx,Frontend application,tsx,2889,58,Tracked,Public/authentication site component: SiteFooter.
+frontend/components/site/SiteHeader.tsx,Frontend application,tsx,5583,147,Tracked,Public/authentication site component: SiteHeader.
+frontend/components/ThinkingTrace.tsx,Frontend application,tsx,4638,132,Tracked,Project file (tsx): ThinkingTrace.
+frontend/Dockerfile,Frontend application,no extension,744,36,Tracked,Container build definition for frontend.
+frontend/eslint.config.mjs,Frontend application,mjs,314,11,Tracked,Project file (mjs): eslint.config.
+frontend/hooks/use-mobile.ts,Frontend application,ts,629,20,Tracked,Reusable React hook: use mobile.
+frontend/lib/apiConfig.ts,Frontend application,ts,1182,32,Tracked,Frontend client utility or contract: apiConfig.
+frontend/lib/auth.tsx,Frontend application,tsx,6404,197,Tracked,Frontend client utility or contract: auth.
+frontend/lib/dashboard-format.ts,Frontend application,ts,481,10,Tracked,Frontend client utility or contract: dashboard format.
+frontend/lib/dataverse-api.contract.ts,Frontend application,ts,685,24,Tracked,Frontend client utility or contract: dataverse api.contract.
+frontend/lib/dataverse-api.ts,Frontend application,ts,24067,796,Tracked,Frontend client utility or contract: dataverse api.
+frontend/lib/utils.ts,Frontend application,ts,166,6,Tracked,Frontend client utility or contract: utils.
+frontend/lib/verified-report.ts,Frontend application,ts,6245,108,Tracked,Frontend client utility or contract: verified report.
+frontend/metadata.json,Frontend application,json,139,6,Tracked,Project file (json): metadata.
+frontend/next-env.d.ts,Frontend application,ts,262,6,Tracked,Project file (ts): next env.d.
+frontend/next.config.ts,Frontend application,ts,1188,49,Tracked,Project file (ts): next.config.
+frontend/package-lock.json,Frontend application,json,293995,8096,Tracked,Frontend JavaScript scripts/dependency manifest or exact lockfile.
+frontend/package.json,Frontend application,json,1066,42,Tracked,Frontend JavaScript scripts/dependency manifest or exact lockfile.
+frontend/postcss.config.mjs,Frontend application,mjs,168,9,Tracked,Project file (mjs): postcss.config.
+frontend/scripts/api-client.test.mjs,Frontend application,mjs,3375,81,Tracked,Frontend development or contract-test script: api client.test.
+frontend/scripts/dev.mjs,Frontend application,mjs,9767,306,Tracked,Frontend development or contract-test script: dev.
+frontend/scripts/dev.test.mjs,Frontend application,mjs,3514,99,Tracked,Frontend development or contract-test script: dev.test.
+frontend/tsconfig.json,Frontend application,json,618,28,Tracked,Project file (json): tsconfig.
+frontend/tsconfig.tsbuildinfo,Frontend application,tsbuildinfo,96250,,Local/generated/untracked,Project file (tsbuildinfo): tsconfig.
+dataverse_backend/.dockerignore,Backend API and application,no extension,182,,Tracked,Project file (no extension): .dockerignore.
+dataverse_backend/.env,Backend API and application,no extension,1704,withheld,Local/generated/untracked,"Local secret-bearing environment configuration; presence only, contents withheld."
+dataverse_backend/.env.example,Backend API and application,example,1408,54,Tracked,Environment-variable template without credential values.
+dataverse_backend/app/__init__.py,Backend API and application,py,0,0,Tracked,Project file (py):   init  .
+dataverse_backend/app/agents/__init__.py,Backend API and application,py,23,1,Tracked,Agent orchestration or analysis module:   init  .
+dataverse_backend/app/agents/analyst_agent.py,Backend API and application,py,3834,80,Tracked,Agent orchestration or analysis module: analyst agent.
+dataverse_backend/app/agents/data_analysis_prediction_agent.py,Backend API and application,py,57268,1402,Tracked,Agent orchestration or analysis module: data analysis prediction agent.
+dataverse_backend/app/agents/data_understanding_agent.py,Backend API and application,py,11669,276,Tracked,Agent orchestration or analysis module: data understanding agent.
+dataverse_backend/app/agents/dataset_agent.py,Backend API and application,py,2797,71,Tracked,Agent orchestration or analysis module: dataset agent.
+dataverse_backend/app/api/__init__.py,Backend API and application,py,25,1,Tracked,"FastAPI request, route, schema, or upload module:   init  ."
+dataverse_backend/app/api/analyze_routes.py,Backend API and application,py,3458,93,Tracked,"FastAPI request, route, schema, or upload module: analyze routes."
+dataverse_backend/app/api/auth_routes.py,Backend API and application,py,2462,77,Tracked,"FastAPI request, route, schema, or upload module: auth routes."
+dataverse_backend/app/api/dataset_session_routes.py,Backend API and application,py,4621,120,Tracked,"FastAPI request, route, schema, or upload module: dataset session routes."
+dataverse_backend/app/api/report_routes.py,Backend API and application,py,1880,46,Tracked,"FastAPI request, route, schema, or upload module: report routes."
+dataverse_backend/app/api/routes.py,Backend API and application,py,2260,64,Tracked,"FastAPI request, route, schema, or upload module: routes."
+dataverse_backend/app/api/schemas.py,Backend API and application,py,5138,193,Tracked,"FastAPI request, route, schema, or upload module: schemas."
+dataverse_backend/app/api/session_routes.py,Backend API and application,py,10655,240,Tracked,"FastAPI request, route, schema, or upload module: session routes."
+dataverse_backend/app/api/storage_routes.py,Backend API and application,py,604,22,Tracked,"FastAPI request, route, schema, or upload module: storage routes."
+dataverse_backend/app/api/upload_parsing.py,Backend API and application,py,5998,172,Tracked,"FastAPI request, route, schema, or upload module: upload parsing."
+dataverse_backend/app/core/__init__.py,Backend API and application,py,0,0,Tracked,Backend infrastructure/core module:   init  .
+dataverse_backend/app/core/config.py,Backend API and application,py,5856,157,Tracked,Backend infrastructure/core module: config.
+dataverse_backend/app/core/exceptions.py,Backend API and application,py,733,24,Tracked,Backend infrastructure/core module: exceptions.
+dataverse_backend/app/core/logger.py,Backend API and application,py,1972,61,Tracked,Backend infrastructure/core module: logger.
+dataverse_backend/app/core/middleware.py,Backend API and application,py,844,25,Tracked,Backend infrastructure/core module: middleware.
+dataverse_backend/app/core/storage.py,Backend API and application,py,911,34,Tracked,Backend infrastructure/core module: storage.
+dataverse_backend/app/db/__init__.py,Backend API and application,py,110,4,Tracked,Project file (py):   init  .
+dataverse_backend/app/main.py,Backend API and application,py,6302,150,Tracked,Project file (py): main.
+dataverse_backend/app/services/__init__.py,Backend API and application,py,71,1,Tracked,Backend service module:   init  .
+dataverse_backend/app/services/agent.py,Backend API and application,py,24792,481,Tracked,Backend service module: agent.
+dataverse_backend/app/services/agent_loop.py,Backend API and application,py,12660,272,Tracked,Backend service module: agent loop.
+dataverse_backend/app/services/ai_khata.py,Backend API and application,py,7918,186,Tracked,Backend service module: ai khata.
+dataverse_backend/app/services/ai_khata_tools.py,Backend API and application,py,9898,183,Tracked,Backend service module: ai khata tools.
+dataverse_backend/app/services/analysis_pipeline.py,Backend API and application,py,32185,713,Tracked,Backend service module: analysis pipeline.
+dataverse_backend/app/services/analysis_planner.py,Backend API and application,py,9798,190,Tracked,Backend service module: analysis planner.
+dataverse_backend/app/services/analytics_tools.py,Backend API and application,py,8896,177,Tracked,Backend service module: analytics tools.
+dataverse_backend/app/services/audit.py,Backend API and application,py,5310,129,Tracked,Backend service module: audit.
+dataverse_backend/app/services/auth_service.py,Backend API and application,py,10828,272,Tracked,Backend service module: auth service.
+dataverse_backend/app/services/business_leads_tools.py,Backend API and application,py,9201,189,Tracked,Backend service module: business leads tools.
+dataverse_backend/app/services/business_metrics.py,Backend API and application,py,38202,705,Tracked,Backend service module: business metrics.
+dataverse_backend/app/services/certificate.py,Backend API and application,py,3382,84,Tracked,Backend service module: certificate.
+dataverse_backend/app/services/counterfactual.py,Backend API and application,py,6811,162,Tracked,Backend service module: counterfactual.
+dataverse_backend/app/services/data_loader.py,Backend API and application,py,518,17,Tracked,Backend service module: data loader.
+dataverse_backend/app/services/data_profiler.py,Backend API and application,py,21513,498,Tracked,Backend service module: data profiler.
+dataverse_backend/app/services/data_quality.py,Backend API and application,py,19704,466,Tracked,Backend service module: data quality.
+dataverse_backend/app/services/dataset_classifier.py,Backend API and application,py,5772,144,Tracked,Backend service module: dataset classifier.
+dataverse_backend/app/services/deepanalyze_client.py,Backend API and application,py,2588,63,Tracked,Backend service module: deepanalyze client.
+dataverse_backend/app/services/domain_guard.py,Backend API and application,py,1848,49,Tracked,Backend service module: domain guard.
+dataverse_backend/app/services/health_checker.py,Backend API and application,py,5942,134,Tracked,Backend service module: health checker.
+dataverse_backend/app/services/intent_router.py,Backend API and application,py,6876,112,Tracked,Backend service module: intent router.
+dataverse_backend/app/services/llm_provider.py,Backend API and application,py,6811,144,Tracked,Backend service module: llm provider.
+dataverse_backend/app/services/llm_service.py,Backend API and application,py,4176,101,Tracked,Backend service module: llm service.
+dataverse_backend/app/services/modeling.py,Backend API and application,py,14779,312,Tracked,Backend service module: modeling.
+dataverse_backend/app/services/progress_bus.py,Backend API and application,py,4429,119,Tracked,Backend service module: progress bus.
+dataverse_backend/app/services/provenance.py,Backend API and application,py,5109,177,Tracked,Backend service module: provenance.
+dataverse_backend/app/services/quality_doctor.py,Backend API and application,py,6790,167,Tracked,Backend service module: quality doctor.
+dataverse_backend/app/services/query_planner.py,Backend API and application,py,12564,241,Tracked,Backend service module: query planner.
+dataverse_backend/app/services/rate_limiter.py,Backend API and application,py,747,27,Tracked,Backend service module: rate limiter.
+dataverse_backend/app/services/recommendation_engine.py,Backend API and application,py,2693,67,Tracked,Backend service module: recommendation engine.
+dataverse_backend/app/services/report_composer.py,Backend API and application,py,101511,2246,Tracked,Backend service module: report composer.
+dataverse_backend/app/services/report_generator.py,Backend API and application,py,93193,1941,Tracked,Backend service module: report generator.
+dataverse_backend/app/services/report_narrator.py,Backend API and application,py,21053,339,Tracked,Backend service module: report narrator.
+dataverse_backend/app/services/response_builder.py,Backend API and application,py,1878,45,Tracked,Backend service module: response builder.
+dataverse_backend/app/services/root_cause.py,Backend API and application,py,16763,401,Tracked,Backend service module: root cause.
+dataverse_backend/app/services/sales_tools.py,Backend API and application,py,6008,123,Tracked,Backend service module: sales tools.
+dataverse_backend/app/services/semantic_mapper.py,Backend API and application,py,18903,407,Tracked,Backend service module: semantic mapper.
+dataverse_backend/app/services/session_service.py,Backend API and application,py,43286,892,Tracked,Backend service module: session service.
+dataverse_backend/app/services/session_store.py,Backend API and application,py,10501,296,Tracked,Backend service module: session store.
+dataverse_backend/app/services/supabase_client.py,Backend API and application,py,7269,183,Tracked,Backend service module: supabase client.
+dataverse_backend/app/services/target_inference.py,Backend API and application,py,7183,177,Tracked,Backend service module: target inference.
+dataverse_backend/app/services/title_generator.py,Backend API and application,py,3997,98,Tracked,Backend service module: title generator.
+dataverse_backend/app/services/whatif.py,Backend API and application,py,2632,63,Tracked,Backend service module: whatif.
+dataverse_backend/app/services/xai.py,Backend API and application,py,5366,108,Tracked,Backend service module: xai.
+dataverse_backend/Dockerfile,Backend API and application,no extension,1034,36,Tracked,Container build definition for dataverse_backend.
+dataverse_backend/grep.exe.stackdump,Backend API and application,stackdump,1927,,Local/generated/untracked,Project file (stackdump): grep.exe.
+dataverse_backend/logs/dataverse_backend.log,Backend API and application,log,551801,,Local/generated/untracked,Project file (log): dataverse backend.
+dataverse_backend/requirements-full.txt,Backend API and application,txt,528,31,Tracked,Python dependency manifest for the indicated runtime profile.
+dataverse_backend/requirements-mvp.txt,Backend API and application,txt,295,26,Tracked,Python dependency manifest for the indicated runtime profile.
+dataverse_backend/requirements.txt,Backend API and application,txt,293,26,Tracked,Python dependency manifest for the indicated runtime profile.
+dataverse_backend/tests/__init__.py,Backend automated tests,py,22,1,Tracked,Automated backend test coverage:   init  .
+dataverse_backend/tests/conftest.py,Backend automated tests,py,11575,272,Tracked,Automated backend test coverage: conftest.
+dataverse_backend/tests/test_agent_loop.py,Backend automated tests,py,5770,136,Tracked,Automated backend test coverage: agent loop.
+dataverse_backend/tests/test_agentic_analytics.py,Backend automated tests,py,14736,350,Tracked,Automated backend test coverage: agentic analytics.
+dataverse_backend/tests/test_analyze_endpoints.py,Backend automated tests,py,9621,258,Tracked,Automated backend test coverage: analyze endpoints.
+dataverse_backend/tests/test_ask.py,Backend automated tests,py,1802,57,Tracked,Automated backend test coverage: ask.
+dataverse_backend/tests/test_audit.py,Backend automated tests,py,3984,100,Tracked,Automated backend test coverage: audit.
+dataverse_backend/tests/test_auth_security.py,Backend automated tests,py,8250,202,Tracked,Automated backend test coverage: auth security.
+dataverse_backend/tests/test_certificate.py,Backend automated tests,py,3137,81,Tracked,Automated backend test coverage: certificate.
+dataverse_backend/tests/test_chat_answer.py,Backend automated tests,py,1748,50,Tracked,Automated backend test coverage: chat answer.
+dataverse_backend/tests/test_chat_sessions_api.py,Backend automated tests,py,12399,275,Tracked,Automated backend test coverage: chat sessions api.
+dataverse_backend/tests/test_compact_report.py,Backend automated tests,py,8052,213,Tracked,Automated backend test coverage: compact report.
+dataverse_backend/tests/test_counterfactual.py,Backend automated tests,py,4248,102,Tracked,Automated backend test coverage: counterfactual.
+dataverse_backend/tests/test_deepanalyze_provider.py,Backend automated tests,py,2818,68,Tracked,Automated backend test coverage: deepanalyze provider.
+dataverse_backend/tests/test_delete.py,Backend automated tests,py,623,19,Tracked,Automated backend test coverage: delete.
+dataverse_backend/tests/test_domain_guard.py,Backend automated tests,py,3669,102,Tracked,Automated backend test coverage: domain guard.
+dataverse_backend/tests/test_investigate_route.py,Backend automated tests,py,3067,80,Tracked,Automated backend test coverage: investigate route.
+dataverse_backend/tests/test_mvp_e2e.py,Backend automated tests,py,7810,201,Tracked,Automated backend test coverage: mvp e2e.
+dataverse_backend/tests/test_pdf_two_pages.py,Backend automated tests,py,3072,68,Tracked,Automated backend test coverage: pdf two pages.
+dataverse_backend/tests/test_product_fallback.py,Backend automated tests,py,2007,43,Tracked,Automated backend test coverage: product fallback.
+dataverse_backend/tests/test_profile.py,Backend automated tests,py,644,18,Tracked,Automated backend test coverage: profile.
+dataverse_backend/tests/test_provenance.py,Backend automated tests,py,4260,115,Tracked,Automated backend test coverage: provenance.
+dataverse_backend/tests/test_quality_doctor.py,Backend automated tests,py,1873,54,Tracked,Automated backend test coverage: quality doctor.
+dataverse_backend/tests/test_query_routing.py,Backend automated tests,py,1455,34,Tracked,Automated backend test coverage: query routing.
+dataverse_backend/tests/test_report_generator.py,Backend automated tests,py,20953,391,Tracked,Automated backend test coverage: report generator.
+dataverse_backend/tests/test_report_polish.py,Backend automated tests,py,9809,244,Tracked,Automated backend test coverage: report polish.
+dataverse_backend/tests/test_report_quality.py,Backend automated tests,py,4086,89,Tracked,Automated backend test coverage: report quality.
+dataverse_backend/tests/test_report_wording.py,Backend automated tests,py,4769,105,Tracked,Automated backend test coverage: report wording.
+dataverse_backend/tests/test_response_charts.py,Backend automated tests,py,1255,31,Tracked,Automated backend test coverage: response charts.
+dataverse_backend/tests/test_root_cause.py,Backend automated tests,py,5405,128,Tracked,Automated backend test coverage: root cause.
+dataverse_backend/tests/test_security.py,Backend automated tests,py,4292,126,Tracked,Automated backend test coverage: security.
+dataverse_backend/tests/test_semantic_business_metrics.py,Backend automated tests,py,14369,309,Tracked,Automated backend test coverage: semantic business metrics.
+dataverse_backend/tests/test_upload.py,Backend automated tests,py,1231,38,Tracked,Automated backend test coverage: upload.
+dataverse_backend/tests/test_whatif.py,Backend automated tests,py,1736,46,Tracked,Automated backend test coverage: whatif.
+data/retail_mart_processed_v1.csv,"Data, trained models, and ML evidence",csv,3113988,35001,Tracked,Structured dataset or API test fixture; row/column details are documented in the data section.
+dataverse_backend/sample_missing_values.csv,"Data, trained models, and ML evidence",csv,435,11,Tracked,Structured dataset or API test fixture; row/column details are documented in the data section.
+dataverse_backend/sample_sales.csv,"Data, trained models, and ML evidence",csv,1644,41,Tracked,Structured dataset or API test fixture; row/column details are documented in the data section.
+dataverse_backend/sample_small_dataset.csv,"Data, trained models, and ML evidence",csv,450,11,Tracked,Structured dataset or API test fixture; row/column details are documented in the data section.
+models/model_metadata.json,"Data, trained models, and ML evidence",json,5075,246,Tracked,"Training metrics, features, estimator, and evaluation metadata for saved models."
+models/profit_model.pkl,"Data, trained models, and ML evidence",pkl,2827,,Tracked,Serialized scikit-learn pipeline artifact; metadata and limitations are documented in the model section.
+models/stockout_flag_model.pkl,"Data, trained models, and ML evidence",pkl,1642387,,Tracked,Serialized scikit-learn pipeline artifact; metadata and limitations are documented in the model section.
+models/total_sales_model.pkl,"Data, trained models, and ML evidence",pkl,2884,,Tracked,Serialized scikit-learn pipeline artifact; metadata and limitations are documented in the model section.
+scripts/train_retail_mart.py,"Data, trained models, and ML evidence",py,10767,300,Tracked,Project file (py): train retail mart.
+dataverse_backend/app/db/migrations/002_chat_sessions_supabase.sql,Supabase database and storage,sql,5742,140,Tracked,PostgreSQL/Supabase schema or ordered migration.
+dataverse_backend/supabase_schema.sql,Supabase database and storage,sql,5878,108,Tracked,PostgreSQL/Supabase schema or ordered migration.
+supabase/migrations/001_dataverse_schema.sql,Supabase database and storage,sql,3967,94,Tracked,PostgreSQL/Supabase schema or ordered migration.
+_build_corrections.py,"Development, QA, and document automation",py,15851,237,Tracked,Automation utility:  build corrections.
+_build_deck.py,"Development, QA, and document automation",py,32819,521,Tracked,Automation utility:  build deck.
+scripts/build_detailed_technical_report.py,"Development, QA, and document automation",py,92403,1345,Local/generated/untracked,Automation utility: build detailed technical report.
+scripts/check_markdown_links.py,"Development, QA, and document automation",py,2033,58,Local/generated/untracked,Automation utility: check markdown links.
+scripts/dev-start.ps1,"Development, QA, and document automation",ps1,689,23,Tracked,Automation utility: dev start.
+scripts/generate_chapter_6_7_outputs.py,"Development, QA, and document automation",py,72891,1331,Tracked,Automation utility: generate chapter 6 7 outputs.
+scripts/project_inventory.py,"Development, QA, and document automation",py,14739,340,Local/generated/untracked,Automation utility: project inventory.
+scripts/setup-local-https.ps1,"Development, QA, and document automation",ps1,3699,94,Local/generated/untracked,Automation utility: setup local https.
+scripts/smoke_test_analysis.py,"Development, QA, and document automation",py,2713,77,Tracked,Automation utility: smoke test analysis.
+scripts/start-live-backend.cmd,"Development, QA, and document automation",cmd,230,,Tracked,Automation utility: start live backend.
+scripts/start-live-backend.ps1,"Development, QA, and document automation",ps1,2794,59,Tracked,Automation utility: start live backend.
+scripts/update_academic_documents.py,"Development, QA, and document automation",py,31312,648,Local/generated/untracked,Automation utility: update academic documents.
+docs/markdown/00_index_and_overview/DOCUMENTATION_INDEX_LEGACY.md,Project documentation and academic material,md,19490,585,Local/generated/untracked,DataVerse AI - Documentation Index (Updated)
+docs/markdown/00_index_and_overview/PROJECT_DOCUMENTATION_OVERVIEW.md,Project documentation and academic material,md,10963,333,Local/generated/untracked,DataVerse AI - AI-Powered Business Intelligence Platform
+docs/markdown/00_index_and_overview/REPOSITORY_STRUCTURE_GUIDE.md,Project documentation and academic material,md,4284,73,Local/generated/untracked,Repository Structure Guide
+docs/markdown/01_getting_started/QUICK_REFERENCE.md,Project documentation and academic material,md,14016,513,Local/generated/untracked,✨ DataVerse Analytics - Complete Implementation Summary
+docs/markdown/01_getting_started/QUICK_START.md,Project documentation and academic material,md,6320,260,Local/generated/untracked,DataVerse AI - Quick Reference
+docs/markdown/01_getting_started/QUICK_START_V2.md,Project documentation and academic material,md,7798,353,Local/generated/untracked,DataVerse AI 2.0 - Quick Start Guide
+docs/markdown/01_getting_started/SETUP_GUIDE.md,Project documentation and academic material,md,10671,442,Local/generated/untracked,DataVerse AI - Complete Setup Guide
+docs/markdown/02_architecture_and_design/AGENTIC_XAI_UPGRADE_DESIGN.md,Project documentation and academic material,md,6822,129,Local/generated/untracked,Agentic + XAI Upgrade — Design
+docs/markdown/02_architecture_and_design/ARCHITECTURE.md,Project documentation and academic material,md,10075,363,Local/generated/untracked,DataVerse AI Architecture
+docs/markdown/02_architecture_and_design/DEEPANALYZE_INTEGRATION.md,Project documentation and academic material,md,3305,76,Local/generated/untracked,DeepAnalyze as DataVerse's agentic engine
+docs/markdown/02_architecture_and_design/REPORT_QUALITY_DESIGN.md,Project documentation and academic material,md,2622,55,Local/generated/untracked,Report Quality Improvements — Design
+docs/markdown/02_architecture_and_design/VERIFIABLE_ANALYST_CHAT_DESIGN.md,Project documentation and academic material,md,10059,201,Local/generated/untracked,Verifiable Analyst Chat — Design Spec
+docs/markdown/02_architecture_and_design/VERIFIABLE_ANALYST_CHAT_IMPLEMENTATION_PLAN.md,Project documentation and academic material,md,38487,1015,Local/generated/untracked,Verifiable Analyst Chat Implementation Plan
+docs/markdown/03_implementation_and_services/BACKEND_SERVICE_GUIDE.md,Project documentation and academic material,md,842,20,Local/generated/untracked,DataVerse AI Backend
+docs/markdown/03_implementation_and_services/FRONTEND_SERVICE_GUIDE.md,Project documentation and academic material,md,1219,31,Local/generated/untracked,Run and deploy your AI Studio app
+docs/markdown/03_implementation_and_services/IMPLEMENTATION_COMPLETION_SUMMARY.md,Project documentation and academic material,md,30585,821,Local/generated/untracked,DataVerse AI Agentic LLM Core - Implementation Completion Summary
+docs/markdown/03_implementation_and_services/IMPLEMENTATION_GUIDE.md,Project documentation and academic material,md,16213,593,Local/generated/untracked,🚀 DataVerse Analytics - Complete Implementation Guide
+docs/markdown/03_implementation_and_services/INTEGRATION_GUIDE_PHASE5.md,Project documentation and academic material,md,8080,332,Local/generated/untracked,DataVerse AI - Enhancement Integration Guide
+docs/markdown/03_implementation_and_services/NEW_TOOLS_REFERENCE.md,Project documentation and academic material,md,7799,268,Local/generated/untracked,New Tools Quick Reference Guide
+docs/markdown/03_implementation_and_services/RETAIL_AGENT_GUIDE.md,Project documentation and academic material,md,864,40,Local/generated/untracked,Windows
+docs/markdown/04_testing_and_quality/EVALUATION_FRAMEWORK.md,Project documentation and academic material,md,13077,428,Local/generated/untracked,Agentic LLM Evaluation Framework
+docs/markdown/04_testing_and_quality/INTEGRATION_TESTING_GUIDE.md,Project documentation and academic material,md,15220,514,Local/generated/untracked,Integration Testing Guide for Agentic LLM Core
+docs/markdown/04_testing_and_quality/PHASE_5_FINAL_VALIDATION.md,Project documentation and academic material,md,12085,294,Local/generated/untracked,Phase 5 Final Validation Report
+docs/markdown/04_testing_and_quality/PROJECT_EVALUATION_REPORT.md,Project documentation and academic material,md,41859,1377,Local/generated/untracked,DataVerse AI - Comprehensive Project Evaluation Report
+docs/markdown/05_deployment_and_operations/CLEANUP_REPORT.md,Project documentation and academic material,md,9552,294,Local/generated/untracked,DataVerse AI Cleanup Report
+docs/markdown/05_deployment_and_operations/DEPLOYMENT_READY.md,Project documentation and academic material,md,12376,493,Local/generated/untracked,🚀 DataVerse AI Platform - Deployment Ready
+docs/markdown/05_deployment_and_operations/PRODUCTION_DEPLOYMENT_GUIDE.md,Project documentation and academic material,md,9155,414,Local/generated/untracked,Production Deployment Guide for Agentic LLM
+docs/markdown/05_deployment_and_operations/PRODUCTION_READY_RUNBOOK.md,Project documentation and academic material,md,2007,49,Local/generated/untracked,DataVerse Production Readiness Runbook
+docs/markdown/06_project_reports_and_defense/PROJECT_DEFENSE_DOCUMENTATION.md,Project documentation and academic material,md,47056,1463,Local/generated/untracked,DataVerse Analytics Backend - Project Defense Documentation
+docs/markdown/06_project_reports_and_defense/PROJECT_EXPLORATION_SUMMARY.md,Project documentation and academic material,md,20075,562,Local/generated/untracked,DataVerse AI - Comprehensive Project Exploration Summary
+docs/markdown/06_project_reports_and_defense/PROJECT_REPORT.md,Project documentation and academic material,md,13821,484,Local/generated/untracked,DataVerse AI Project Report
+docs/markdown/06_project_reports_and_defense/PROJECT_TEACHER_PRESENTATION.md,Project documentation and academic material,md,8124,210,Local/generated/untracked,DataVerse AI — Teacher Presentation Document
+docs/markdown/06_project_reports_and_defense/RETAIL_AGENT_REPORT.md,Project documentation and academic material,md,2370,54,Local/generated/untracked,Retail Analytics Report
+docs/markdown/06_project_reports_and_defense/RETAIL_AGENT_REPORT_PHI3.md,Project documentation and academic material,md,7882,87,Local/generated/untracked,Retail Analytics Report
+docs/markdown/06_project_reports_and_defense/TEACHER_EXPLANATION.md,Project documentation and academic material,md,5559,177,Local/generated/untracked,Teacher Explanation for DataVerse AI
+docs/markdown/07_completion_and_history/COMPLETION_CERTIFICATE.md,Project documentation and academic material,md,6064,187,Local/generated/untracked,DATAVERSE AI v2.0.0 - FINAL COMPLETION CERTIFICATE
+docs/markdown/07_completion_and_history/COMPLETION_PROOF.md,Project documentation and academic material,md,8967,278,Local/generated/untracked,✅ DataVerse AI Phase 5 - FINAL COMPLETION PROOF
+docs/markdown/07_completion_and_history/COMPLETION_SUMMARY.md,Project documentation and academic material,md,11632,403,Local/generated/untracked,DataVerse AI - Project Completion Summary
+docs/markdown/07_completion_and_history/FINAL_COMPLETION_PROOF.md,Project documentation and academic material,md,4798,129,Local/generated/untracked,FINAL PROOF OF COMPLETION - DataVerse AI v2.0.0
+docs/markdown/07_completion_and_history/FINAL_STATUS.md,Project documentation and academic material,md,12755,439,Local/generated/untracked,✅ ALL PHASES COMPLETE - FINAL STATUS REPORT
+docs/markdown/07_completion_and_history/FINAL_SUMMARY.md,Project documentation and academic material,md,13027,521,Local/generated/untracked,🎉 DataVerse Analytics - COMPLETE & OPERATIONAL
+docs/markdown/07_completion_and_history/PHASE_2_COMPLETION.md,Project documentation and academic material,md,18280,613,Local/generated/untracked,🎯 DataVerse Phase 2 - Complete Implementation
+docs/markdown/07_completion_and_history/PHASE_5_COMPLETION_SUMMARY.md,Project documentation and academic material,md,10348,406,Local/generated/untracked,DataVerse AI - Phase 5 Completion Summary
+docs/markdown/07_completion_and_history/PHASE_5_FUNCTIONAL_READINESS.md,Project documentation and academic material,md,8265,256,Local/generated/untracked,Phase 5 Complete - Functional Readiness Report
+docs/markdown/07_completion_and_history/PHASE_5_IMPROVEMENTS.md,Project documentation and academic material,md,12331,494,Local/generated/untracked,DataVerse AI - Phase 5: Enhanced Features & Modern Frontend
+docs/markdown/07_completion_and_history/PHASES_COMPLETION_REPORT.md,Project documentation and academic material,md,14470,447,Local/generated/untracked,DataVerse AI Platform - All Phases Completion Report
+docs/markdown/07_completion_and_history/SESSION_COMPLETION_PRIORITY1.md,Project documentation and academic material,md,9212,276,Local/generated/untracked,Session Completion Report: All 20 Tools Implemented ✅
+docs/markdown/07_completion_and_history/SESSION_PRIORITY2_SUMMARY.md,Project documentation and academic material,md,9413,284,Local/generated/untracked,Priority 2 Testing Framework Enhancement - Session Summary
+docs/markdown/07_completion_and_history/STATUS_REPORT.md,Project documentation and academic material,md,15495,472,Local/generated/untracked,🚀 DataVerse Analytics - Status Report
+docs/markdown/08_generated_notes/chapter_6_7/chapter_6_7_evidence_log.md,Project documentation and academic material,md,23597,222,Local/generated/untracked,Chapter 6/7 Evidence Log
+docs/markdown/08_generated_notes/chapter_6_7/chapter_6_7_figures_list.md,Project documentation and academic material,md,2877,27,Local/generated/untracked,Chapter 6/7 Figures List
+docs/markdown/08_generated_notes/chapter_6_7/chapter_6_data_collection_analysis.md,Project documentation and academic material,md,18154,300,Local/generated/untracked,Chapter 6: Data Collection & Analysis
+docs/markdown/08_generated_notes/chapter_6_7/chapter_6_tables.md,Project documentation and academic material,md,8266,189,Local/generated/untracked,Chapter 6 Tables
+docs/markdown/08_generated_notes/chapter_6_7/chapter_7_results_discussion.md,Project documentation and academic material,md,14541,164,Local/generated/untracked,Chapter 7: Results & Discussion
+docs/markdown/08_generated_notes/chapter_6_7/chapter_7_tables.md,Project documentation and academic material,md,7524,115,Local/generated/untracked,Chapter 7 Tables
+docs/markdown/08_generated_notes/DATAVERSE_AI_TECHNICAL_REPORT_SOURCE_NOTES.md,Project documentation and academic material,md,2094,33,Local/generated/untracked,DataVerse AI technical report source notes
+docs/markdown/README.md,Project documentation and academic material,md,14283,149,Local/generated/untracked,DataVerse AI Markdown Documentation Library
+docs/reports/test_results.txt,Project documentation and academic material,txt,12698,126,Tracked,Academic specification or supporting document: test results.
+docs/specs/DataVerse_Agentic_Specification.docx,Project documentation and academic material,docx,25260,,Tracked,Academic specification or supporting document: DataVerse Agentic Specification.
+docs/specs/DataVerse_Agentic_Specification.tmp.docx,Project documentation and academic material,docx,27428,,Tracked,Academic specification or supporting document: DataVerse Agentic Specification.tmp.
+docs/specs/DataVerse_Agentic_Specification_UPDATED.docx,Project documentation and academic material,docx,27428,,Tracked,Academic specification or supporting document: DataVerse Agentic Specification UPDATED.
+logs/codex-dev-check.err.log,"Generated reports, figures, logs, and screenshots",log,0,,Local/generated/untracked,Development/runtime log artifact; content is not treated as source code.
+logs/codex-dev-check.out.log,"Generated reports, figures, logs, and screenshots",log,0,,Local/generated/untracked,Development/runtime log artifact; content is not treated as source code.
+logs/codex-dev-final.err.log,"Generated reports, figures, logs, and screenshots",log,488,,Local/generated/untracked,Development/runtime log artifact; content is not treated as source code.
+logs/codex-dev-final.out.log,"Generated reports, figures, logs, and screenshots",log,2441,,Local/generated/untracked,Development/runtime log artifact; content is not treated as source code.
+logs/codex-dev-verify.err.log,"Generated reports, figures, logs, and screenshots",log,489,,Local/generated/untracked,Development/runtime log artifact; content is not treated as source code.
+logs/codex-dev-verify.out.log,"Generated reports, figures, logs, and screenshots",log,936,,Local/generated/untracked,Development/runtime log artifact; content is not treated as source code.
+logs/dataverse_backend.log,"Generated reports, figures, logs, and screenshots",log,241374,,Local/generated/untracked,Development/runtime log artifact; content is not treated as source code.
+logs/demo-dev.err.log,"Generated reports, figures, logs, and screenshots",log,0,,Local/generated/untracked,Development/runtime log artifact; content is not treated as source code.
+logs/demo-dev.out.log,"Generated reports, figures, logs, and screenshots",log,0,,Local/generated/untracked,Development/runtime log artifact; content is not treated as source code.
+output/architecture/dataverse-production-architecture.png,"Generated reports, figures, logs, and screenshots",png,93769,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+output/architecture/dataverse-request-data-flow.png,"Generated reports, figures, logs, and screenshots",png,197361,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+output/pdf/DataVerse_AI_Complete_Current_Folder_Audit_2026.docx,"Generated reports, figures, logs, and screenshots",docx,499194,,Local/generated/untracked,Generated or revised Word deliverable.
+output/pdf/DataVerse_AI_Complete_Current_Folder_Audit_2026.pdf,"Generated reports, figures, logs, and screenshots",pdf,1034492,,Local/generated/untracked,Generated or revised PDF deliverable.
+output/pdf/DataVerse_AI_Complete_Technical_Implementation_Report_2026.docx,"Generated reports, figures, logs, and screenshots",docx,499194,,Local/generated/untracked,Generated or revised Word deliverable.
+output/pdf/DataVerse_AI_Complete_Technical_Implementation_Report_2026.pdf,"Generated reports, figures, logs, and screenshots",pdf,1034492,,Local/generated/untracked,Generated or revised PDF deliverable.
+output/pdf/DataVerse_AI_Complete_Technical_Implementation_Report_2026_delivery.pdf,"Generated reports, figures, logs, and screenshots",pdf,799080,,Local/generated/untracked,Generated or revised PDF deliverable.
+output/pdf/DataVerse_AI_Complete_Technical_Implementation_Report_2026_final.pdf,"Generated reports, figures, logs, and screenshots",pdf,818315,,Local/generated/untracked,Generated or revised PDF deliverable.
+output/pdf/DataVerse_AI_Complete_Technical_Implementation_Report_2026_verified.pdf,"Generated reports, figures, logs, and screenshots",pdf,815957,,Local/generated/untracked,Generated or revised PDF deliverable.
+output/pdf/DataVerse_AI_Final_Report_Final_2026.pdf,"Generated reports, figures, logs, and screenshots",pdf,2297061,,Local/generated/untracked,Generated or revised PDF deliverable.
+output/pdf/DataVerse_AI_Final_Report_Revised_2026.docx,"Generated reports, figures, logs, and screenshots",docx,2536497,,Local/generated/untracked,Generated or revised Word deliverable.
+output/pdf/DataVerse_AI_Final_Report_Revised_2026.pdf,"Generated reports, figures, logs, and screenshots",pdf,2297057,,Local/generated/untracked,Generated or revised PDF deliverable.
+output/pdf/DataVerse_AI_Final_Report_Revised_2026_Final.pdf,"Generated reports, figures, logs, and screenshots",pdf,2297061,,Local/generated/untracked,Generated or revised PDF deliverable.
+output/pdf/DataVerse_AI_Final_Report_Simple_Architecture_2026.pdf,"Generated reports, figures, logs, and screenshots",pdf,2131108,,Local/generated/untracked,Generated or revised PDF deliverable.
+output/playwright/latest-dashboard.png,"Generated reports, figures, logs, and screenshots",png,362945,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+output/playwright/latest-features.png,"Generated reports, figures, logs, and screenshots",png,82039,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+output/playwright/latest-landing.png,"Generated reports, figures, logs, and screenshots",png,179864,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+output/playwright/latest-login.png,"Generated reports, figures, logs, and screenshots",png,362945,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+output/playwright/latest-signup.png,"Generated reports, figures, logs, and screenshots",png,366687,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+output/playwright/preview-state.json,"Generated reports, figures, logs, and screenshots",json,414,18,Local/generated/untracked,Generated machine-readable verification or report metadata.
+output/slides/FYP_P2_Defense_Revised_2026.pptx,"Generated reports, figures, logs, and screenshots",pptx,1000890,,Local/generated/untracked,Generated or revised presentation deliverable.
+output/technical_report/DataVerse_AI_Current_Folder_Audit.json,"Generated reports, figures, logs, and screenshots",json,99820,2944,Local/generated/untracked,Generated machine-readable verification or report metadata.
+output/technical_report/DataVerse_AI_Current_Folder_File_Inventory.csv,"Generated reports, figures, logs, and screenshots",csv,48173,308,Local/generated/untracked,Structured dataset or API test fixture; row/column details are documented in the data section.
+output/technical_report/saved_model_feature_importance.png,"Generated reports, figures, logs, and screenshots",png,124319,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+output/technical_report/stockout_confusion_matrix.png,"Generated reports, figures, logs, and screenshots",png,100280,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+outputs/chapter_6_7_generation_summary.json,"Generated reports, figures, logs, and screenshots",json,10960,50,Local/generated/untracked,Generated machine-readable verification or report metadata.
+report/chapter_outputs/figure_6_10_discount_vs_profit.png,"Generated reports, figures, logs, and screenshots",png,107482,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+report/chapter_outputs/figure_6_3_sales_by_category.png,"Generated reports, figures, logs, and screenshots",png,52992,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+report/chapter_outputs/figure_6_4_sales_by_region.png,"Generated reports, figures, logs, and screenshots",png,50781,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+report/chapter_outputs/figure_6_5_profit_by_category.png,"Generated reports, figures, logs, and screenshots",png,54022,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+report/chapter_outputs/figure_6_6_monthly_sales_trend.png,"Generated reports, figures, logs, and screenshots",png,93795,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+report/chapter_outputs/figure_6_7_customer_type_distribution.png,"Generated reports, figures, logs, and screenshots",png,42174,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+report/chapter_outputs/figure_6_8_payment_method_distribution.png,"Generated reports, figures, logs, and screenshots",png,48671,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+report/chapter_outputs/figure_6_9_online_vs_offline_sales.png,"Generated reports, figures, logs, and screenshots",png,50403,,Local/generated/untracked,"Generated figure, architecture asset, or UI verification screenshot."
+.claude/settings.json,Repository automation metadata,json,3296,52,Tracked,Repository automation or agent configuration: settings.
+.claude/settings.local.json,Repository automation metadata,json,25512,198,Local/generated/untracked,Repository automation or agent configuration: settings.local.
+.github/workflows/ci.yml,Repository automation metadata,yml,655,31,Tracked,Repository automation or agent configuration: ci.
+.github/workflows/deploy-docker-host.yml,Repository automation metadata,yml,1325,45,Tracked,Repository automation or agent configuration: deploy docker host.
+.github/workflows/deploy-hf-space.yml,Repository automation metadata,yml,2197,60,Tracked,Repository automation or agent configuration: deploy hf space.
